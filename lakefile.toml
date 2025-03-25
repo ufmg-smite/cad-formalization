@@ -1,0 +1,15 @@
+name = "cad"
+version = "0.1.0"
+defaultTargets = ["cad"]
+
+[[lean_lib]]
+name = "Cad"
+
+[[lean_exe]]
+name = "cad"
+root = "Main"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+
