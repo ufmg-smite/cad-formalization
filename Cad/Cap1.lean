@@ -134,8 +134,16 @@ theorem prod_root : ∀ (x : Complex) (ps : List RPoly),
 noncomputable def exp' (q : RPoly) (p : RPoly) :=
   if p = C 0 then C 0 else q ^ p.natDegree
 
+theorem roots.dvd_of_le (p q : RPoly) (hp : p ≠ 0) : p.roots ≤ q.roots → p ∣ q :=
+  Polynomial.Splits.dvd_of_roots_le_roots (p := p) (q := q) (IsAlgClosed.splits p) hp
 
-#check rootMultiplicity
+theorem roots_deg (p : RPoly) (hp : p ≠ 0) : ∀ c ∈ p.roots , p.roots.count c ≤ p.natDegree := sorry
+
+theorem roots_pow (n : Nat) (p : RPoly) : ∀ c ∈ p.roots , p.roots.count c = n * (p^n).roots.count c := sorry
+
+theorem roots_subset (p q : RPoly) : (∀ c ∈ p.roots , p.roots.count c ≤ q.roots.count c) → p.roots ≤ q.roots := sorry
+
+theorem gcd_of_dvd (p q : RPoly) : Dvd.dvd p q → gcd p q = normalize p := sorry
 
 theorem root_gcd_exp₁ (p q : RPoly) : p ≠ 0 → (∀ c ∈ p.roots , c ∈ q.roots) → gcd p (exp' q p) = normalize p := by
   intros hp hr
@@ -150,9 +158,20 @@ theorem root_gcd_exp₁ (p q : RPoly) : p ≠ 0 → (∀ c ∈ p.roots , c ∈ q
       simp [hq, exp', hp]
       rw [zero_pow hdeg, gcd_zero_right p]
     else
-      let Mp := UniqueFactorizationMonoid.factors p
-      let Mq := UniqueFactorizationMonoid.factors q
-      sorry
+      let Mp := roots p
+      let Mq := roots q
+      apply gcd_of_dvd p (exp' q p)
+      apply roots.dvd_of_le p (exp' q p) hp
+      apply roots_subset p (exp' q p)
+      intros c hc
+      have hqc : c ∈ q.roots := hr c hc
+      have hqc' : q.roots.count c ≥ 1 := Multiset.one_le_count_iff_mem.mpr (hr c hc)
+      have : rootMultiplicity c q ≥ 1 := by rw [<- count_roots]; exact hqc'
+      have hqc'' : (exp' q p).roots.count c ≥ p.natDegree := by
+        simp [exp', hp]
+        exact Nat.le_mul_of_pos_right (natDegree p) this
+      have count_c_deg_p := roots_deg p hp c hc
+      linarith
 
 theorem root_gcd_exp (p q : RPoly) (h : p ≠ 0) : (∀ c ∈ p.roots , c ∈ q.roots) ↔ gcd p (exp' q p) = normalize p := by
   constructor
