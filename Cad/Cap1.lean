@@ -158,14 +158,12 @@ theorem root_gcd_exp₁ (p q : RPoly) : p ≠ 0 → (∀ c ∈ p.roots , c ∈ q
       simp [hq, exp', hp]
       rw [zero_pow hdeg, gcd_zero_right p]
     else
-      let Mp := roots p
-      let Mq := roots q
       apply gcd_of_dvd p (exp' q p)
       apply roots.dvd_of_le p (exp' q p) hp
       apply roots_subset p (exp' q p)
       intros c hc
       have hqc : c ∈ q.roots := hr c hc
-      have hqc' : q.roots.count c ≥ 1 := Multiset.one_le_count_iff_mem.mpr (hr c hc)
+      have hqc' : q.roots.count c ≥ 1 := Multiset.one_le_count_iff_mem.mpr hqc
       have : rootMultiplicity c q ≥ 1 := by rw [<- count_roots]; exact hqc'
       have hqc'' : (exp' q p).roots.count c ≥ p.natDegree := by
         simp [exp', hp]
