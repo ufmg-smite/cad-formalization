@@ -118,16 +118,14 @@ theorem prod_root : ∀ (x : Complex) (ps : List RPoly),
     (∀ p ∈ ps , (¬ IsRoot p x)) ↔ (¬ IsRoot (rpoly_prod ps) x) :=
   by intros a ps
      constructor
-     · contrapose
-       push_neg
+     · contrapose!
        intro h
        apply Classical.byContradiction
        intro h2
        push_neg at h2
        have ⟨_, _, hp3⟩  : Prime (X - C a) := Polynomial.prime_X_sub_C a
        exact neg_dvd_poly_prod ps a h h2
-     · contrapose
-       push_neg
+     · contrapose!
        rintro ⟨p, ⟨pps, hp⟩⟩
        have : Dvd.dvd (X - C a) p := dvd_iff_isRoot.mpr hp
        have : Dvd.dvd (X - C a) (rpoly_prod ps) := dvd_poly_prod ps p pps this
@@ -136,22 +134,37 @@ theorem prod_root : ∀ (x : Complex) (ps : List RPoly),
 noncomputable def exp' (q : RPoly) (p : RPoly) :=
   if p = C 0 then C 0 else q ^ p.natDegree
 
-variable (xs ys : Multiset Nat)
-#check (Subset xs ys)
 
-#check  Polynomial.uniqueFactorizationMonoid
+#check rootMultiplicity
 
-theorem root_gcd_exp (p q : RPoly) : (h: p ≠ 0) → (∀ c ∈ p.roots , c ∈ q.roots) ↔ gcd p (exp' q p) = p := by
-  intro h2
+theorem root_gcd_exp₁ (p q : RPoly) : p ≠ 0 → (∀ c ∈ p.roots , c ∈ q.roots) → gcd p (exp' q p) = normalize p := by
+  intros hp hr
+  if hdeg: p.natDegree = 0 then
+    simp [exp', hp, hdeg]
+    have foo := degree_eq_natDegree hp
+    have bar : p.degree = 0 := by rw [foo]; exact congrArg Nat.cast hdeg
+    have := Polynomial.isUnit_iff_degree_eq_zero.mpr bar
+    exact (normalize_eq_one.mpr this).symm
+  else
+    if hq: q = 0 then
+      simp [hq, exp', hp]
+      rw [zero_pow hdeg, gcd_zero_right p]
+    else
+      let Mp := UniqueFactorizationMonoid.factors p
+      let Mq := UniqueFactorizationMonoid.factors q
+      sorry
+
+theorem root_gcd_exp (p q : RPoly) (h : p ≠ 0) : (∀ c ∈ p.roots , c ∈ q.roots) ↔ gcd p (exp' q p) = normalize p := by
   constructor
-  · admit
+  · exact root_gcd_exp₁ p q h
   · intros hgcd c cr
-    have : IsRoot p c := isRoot_of_mem_roots cr
-    have : Dvd.dvd (X - C c) p := dvd_iff_isRoot.mpr this
+    rw [<- roots_normalize] at cr
+    have : IsRoot (normalize p) c := isRoot_of_mem_roots cr
+    have : Dvd.dvd (X - C c) (normalize p) := dvd_iff_isRoot.mpr this
     have := gcd_dvd_right p (exp' q p)
     rw [hgcd] at this
     have : Dvd.dvd (X - C c) (exp' q p) := by (expose_names; exact dvd_trans this_2 this)
-    simp [exp'] at this
-    simp [h2] at this
-    sorry -- facil
+    simp [exp', h] at this
+    -- provavelmente tem que separar o caso que natDegree p = 0
+    admit
 
