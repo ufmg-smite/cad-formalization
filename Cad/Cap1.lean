@@ -171,7 +171,59 @@ theorem root_gcd_exp₁ (p q : RPoly) : p ≠ 0 → (∀ c ∈ p.roots , c ∈ q
       have count_c_deg_p := roots_deg p hp c hc
       linarith
 
-theorem root_gcd_exp (p q : RPoly) (h : p ≠ 0) : (∀ c ∈ p.roots , c ∈ q.roots) ↔ gcd p (exp' q p) = normalize p := by
+noncomputable def  qpowdegp (p q : RPoly): List RPoly :=  List.replicate p.natDegree q
+
+theorem no_roots (p : RPoly)  (h : p ≠ 0): natDegree (normalize p) = 0 → (normalize p).roots = ∅ := by
+      intro hndp
+      have h2 : (normalize p) ≠ 0 ↔ p ≠ 0 := by
+        refine not_congr ?_
+        exact normalize_eq_zero
+      rw [← h2] at h
+      have no_divisionX_c : ∀ a : Complex, ¬ Dvd.dvd (X - C a) (normalize p) := by
+        intro a hdiv
+        have hdeg := natDegree_le_of_dvd hdiv
+        rw [natDegree_X_sub_C, hndp] at hdeg
+        exact Nat.not_succ_le_zero 0 (hdeg h)
+      apply Multiset.eq_zero_of_forall_not_mem
+      intro a ha
+      have t1 : IsRoot (normalize p) a ↔ X - C a ∣ (normalize p) := by exact Iff.symm dvd_iff_isRoot
+      have t2 : IsRoot (normalize p) a ↔ a ∈ roots (normalize p) := by exact Iff.symm (mem_roots h)
+      rw [← t2, t1] at ha
+      apply no_divisionX_c a at ha
+      exact ha
+
+theorem def_exp_polyprod (p q : RPoly) (h : p ≠ 0) : (exp' q p) = rpoly_prod (qpowdegp p q) := by
+  unfold exp' rpoly_prod
+  rw[if_neg, qpowdegp]
+  induction p.natDegree with
+  | zero =>
+    have tq : q ^ 0 =  1 := by rfl
+    rw[tq]
+    have : List.replicate 0 q = [] := by exact rfl
+    rw[this]
+    exact tq
+  | succ n ih =>
+    have : q * q ^ n = q ^ (n + 1) := by exact Eq.symm (pow_succ' q n)
+    rw [← this, List.replicate_succ, ih]
+    match List.replicate n q with
+    | [] =>
+      simp [h, rpoly_prod]
+    | g::gs' =>
+      simp [rpoly_prod]
+  simp [C]
+  exact h
+
+theorem probably_already_exists (q : RPoly) (hq : q ≠ 0) (c : Complex): X - C c ∣ q ↔ c ∈ roots q := by
+  constructor
+  · intro hx
+    refine (mem_roots hq).mpr ?_
+    exact dvd_iff_isRoot.mp hx
+  · intro hc
+    refine dvd_iff_isRoot.mpr ?_
+    exact isRoot_of_mem_roots hc
+
+-- roots 0 = ∅, mas (gcd p 0 = normalize p)
+theorem root_gcd_exp (p q : RPoly) (h : p ≠ 0) (h2 : q ≠ 0) : (∀ c ∈ p.roots , c ∈ q.roots) ↔ gcd p (exp' q p) = normalize p := by
   constructor
   · exact root_gcd_exp₁ p q h
   · intros hgcd c cr
@@ -182,6 +234,50 @@ theorem root_gcd_exp (p q : RPoly) (h : p ≠ 0) : (∀ c ∈ p.roots , c ∈ q.
     rw [hgcd] at this
     have : Dvd.dvd (X - C c) (exp' q p) := by (expose_names; exact dvd_trans this_2 this)
     simp [exp', h] at this
-    -- provavelmente tem que separar o caso que natDegree p = 0
-    admit
-
+    -- mudanças:
+    if hyp : natDegree (normalize p) ≠ 0 then
+      have aux : natDegree (normalize p) ≠ 0 → (normalize p).natDegree > 0 := by
+        exact fun a => Nat.zero_lt_of_ne_zero hyp
+      -- q ^ natDegree p = exp' q p
+      have tq2 : q ^ natDegree p = exp' q p := by
+        unfold exp'
+        simp [h]
+      have tq3 : q ^ natDegree p = rpoly_prod (qpowdegp p q) := by
+        rw[tq2]
+        exact def_exp_polyprod p q h
+      have tq4 : X - C c ∣ rpoly_prod (qpowdegp p q) := by
+        rw [tq3] at this
+        exact this
+      have tq5 : X - C c ∣ q ^ natDegree p ↔ X - C c ∣ q := by
+        constructor
+        · intro hx
+          apply Prime.dvd_of_dvd_pow -- X - C c é primo
+          {exact prime_X_sub_C c}
+          {exact hx}
+        · intro hx
+          apply dvd_pow
+          exact hx
+          have equiv2 : (normalize p).natDegree = p.natDegree := by
+            have :(normalize p).degree = p.degree := by exact degree_normalize
+            exact Eq.symm (natDegree_eq_of_degree_eq (id (Eq.symm this)))
+          rw[equiv2] at hyp
+          exact hyp
+      rw [tq3] at tq5
+      rw [tq5] at tq4
+      rw [← probably_already_exists q h2]
+      exact tq4
+    else
+      have equiv : ¬(normalize p).natDegree ≠ 0 ↔ (normalize p).natDegree = 0 := by
+        constructor
+        · intro h
+          exact Classical.byContradiction h
+        · intro h
+          intro contra
+          contradiction
+      have help : roots (normalize p) = ∅ := by
+        apply no_roots p h
+        rw[← equiv]
+        exact hyp
+      rw [help] at cr
+      have : c ∈ (∅ : Multiset ℂ) → c ∈ q.roots := by simp
+      exact this cr
