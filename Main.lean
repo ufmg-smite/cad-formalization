@@ -1,4 +1,4 @@
 import Cad
 
 def main : IO Unit :=
-  IO.println s!"Hello!"
+  IO.println s!"Hello, world!"
