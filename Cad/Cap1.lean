@@ -113,7 +113,6 @@ theorem neg_dvd_poly_prod (ps : List RPoly) (a : Complex) (h : IsRoot (rpoly_pro
       have := hp3 p' (rpoly_prod ps') dvd
       aesop
 
-
 theorem prod_root : ∀ (x : Complex) (ps : List RPoly),
     (∀ p ∈ ps , (¬ IsRoot p x)) ↔ (¬ IsRoot (rpoly_prod ps) x) :=
   by intros a ps
@@ -141,9 +140,24 @@ theorem roots_deg (p : RPoly) (hp : p ≠ 0) : ∀ c ∈ p.roots , p.roots.count
 
 theorem roots_pow (n : Nat) (p : RPoly) : ∀ c ∈ p.roots , p.roots.count c = n * (p^n).roots.count c := sorry
 
-theorem roots_subset (p q : RPoly) : (∀ c ∈ p.roots , p.roots.count c ≤ q.roots.count c) → p.roots ≤ q.roots := sorry
+theorem roots_subset (p q : RPoly) : (∀ c ∈ p.roots , p.roots.count c ≤ q.roots.count c) → p.roots ≤ q.roots := by
+  intros h
+  apply Multiset.le_iff_count.mpr
+  intro a
+  cases Decidable.em (a ∈ p.roots) with
+  | inl ht =>
+    exact h a ht
+  | inr ht =>
+    have : Multiset.count a (roots p) = 0 := Multiset.count_eq_zero.mpr ht
+    rw [this]
+    exact Nat.zero_le (Multiset.count a (roots q))
 
-theorem gcd_of_dvd (p q : RPoly) : Dvd.dvd p q → gcd p q = normalize p := sorry
+theorem gcd_of_dvd (p q : RPoly) : Dvd.dvd p q → gcd p q = normalize p := by
+  intro h
+  rw [<- normalize_gcd]
+  apply normalize_eq_normalize
+  · exact gcd_dvd_left p q
+  · exact dvd_gcd (dvd_of_eq rfl) h
 
 theorem root_gcd_exp₁ (p q : RPoly) : p ≠ 0 → (∀ c ∈ p.roots , c ∈ q.roots) → gcd p (exp' q p) = normalize p := by
   intros hp hr
