@@ -136,9 +136,12 @@ noncomputable def exp' (q : RPoly) (p : RPoly) :=
 theorem roots.dvd_of_le (p q : RPoly) (hp : p ≠ 0) : p.roots ≤ q.roots → p ∣ q :=
   Polynomial.Splits.dvd_of_roots_le_roots (p := p) (q := q) (IsAlgClosed.splits p) hp
 
-theorem roots_deg (p : RPoly) (hp : p ≠ 0) : ∀ c ∈ p.roots , p.roots.count c ≤ p.natDegree := sorry
+theorem roots_deg (p : RPoly) (hp : p ≠ 0) : ∀ c ∈ p.roots , p.roots.count c ≤ p.natDegree := by 
+  intros r hr
+  have := Multiset.count_le_card r p.roots  
+  exact le_trans this (Polynomial.card_roots' p)
 
-theorem roots_pow (n : Nat) (p : RPoly) : ∀ c ∈ p.roots , p.roots.count c = n * (p^n).roots.count c := sorry
+theorem roots_pow (n : Nat) (p : RPoly) : ∀ c ∈ p.roots , (p^n).roots.count c = n * p.roots.count c := by simp
 
 theorem roots_subset (p q : RPoly) : (∀ c ∈ p.roots , p.roots.count c ≤ q.roots.count c) → p.roots ≤ q.roots := by
   intros h
