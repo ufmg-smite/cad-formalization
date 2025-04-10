@@ -136,9 +136,9 @@ noncomputable def exp' (q : RPoly) (p : RPoly) :=
 theorem roots.dvd_of_le (p q : RPoly) (hp : p ≠ 0) : p.roots ≤ q.roots → p ∣ q :=
   Polynomial.Splits.dvd_of_roots_le_roots (p := p) (q := q) (IsAlgClosed.splits p) hp
 
-theorem roots_deg (p : RPoly) (hp : p ≠ 0) : ∀ c ∈ p.roots , p.roots.count c ≤ p.natDegree := by 
+theorem roots_deg (p : RPoly) (hp : p ≠ 0) : ∀ c ∈ p.roots , p.roots.count c ≤ p.natDegree := by
   intros r hr
-  have := Multiset.count_le_card r p.roots  
+  have := Multiset.count_le_card r p.roots
   exact le_trans this (Polynomial.card_roots' p)
 
 theorem roots_pow (n : Nat) (p : RPoly) : ∀ c ∈ p.roots , (p^n).roots.count c = n * p.roots.count c := by simp
@@ -298,3 +298,17 @@ theorem root_gcd_exp (p q : RPoly) (h : p ≠ 0) (h2 : q ≠ 0) : (∀ c ∈ p.r
       rw [help] at cr
       have : c ∈ (∅ : Multiset ℂ) → c ∈ q.roots := by simp
       exact this cr
+
+def basic_set_prop (ps : List RPoly) (qs : List RPoly) (x : Complex) : Prop :=
+  ∀ p ∈ ps, IsRoot p x ∧ ∀ q ∈ qs, ¬ IsRoot q x
+
+def deg_prop (ps qs : List RPoly) : Prop :=
+    (gcd (sgcd' ps) (rpoly_prod (List.map (fun q => q ^ (sgcd' ps).natDegree) qs))).natDegree ≠
+    (sgcd' ps).natDegree
+
+theorem l_1_14 (ps qs : List RPoly) :
+    (∃ x : Complex , basic_set_prop ps qs x) ↔ deg_prop ps qs := by
+  constructor
+  · admit
+  -- basta corrigir o que a gente tinha antes para d >= p.natDegree (achamos)
+  · admit
