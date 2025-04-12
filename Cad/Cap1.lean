@@ -300,15 +300,105 @@ theorem root_gcd_exp (p q : RPoly) (h : p ≠ 0) (h2 : q ≠ 0) : (∀ c ∈ p.r
       exact this cr
 
 def basic_set_prop (ps : List RPoly) (qs : List RPoly) (x : Complex) : Prop :=
-  ∀ p ∈ ps, IsRoot p x ∧ ∀ q ∈ qs, ¬ IsRoot q x
+  (∀ p ∈ ps, IsRoot p x) ∧ (∀ q ∈ qs, ¬ IsRoot q x)
 
 def deg_prop (ps qs : List RPoly) : Prop :=
-    (gcd (sgcd' ps) (rpoly_prod (List.map (fun q => q ^ (sgcd' ps).natDegree) qs))).natDegree ≠
+    (gcd (sgcd' ps) (rpoly_prod (List.map (fun q => exp' q (sgcd' ps)) qs))).natDegree ≠
     (sgcd' ps).natDegree
 
-theorem l_1_14 (ps qs : List RPoly) :
+theorem rpoly_prod_replicate_const : ∀ (n : Nat) , rpoly_prod (List.replicate n 1) = 1 := fun n =>
+  match n with
+  | 0 => by simp [rpoly_prod]
+  | n' + 1 => by
+    have IH := rpoly_prod_replicate_const n'
+    simp [List.replicate, rpoly_prod]
+    exact IH
+
+theorem prod_zero : ∀ (ps : List RPoly) , rpoly_prod ps = 0 ↔ 0 ∈ ps := by
+  intro ps
+  constructor
+  · cases' ps with p' ps'
+    · intro abs
+      simp [rpoly_prod] at abs
+    · intro h
+      simp [rpoly_prod] at h
+      cases' h with hl hr
+      · rw [hl]
+        exact List.mem_cons_self 0 ps'
+      · have IH := (prod_zero ps').mp hr
+        exact List.mem_cons_of_mem p' IH
+  · intro h0
+    cases' h0 with h1 h2 h3 h4
+    · simp [rpoly_prod]
+    · have IH := (prod_zero h3).mpr h4
+      simp [rpoly_prod, IH]
+
+theorem rpoly_prod_pow : ∀ (ps : List RPoly) (q : RPoly) , q ≠ 0 →
+    (rpoly_prod (List.map (fun p => exp' p q) ps)) = (exp' (rpoly_prod ps) q) := fun ps q hq =>
+  match ps with
+  | [] => by
+    simp [rpoly_prod, exp', hq]
+  | p'::ps' => by
+    cases' Classical.em (q = 0) with ht hf
+    · simp [rpoly_prod, exp', ht]
+    · simp [rpoly_prod, exp', hf]
+      have IH := rpoly_prod_pow ps' q hq
+      simp [rpoly_prod, exp', hf] at IH
+      cases' Classical.em (p' = 0) with ht hf
+      · simp [ht]
+        cases' q.natDegree with n
+        · simp
+          rw [rpoly_prod_replicate_const ps'.length]
+        · simp
+      · cases' Classical.em (rpoly_prod ps' = 0) with ht2 hf2
+        · rw [ht2]
+          simp
+          cases' q.natDegree with n
+          · simp
+            rw [rpoly_prod_replicate_const ps'.length]
+          · have foo := (prod_zero ps').mp ht2
+            have bar : (0 : RPoly) ^ (n + 1) = 0 := by simp
+            have : 0 ^ (n + 1) ∈ List.map (fun p => p ^ (n + 1)) ps' := List.mem_map_of_mem (fun x => x ^ (n + 1)) foo
+            rw [bar] at this
+            have := (prod_zero (List.map (fun x => x ^ (n + 1)) ps')).mpr this
+            rw [this]
+            simp
+        · rw [mul_pow, IH]
+
+theorem sgcd'_normalize (ps : List RPoly) : sgcd' ps = normalize (sgcd' ps) :=
+  match ps with
+  | [] => by simp [sgcd']
+  | p :: ps' => by simp [sgcd']
+
+theorem sgcd'_zero (ps : List RPoly) : sgcd' ps = 0 → ∀ p ∈ ps , p = 0 := fun h =>
+  match ps with
+  | [] => by simp
+  | p::ps => by
+    intro p'
+
+theorem l_1_14 (ps qs : List RPoly) (hq : 0 ∉ qs) :
     (∃ x : Complex , basic_set_prop ps qs x) ↔ deg_prop ps qs := by
   constructor
   · admit
-  -- basta corrigir o que a gente tinha antes para d >= p.natDegree (achamos)
-  · admit
+  · intro h
+    simp [deg_prop] at h
+    simp [basic_set_prop]
+    cases' Classical.em (sgcd' ps = 0) with ht hf
+    · admit
+    · rw [rpoly_prod_pow qs (sgcd' ps) hf] at h
+      have imp : gcd (sgcd' ps) (exp' (rpoly_prod qs) (sgcd' ps)) ≠ (sgcd' ps) := fun a => h (congrArg natDegree a)
+      have foo : sgcd' ps = normalize (sgcd' ps) := sgcd'_normalize ps
+      nth_rw 3 [foo] at imp
+      have := root_gcd_exp (sgcd' ps) (rpoly_prod qs) hf (fun abs => hq ((prod_zero qs).mp abs))
+      have : ¬ (∀ c ∈ roots (sgcd' ps), c ∈ roots (rpoly_prod qs)) := fun abs => imp (this.mp abs)
+      push_neg at this
+      obtain ⟨c, hc1, hc2⟩ := this
+      use c
+      constructor
+      · have := (root_gcd ps c).mp (isRoot_of_mem_roots hc1)
+        exact fun p a => this p a
+      · apply (prod_root c qs).mpr
+        intro hr
+        have : rpoly_prod qs ≠ 0 := fun abs => hq ((prod_zero qs).mp abs)
+        have : c ∈ roots (rpoly_prod qs) := (mem_roots_iff_aeval_eq_zero this).mpr hr
+        exact hc2 this
