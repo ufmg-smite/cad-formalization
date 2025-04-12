@@ -370,12 +370,6 @@ theorem sgcd'_normalize (ps : List RPoly) : sgcd' ps = normalize (sgcd' ps) :=
   | [] => by simp [sgcd']
   | p :: ps' => by simp [sgcd']
 
-theorem sgcd'_zero (ps : List RPoly) : sgcd' ps = 0 → ∀ p ∈ ps , p = 0 := fun h =>
-  match ps with
-  | [] => by simp
-  | p::ps => by
-    intro p'
-
 theorem l_1_14 (ps qs : List RPoly) (hq : 0 ∉ qs) :
     (∃ x : Complex , basic_set_prop ps qs x) ↔ deg_prop ps qs := by
   constructor
