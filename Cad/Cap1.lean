@@ -302,10 +302,8 @@ theorem root_gcd_exp (p q : RPoly) (h : p ≠ 0) (h2 : q ≠ 0) : (∀ c ∈ p.r
 def basic_set_prop (ps : List RPoly) (qs : List RPoly) (x : Complex) : Prop :=
   (∀ p ∈ ps, IsRoot p x) ∧ (∀ q ∈ qs, ¬ IsRoot q x)
 
-noncomputable def proofs_gcd (ps qs : List RPoly) := (gcd (sgcd' ps) (rpoly_prod (List.map (fun q => exp' q (sgcd' ps)) qs)))
-
 def deg_prop (ps qs : List RPoly) : Prop :=
-    (proofs_gcd ps qs).natDegree ≠
+    (gcd (sgcd' ps) (rpoly_prod (List.map (fun q => exp' q (sgcd' ps)) qs))).natDegree ≠
     (sgcd' ps).natDegree
 
 theorem rpoly_prod_replicate_const : ∀ (n : Nat) , rpoly_prod (List.replicate n 1) = 1 := fun n =>
@@ -372,35 +370,16 @@ theorem sgcd'_normalize (ps : List RPoly) : sgcd' ps = normalize (sgcd' ps) :=
   | [] => by simp [sgcd']
   | p :: ps' => by simp [sgcd']
 
-theorem bsprop_imp_dvd  (ps qs : List RPoly) (hq : 0 ∉ qs) : (∃ x, basic_set_prop ps qs x) → ∃ x, ∀ p ∈ ps, ∀ q ∈ qs, X - x ∣ p ∧ ¬(X - x ∣ q) := by
-  sorry
-
-theorem dvd_geral (ps qs : List RPoly) (hq : 0 ∉ qs) : (∃ x, ∀ p ∈ ps, ∀ q ∈ qs, X - x ∣ p ∧ ¬(X - x ∣ q)) → (∃ x , X - x ∣ sgcd' ps ∧ ¬(X - x ∣ rpoly_prod (List.map (fun q => exp' q (sgcd' ps)) qs) )) := by
-  sorry
-
-theorem dvd_proofsgcd (ps qs : List RPoly) (hq : 0 ∉ qs) : (∃ x, X - x ∣ sgcd' ps ∧ ¬X - x ∣ rpoly_prod (List.map (fun q => exp' q (sgcd' ps)) qs)) → (∃ x, X - x ∣ (sgcd' ps) ∧ ¬ X - x ∣proofs_gcd ps qs) := by
-  sorry
-
-theorem gcd_degfinal (ps qs : List RPoly) (hq : 0 ∉ qs) : (∃ x, X - x ∣ (sgcd' ps) ∧ ¬ X - x ∣proofs_gcd ps qs) → (sgcd' ps).natDegree > (proofs_gcd ps qs).natDegree := by
-  sorry
-
 theorem l_1_14 (ps qs : List RPoly) (hq : 0 ∉ qs) :
     (∃ x : Complex , basic_set_prop ps qs x) ↔ deg_prop ps qs := by
   constructor
-  · intro h
-    have h1 := bsprop_imp_dvd ps qs hq h
-    have h2 := dvd_geral ps qs hq h1
-    have h3 := dvd_proofsgcd ps qs hq h2
-    have h4 := gcd_degfinal ps qs hq h3
-    rw[deg_prop]
-    simp at h4
-    exact Nat.ne_of_lt h4
+  · admit
   · intro h
     simp [deg_prop] at h
     simp [basic_set_prop]
     cases' Classical.em (sgcd' ps = 0) with ht hf
     · admit
-    · rw [proofs_gcd, rpoly_prod_pow qs (sgcd' ps) hf] at h
+    · rw [rpoly_prod_pow qs (sgcd' ps) hf] at h
       have imp : gcd (sgcd' ps) (exp' (rpoly_prod qs) (sgcd' ps)) ≠ (sgcd' ps) := fun a => h (congrArg natDegree a)
       have foo : sgcd' ps = normalize (sgcd' ps) := sgcd'_normalize ps
       nth_rw 3 [foo] at imp
