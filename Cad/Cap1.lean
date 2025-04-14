@@ -2,62 +2,59 @@ import Mathlib
 
 open Polynomial
 
-abbrev RPoly := Polynomial Complex
+abbrev CPoly := Polynomial Complex
 
-noncomputable def sgcd' : List RPoly → RPoly := fun ps =>
+noncomputable def sgcd : List CPoly → CPoly := fun ps =>
   match ps with
-  | [] => Polynomial.C 0
-  | p1 :: ps' => gcd p1 (sgcd' ps')
+  | [] => C 0
+  | p1 :: ps' => gcd p1 (sgcd ps')
 
-noncomputable def sgcd : Finset RPoly → RPoly := fun ps =>
-  sgcd' ps.toList
-
-theorem aux (a b c : RPoly) : Dvd.dvd b a → Dvd.dvd (gcd c b) a := by
+theorem aux (a b c : CPoly) : Dvd.dvd b a → Dvd.dvd (gcd c b) a := by
   intro h
   have : Dvd.dvd (gcd c b) b := gcd_dvd_right c b
   apply dvd_trans this h
 
-theorem aux0 (ps : List RPoly) (a : RPoly) (h : a ∈ ps) : (Dvd.dvd (sgcd' ps) a) :=
+theorem aux0 (ps : List CPoly) (a : CPoly) (h : a ∈ ps) : (Dvd.dvd (sgcd ps) a) :=
   match h2: ps with
   | [] => by simp at h
   | p1::ps' => by
       if h3: a ∈ ps' then
         have ih := aux0 ps' a h3
-        simp [sgcd']
+        simp [sgcd]
         apply aux
         exact ih
       else
         have : a = p1 ∨ a ∈ ps' := List.mem_cons.mp h
         have hap1 : a = p1 := by aesop
         rw [hap1]
-        simp [sgcd']
-        exact gcd_dvd_left p1 (sgcd' ps')
+        simp [sgcd]
+        exact gcd_dvd_left p1 (sgcd ps')
 
-theorem aux1 (ps : List RPoly) : ∀ p ∈ ps , ∃ q : RPoly , q * sgcd' ps = p := by
+theorem aux1 (ps : List CPoly) : ∀ p ∈ ps , ∃ q : CPoly , q * sgcd ps = p := by
   intro p hp
   obtain ⟨q, hq⟩ := aux0 ps p hp
   use q
   rw [mul_comm] at hq
   exact hq.symm
 
-theorem dvd_trans_list (q : RPoly) (ps : List RPoly) : (∀ p ∈ ps , Dvd.dvd q p) → Dvd.dvd q (sgcd' ps) :=
+theorem dvd_trans_list (q : CPoly) (ps : List CPoly) : (∀ p ∈ ps , Dvd.dvd q p) → Dvd.dvd q (sgcd ps) :=
   match ps with
-  | [] => by intro h; simp [sgcd']
+  | [] => by intro h; simp [sgcd]
   | p1 :: ps' => by
     intro h
     have ih := dvd_trans_list q ps'
     simp at h
     obtain ⟨h1, h2⟩ := h
     have ih' := ih h2
-    simp [sgcd']
+    simp [sgcd]
     exact dvd_gcd h1 (ih h2)
 
-theorem root_gcd (ps : List RPoly) (a : Complex) :
-    IsRoot (sgcd' ps) a ↔ ∀ p ∈ ps , IsRoot p a := by
+theorem root_gcd (ps : List CPoly) (a : Complex) :
+    IsRoot (sgcd ps) a ↔ ∀ p ∈ ps , IsRoot p a := by
   constructor
   · intros h p hp
     obtain ⟨q, hq⟩ := aux1 ps p hp
-    have : IsRoot (q * sgcd' ps) a  := root_mul_left_of_isRoot q h
+    have : IsRoot (q * sgcd ps) a  := root_mul_left_of_isRoot q h
     rw [hq] at this
     assumption
   · intros h
@@ -68,53 +65,51 @@ theorem root_gcd (ps : List RPoly) (a : Complex) :
     have := dvd_trans_list (X - C a) ps this
     exact dvd_iff_isRoot.mp this
 
-noncomputable def rpoly_prod (ps : List RPoly) : RPoly :=
+noncomputable def cpoly_prod (ps : List CPoly) : CPoly :=
   match ps with
   | [] => C 1
-  | p::ps' => p * rpoly_prod ps'
+  | p::ps' => p * cpoly_prod ps'
 
-theorem dvd_poly_prod {q : RPoly} (ps : List RPoly) (p : RPoly) (hp : p ∈ ps) (hp2 : Dvd.dvd q p) : Dvd.dvd q (rpoly_prod ps) :=
+theorem dvd_poly_prod {q : CPoly} (ps : List CPoly) (p : CPoly) (hp : p ∈ ps) (hp2 : Dvd.dvd q p) : Dvd.dvd q (cpoly_prod ps) :=
   match ps with
   | [] => by simp at hp
   | p'::ps' =>
     match List.mem_cons.mp hp with
-    | Or.inl pp' => by simp [rpoly_prod]; rw[pp'] at hp2; apply Dvd.dvd.mul_right hp2
+    | Or.inl pp' => by simp [cpoly_prod]; rw[pp'] at hp2; apply Dvd.dvd.mul_right hp2
     | Or.inr pps' =>
-      by simp [rpoly_prod]
+      by simp [cpoly_prod]
          apply Dvd.dvd.mul_left
          exact dvd_poly_prod ps' p pps' hp2
 
-
-
-theorem neg_dvd_poly_prod (ps : List RPoly) (a : Complex) (h : IsRoot (rpoly_prod ps) a) (h2 : ∀ p ∈ ps , ¬ (IsRoot p a)) : False :=
+theorem neg_dvd_poly_prod (ps : List CPoly) (a : Complex) (h : IsRoot (cpoly_prod ps) a) (h2 : ∀ p ∈ ps , ¬ (IsRoot p a)) : False :=
   match ps with
-  | [] => by simp [rpoly_prod] at h
+  | [] => by simp [cpoly_prod] at h
   | p'::ps' => by
     have : ¬ IsRoot p' a := by apply h2; exact List.mem_cons_self p' ps'
     have : ¬ (Dvd.dvd (X - C a) p') := by intro abs; have abs' := dvd_iff_isRoot.mp abs; exact this abs'
     have ⟨_, _, hp3⟩  : Prime (X - C a) := Polynomial.prime_X_sub_C a
-    cases Classical.em (IsRoot (rpoly_prod ps') a) with
+    cases Classical.em (IsRoot (cpoly_prod ps') a) with
     | inl ht =>
       have h2' : ∀ p ∈ ps' , ¬ (IsRoot p a) := by intros hp1 hp2; apply h2; exact List.mem_cons_of_mem p' hp2
       apply False.elim
       exact neg_dvd_poly_prod ps' a ht h2'
     | inr hf =>
       have := dvd_iff_isRoot.mpr h
-      simp [rpoly_prod] at this
+      simp [cpoly_prod] at this
       have : ¬ IsRoot p' a := by apply h2; exact List.mem_cons_self p' ps'
-      simp only [rpoly_prod] at h
+      simp only [cpoly_prod] at h
       have : ¬ Dvd.dvd (X - C a) p' := by (expose_names; exact this_2)
-      have : ¬ Dvd.dvd (X - C a) (rpoly_prod ps') := by
+      have : ¬ Dvd.dvd (X - C a) (cpoly_prod ps') := by
         intro h
         apply hf
         exact dvd_iff_isRoot.mp h
-      have dvd : Dvd.dvd (X - C a) (p' * rpoly_prod ps') := by (expose_names; exact this_3)
+      have dvd : Dvd.dvd (X - C a) (p' * cpoly_prod ps') := by (expose_names; exact this_3)
       expose_names
-      have := hp3 p' (rpoly_prod ps') dvd
+      have := hp3 p' (cpoly_prod ps') dvd
       aesop
 
-theorem prod_root : ∀ (x : Complex) (ps : List RPoly),
-    (∀ p ∈ ps , (¬ IsRoot p x)) ↔ (¬ IsRoot (rpoly_prod ps) x) :=
+theorem prod_root : ∀ (x : Complex) (ps : List CPoly),
+    (∀ p ∈ ps , (¬ IsRoot p x)) ↔ (¬ IsRoot (cpoly_prod ps) x) :=
   by intros a ps
      constructor
      · contrapose!
@@ -127,23 +122,23 @@ theorem prod_root : ∀ (x : Complex) (ps : List RPoly),
      · contrapose!
        rintro ⟨p, ⟨pps, hp⟩⟩
        have : Dvd.dvd (X - C a) p := dvd_iff_isRoot.mpr hp
-       have : Dvd.dvd (X - C a) (rpoly_prod ps) := dvd_poly_prod ps p pps this
+       have : Dvd.dvd (X - C a) (cpoly_prod ps) := dvd_poly_prod ps p pps this
        exact dvd_iff_isRoot.mp this
 
-noncomputable def exp' (q : RPoly) (p : RPoly) :=
+noncomputable def exp' (q : CPoly) (p : CPoly) :=
   if p = C 0 then C 0 else q ^ p.natDegree
 
-theorem roots.dvd_of_le (p q : RPoly) (hp : p ≠ 0) : p.roots ≤ q.roots → p ∣ q :=
+theorem roots.dvd_of_le (p q : CPoly) (hp : p ≠ 0) : p.roots ≤ q.roots → p ∣ q :=
   Polynomial.Splits.dvd_of_roots_le_roots (p := p) (q := q) (IsAlgClosed.splits p) hp
 
-theorem roots_deg (p : RPoly) (hp : p ≠ 0) : ∀ c ∈ p.roots , p.roots.count c ≤ p.natDegree := by
+theorem roots_deg (p : CPoly) (hp : p ≠ 0) : ∀ c ∈ p.roots , p.roots.count c ≤ p.natDegree := by
   intros r hr
   have := Multiset.count_le_card r p.roots
   exact le_trans this (Polynomial.card_roots' p)
 
-theorem roots_pow (n : Nat) (p : RPoly) : ∀ c ∈ p.roots , (p^n).roots.count c = n * p.roots.count c := by simp
+theorem roots_pow (n : Nat) (p : CPoly) : ∀ c ∈ p.roots , (p^n).roots.count c = n * p.roots.count c := by simp
 
-theorem roots_subset (p q : RPoly) : (∀ c ∈ p.roots , p.roots.count c ≤ q.roots.count c) → p.roots ≤ q.roots := by
+theorem roots_subset (p q : CPoly) : (∀ c ∈ p.roots , p.roots.count c ≤ q.roots.count c) → p.roots ≤ q.roots := by
   intros h
   apply Multiset.le_iff_count.mpr
   intro a
@@ -155,14 +150,14 @@ theorem roots_subset (p q : RPoly) : (∀ c ∈ p.roots , p.roots.count c ≤ q.
     rw [this]
     exact Nat.zero_le (Multiset.count a (roots q))
 
-theorem gcd_of_dvd (p q : RPoly) : Dvd.dvd p q → gcd p q = normalize p := by
+theorem gcd_of_dvd (p q : CPoly) : Dvd.dvd p q → gcd p q = normalize p := by
   intro h
   rw [<- normalize_gcd]
   apply normalize_eq_normalize
   · exact gcd_dvd_left p q
   · exact dvd_gcd (dvd_of_eq rfl) h
 
-theorem root_gcd_exp₁ (p q : RPoly) : p ≠ 0 → (∀ c ∈ p.roots , c ∈ q.roots) → gcd p (exp' q p) = normalize p := by
+theorem root_gcd_exp₁ (p q : CPoly) : p ≠ 0 → (∀ c ∈ p.roots , c ∈ q.roots) → gcd p (exp' q p) = normalize p := by
   intros hp hr
   if hdeg: p.natDegree = 0 then
     simp [exp', hp, hdeg]
@@ -188,9 +183,9 @@ theorem root_gcd_exp₁ (p q : RPoly) : p ≠ 0 → (∀ c ∈ p.roots , c ∈ q
       have count_c_deg_p := roots_deg p hp c hc
       linarith
 
-noncomputable def  qpowdegp (p q : RPoly): List RPoly :=  List.replicate p.natDegree q
+noncomputable def qpowdegp (p q : CPoly): List CPoly := List.replicate p.natDegree q
 
-theorem no_roots (p : RPoly)  (h : p ≠ 0): natDegree (normalize p) = 0 → (normalize p).roots = ∅ := by
+theorem no_roots (p : CPoly)  (h : p ≠ 0): natDegree (normalize p) = 0 → (normalize p).roots = ∅ := by
       intro hndp
       have h2 : (normalize p) ≠ 0 ↔ p ≠ 0 := by
         refine not_congr ?_
@@ -209,8 +204,8 @@ theorem no_roots (p : RPoly)  (h : p ≠ 0): natDegree (normalize p) = 0 → (no
       apply no_divisionX_c a at ha
       exact ha
 
-theorem def_exp_polyprod (p q : RPoly) (h : p ≠ 0) : (exp' q p) = rpoly_prod (qpowdegp p q) := by
-  unfold exp' rpoly_prod
+theorem def_exp_polyprod (p q : CPoly) (h : p ≠ 0) : (exp' q p) = cpoly_prod (qpowdegp p q) := by
+  unfold exp' cpoly_prod
   rw[if_neg, qpowdegp]
   induction p.natDegree with
   | zero =>
@@ -224,13 +219,13 @@ theorem def_exp_polyprod (p q : RPoly) (h : p ≠ 0) : (exp' q p) = rpoly_prod (
     rw [← this, List.replicate_succ, ih]
     match List.replicate n q with
     | [] =>
-      simp [h, rpoly_prod]
+      simp [h, cpoly_prod]
     | g::gs' =>
-      simp [rpoly_prod]
+      simp [cpoly_prod]
   simp [C]
   exact h
 
-theorem probably_already_exists (q : RPoly) (hq : q ≠ 0) (c : Complex): X - C c ∣ q ↔ c ∈ roots q := by
+theorem probably_already_exists (q : CPoly) (hq : q ≠ 0) (c : Complex): X - C c ∣ q ↔ c ∈ roots q := by
   constructor
   · intro hx
     refine (mem_roots hq).mpr ?_
@@ -240,7 +235,7 @@ theorem probably_already_exists (q : RPoly) (hq : q ≠ 0) (c : Complex): X - C 
     exact isRoot_of_mem_roots hc
 
 -- roots 0 = ∅, mas (gcd p 0 = normalize p)
-theorem root_gcd_exp (p q : RPoly) (h : p ≠ 0) (h2 : q ≠ 0) : (∀ c ∈ p.roots , c ∈ q.roots) ↔ gcd p (exp' q p) = normalize p := by
+theorem root_gcd_exp (p q : CPoly) (h : p ≠ 0) (h2 : q ≠ 0) : (∀ c ∈ p.roots , c ∈ q.roots) ↔ gcd p (exp' q p) = normalize p := by
   constructor
   · exact root_gcd_exp₁ p q h
   · intros hgcd c cr
@@ -259,10 +254,10 @@ theorem root_gcd_exp (p q : RPoly) (h : p ≠ 0) (h2 : q ≠ 0) : (∀ c ∈ p.r
       have tq2 : q ^ natDegree p = exp' q p := by
         unfold exp'
         simp [h]
-      have tq3 : q ^ natDegree p = rpoly_prod (qpowdegp p q) := by
+      have tq3 : q ^ natDegree p = cpoly_prod (qpowdegp p q) := by
         rw[tq2]
         exact def_exp_polyprod p q h
-      have tq4 : X - C c ∣ rpoly_prod (qpowdegp p q) := by
+      have tq4 : X - C c ∣ cpoly_prod (qpowdegp p q) := by
         rw [tq3] at this
         exact this
       have tq5 : X - C c ∣ q ^ natDegree p ↔ X - C c ∣ q := by
@@ -284,13 +279,7 @@ theorem root_gcd_exp (p q : RPoly) (h : p ≠ 0) (h2 : q ≠ 0) : (∀ c ∈ p.r
       rw [← probably_already_exists q h2]
       exact tq4
     else
-      have equiv : ¬(normalize p).natDegree ≠ 0 ↔ (normalize p).natDegree = 0 := by
-        constructor
-        · intro h
-          exact Classical.byContradiction h
-        · intro h
-          intro contra
-          contradiction
+      have equiv : ¬(normalize p).natDegree ≠ 0 ↔ (normalize p).natDegree = 0 := by simp
       have help : roots (normalize p) = ∅ := by
         apply no_roots p h
         rw[← equiv]
@@ -299,29 +288,27 @@ theorem root_gcd_exp (p q : RPoly) (h : p ≠ 0) (h2 : q ≠ 0) : (∀ c ∈ p.r
       have : c ∈ (∅ : Multiset ℂ) → c ∈ q.roots := by simp
       exact this cr
 
-def basic_set_prop (ps : List RPoly) (qs : List RPoly) (x : Complex) : Prop :=
-  (∀ p ∈ ps, IsRoot p x) ∧ (∀ q ∈ qs, ¬ IsRoot q x)
-
-def deg_prop (ps qs : List RPoly) : Prop :=
-    (gcd (sgcd' ps) (rpoly_prod (List.map (fun q => exp' q (sgcd' ps)) qs))).natDegree ≠
-    (sgcd' ps).natDegree
-
-theorem rpoly_prod_replicate_const : ∀ (n : Nat) , rpoly_prod (List.replicate n 1) = 1 := fun n =>
+theorem cpoly_prod_replicate_const : ∀ (n : Nat) , cpoly_prod (List.replicate n 1) = 1 := fun n =>
   match n with
-  | 0 => by simp [rpoly_prod]
+  | 0 => by simp [cpoly_prod]
   | n' + 1 => by
-    have IH := rpoly_prod_replicate_const n'
-    simp [List.replicate, rpoly_prod]
+    have IH := cpoly_prod_replicate_const n'
+    simp [List.replicate, cpoly_prod]
     exact IH
 
-theorem prod_zero : ∀ (ps : List RPoly) , rpoly_prod ps = 0 ↔ 0 ∈ ps := by
+theorem cpoly_prod_replicate_const_zero : ∀ (n : Nat) , cpoly_prod (List.replicate (n + 1) 0) = 0 := fun n =>
+  match n with
+  | 0 => by simp [cpoly_prod]
+  | n' + 1 => by simp [List.replicate, cpoly_prod]
+
+theorem prod_zero : ∀ (ps : List CPoly) , cpoly_prod ps = 0 ↔ 0 ∈ ps := by
   intro ps
   constructor
   · cases' ps with p' ps'
     · intro abs
-      simp [rpoly_prod] at abs
+      simp [cpoly_prod] at abs
     · intro h
-      simp [rpoly_prod] at h
+      simp [cpoly_prod] at h
       cases' h with hl hr
       · rw [hl]
         exact List.mem_cons_self 0 ps'
@@ -329,35 +316,35 @@ theorem prod_zero : ∀ (ps : List RPoly) , rpoly_prod ps = 0 ↔ 0 ∈ ps := by
         exact List.mem_cons_of_mem p' IH
   · intro h0
     cases' h0 with h1 h2 h3 h4
-    · simp [rpoly_prod]
+    · simp [cpoly_prod]
     · have IH := (prod_zero h3).mpr h4
-      simp [rpoly_prod, IH]
+      simp [cpoly_prod, IH]
 
-theorem rpoly_prod_pow : ∀ (ps : List RPoly) (q : RPoly) , q ≠ 0 →
-    (rpoly_prod (List.map (fun p => exp' p q) ps)) = (exp' (rpoly_prod ps) q) := fun ps q hq =>
+theorem cpoly_prod_pow : ∀ (ps : List CPoly) (q : CPoly) , q ≠ 0 →
+    (cpoly_prod (List.map (fun p => exp' p q) ps)) = (exp' (cpoly_prod ps) q) := fun ps q hq =>
   match ps with
   | [] => by
-    simp [rpoly_prod, exp', hq]
+    simp [cpoly_prod, exp', hq]
   | p'::ps' => by
     cases' Classical.em (q = 0) with ht hf
-    · simp [rpoly_prod, exp', ht]
-    · simp [rpoly_prod, exp', hf]
-      have IH := rpoly_prod_pow ps' q hq
-      simp [rpoly_prod, exp', hf] at IH
+    · simp [cpoly_prod, exp', ht]
+    · simp [cpoly_prod, exp', hf]
+      have IH := cpoly_prod_pow ps' q hq
+      simp [cpoly_prod, exp', hf] at IH
       cases' Classical.em (p' = 0) with ht hf
       · simp [ht]
         cases' q.natDegree with n
         · simp
-          rw [rpoly_prod_replicate_const ps'.length]
+          rw [cpoly_prod_replicate_const ps'.length]
         · simp
-      · cases' Classical.em (rpoly_prod ps' = 0) with ht2 hf2
+      · cases' Classical.em (cpoly_prod ps' = 0) with ht2 hf2
         · rw [ht2]
           simp
           cases' q.natDegree with n
           · simp
-            rw [rpoly_prod_replicate_const ps'.length]
+            rw [cpoly_prod_replicate_const ps'.length]
           · have foo := (prod_zero ps').mp ht2
-            have bar : (0 : RPoly) ^ (n + 1) = 0 := by simp
+            have bar : (0 : CPoly) ^ (n + 1) = 0 := by simp
             have : 0 ^ (n + 1) ∈ List.map (fun p => p ^ (n + 1)) ps' := List.mem_map_of_mem (fun x => x ^ (n + 1)) foo
             rw [bar] at this
             have := (prod_zero (List.map (fun x => x ^ (n + 1)) ps')).mpr this
@@ -365,26 +352,77 @@ theorem rpoly_prod_pow : ∀ (ps : List RPoly) (q : RPoly) , q ≠ 0 →
             simp
         · rw [mul_pow, IH]
 
-theorem sgcd'_normalize (ps : List RPoly) : sgcd' ps = normalize (sgcd' ps) :=
+theorem sgcd_normalize (ps : List CPoly) : sgcd ps = normalize (sgcd ps) :=
   match ps with
-  | [] => by simp [sgcd']
-  | p :: ps' => by simp [sgcd']
+  | [] => by simp [sgcd]
+  | p :: ps' => by simp [sgcd]
 
-theorem l_1_14 (ps qs : List RPoly) (hq : 0 ∉ qs) :
+def basic_set_prop (ps : List CPoly) (qs : List CPoly) (x : Complex) : Prop :=
+  (∀ p ∈ ps, IsRoot p x) ∧ (∀ q ∈ qs, ¬ IsRoot q x)
+
+def deg_prop (ps qs : List CPoly) : Prop :=
+    (gcd (sgcd ps) (cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs))).natDegree ≠
+    (sgcd ps).natDegree
+
+theorem gcd_zero (ps : List CPoly) : sgcd ps = 0 → (∀ p ∈ ps , p = 0) := by
+  intro h
+  cases' ps with p ps
+  · intros p hp; simp at hp
+  · intros p' hp'
+    simp [sgcd] at h
+    have : p' = p ∨ p' ∈ ps := List.mem_cons.mp hp'
+    cases' this with h1 h2
+    · aesop
+    · have IH := gcd_zero ps h.2
+      aesop
+
+noncomputable def proofs_gcd (ps qs : List CPoly) := (gcd (sgcd ps) (cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs)))
+
+theorem bsprop_imp_dvd  (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x, basic_set_prop ps qs x) → ∃ x, ∀ p ∈ ps, ∀ q ∈ qs, X - x ∣ p ∧ ¬(X - x ∣ q) := by
+  sorry
+
+theorem dvd_geral (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x, ∀ p ∈ ps, ∀ q ∈ qs, X - x ∣ p ∧ ¬(X - x ∣ q)) → (∃ x , X - x ∣ sgcd ps ∧ ¬(X - x ∣ cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs) )) := by
+  sorry
+
+theorem dvd_proofsgcd (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x, X - x ∣ sgcd ps ∧ ¬X - x ∣ cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs)) → (∃ x, X - x ∣ (sgcd ps) ∧ ¬ X - x ∣proofs_gcd ps qs) := by
+  sorry
+
+theorem gcd_degfinal (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x, X - x ∣ (sgcd ps) ∧ ¬ X - x ∣proofs_gcd ps qs) → (sgcd ps).natDegree > (proofs_gcd ps qs).natDegree := by
+  sorry
+
+theorem l_1_14 (ps qs : List CPoly) (hq : 0 ∉ qs) :
     (∃ x : Complex , basic_set_prop ps qs x) ↔ deg_prop ps qs := by
   constructor
-  · admit
+  · intro h
+    have h1 := bsprop_imp_dvd ps qs hq h
+    have h2 := dvd_geral ps qs hq h1
+    have h3 := dvd_proofsgcd ps qs hq h2
+    have h4 := gcd_degfinal ps qs hq h3
+    rw[deg_prop]
+    simp at h4
+    exact Nat.ne_of_lt h4
   · intro h
     simp [deg_prop] at h
     simp [basic_set_prop]
-    cases' Classical.em (sgcd' ps = 0) with ht hf
-    · admit
-    · rw [rpoly_prod_pow qs (sgcd' ps) hf] at h
-      have imp : gcd (sgcd' ps) (exp' (rpoly_prod qs) (sgcd' ps)) ≠ (sgcd' ps) := fun a => h (congrArg natDegree a)
-      have foo : sgcd' ps = normalize (sgcd' ps) := sgcd'_normalize ps
+    cases' Classical.em (sgcd ps = 0) with ht hf
+    · have all_zeroes := gcd_zero ps ht
+      rw [ht] at h
+      simp [exp'] at h
+      cases' qs with q' qs'
+      · use 42
+        simp only [List.not_mem_nil, IsEmpty.forall_iff, implies_true, and_true]
+        intros p hp
+        rw [all_zeroes p hp]
+        exact eval_zero
+      · simp only [List.length_cons] at h
+        rw [cpoly_prod_replicate_const_zero _] at h
+        simp at h
+    · rw [cpoly_prod_pow qs (sgcd ps) hf] at h
+      have imp : gcd (sgcd ps) (exp' (cpoly_prod qs) (sgcd ps)) ≠ (sgcd ps) := fun a => h (congrArg natDegree a)
+      have foo : sgcd ps = normalize (sgcd ps) := sgcd_normalize ps
       nth_rw 3 [foo] at imp
-      have := root_gcd_exp (sgcd' ps) (rpoly_prod qs) hf (fun abs => hq ((prod_zero qs).mp abs))
-      have : ¬ (∀ c ∈ roots (sgcd' ps), c ∈ roots (rpoly_prod qs)) := fun abs => imp (this.mp abs)
+      have := root_gcd_exp (sgcd ps) (cpoly_prod qs) hf (fun abs => hq ((prod_zero qs).mp abs))
+      have : ¬ (∀ c ∈ roots (sgcd ps), c ∈ roots (cpoly_prod qs)) := fun abs => imp (this.mp abs)
       push_neg at this
       obtain ⟨c, hc1, hc2⟩ := this
       use c
@@ -393,6 +431,6 @@ theorem l_1_14 (ps qs : List RPoly) (hq : 0 ∉ qs) :
         exact fun p a => this p a
       · apply (prod_root c qs).mpr
         intro hr
-        have : rpoly_prod qs ≠ 0 := fun abs => hq ((prod_zero qs).mp abs)
-        have : c ∈ roots (rpoly_prod qs) := (mem_roots_iff_aeval_eq_zero this).mpr hr
+        have : cpoly_prod qs ≠ 0 := fun abs => hq ((prod_zero qs).mp abs)
+        have : c ∈ roots (cpoly_prod qs) := (mem_roots_iff_aeval_eq_zero this).mpr hr
         exact hc2 this
