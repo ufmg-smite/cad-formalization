@@ -378,29 +378,62 @@ theorem gcd_zero (ps : List CPoly) : sgcd ps = 0 → (∀ p ∈ ps , p = 0) := b
 
 noncomputable def proofs_gcd (ps qs : List CPoly) := (gcd (sgcd ps) (cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs)))
 
-theorem bsprop_imp_dvd  (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x, basic_set_prop ps qs x) → ∃ x, ∀ p ∈ ps, ∀ q ∈ qs, X - x ∣ p ∧ ¬(X - x ∣ q) := by
+theorem bsprop_imp_dvd  (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x : Complex, basic_set_prop ps qs x) → ∃ x:Complex, ∀ p ∈ ps, ∀ q ∈ qs, X - C x ∣ p ∧ ¬(X - C x ∣ q) := by
   sorry
 
-theorem dvd_geral (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x, ∀ p ∈ ps, ∀ q ∈ qs, X - x ∣ p ∧ ¬(X - x ∣ q)) → (∃ x , X - x ∣ sgcd ps ∧ ¬(X - x ∣ cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs) )) := by
+theorem dvd_geral (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x : Complex, ∀ p ∈ ps, ∀ q ∈ qs, X - C x ∣ p ∧ ¬(X - C x ∣ q)) → (∃ x : Complex , X - C x ∣ sgcd ps ∧ ¬(X - C x ∣ cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs) )) := by
   sorry
 
-theorem dvd_proofsgcd (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x, X - x ∣ sgcd ps ∧ ¬X - x ∣ cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs)) → (∃ x, X - x ∣ (sgcd ps) ∧ ¬ X - x ∣proofs_gcd ps qs) := by
+theorem dvd_proofsgcd (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x : Complex, X - C x ∣ sgcd ps ∧ ¬X - C x ∣ cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs)) → (∃ x : Complex, X - C x ∣ (sgcd ps) ∧ ¬ X - C x ∣proofs_gcd ps qs) := by
   sorry
 
-theorem gcd_degfinal (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x, X - x ∣ (sgcd ps) ∧ ¬ X - x ∣proofs_gcd ps qs) → (sgcd ps).natDegree > (proofs_gcd ps qs).natDegree := by
-  sorry
+theorem gcd_degfinal (ps qs : List CPoly) (hyp : sgcd ps ≠ 0) : (∃ x:Complex, X - C x ∣ (sgcd ps) ∧ ¬ X - C x ∣proofs_gcd ps qs) → (sgcd ps).natDegree ≠ (proofs_gcd ps qs).natDegree := by
+  intro h
+  rcases h with ⟨x, hx₁, hx₂⟩
+  have h1₂ : ∃ s, sgcd ps = (proofs_gcd ps qs) * s := by rw[proofs_gcd]; apply gcd_dvd_left
+  rcases h1₂ with ⟨s, hs⟩
+  have h2₀ : s ≠ 0 := by rw [hs] at hyp; exact right_ne_zero_of_mul hyp
+  have h2₁ : X - C x ∣ s := by
+    rw [hs] at hx₁
+    have : X - C x ∣ (proofs_gcd ps qs) * s ↔ X - C x ∣ (proofs_gcd ps qs) ∨ X - C x ∣ s := by apply Prime.dvd_mul (prime_X_sub_C x)
+    have h₂ : X - C x ∣ proofs_gcd ps qs * s → X - C x ∣ proofs_gcd ps qs ∨ X - C x ∣ s := by apply Iff.mp this
+    have h_disj : X - C x ∣ proofs_gcd ps qs ∨ X - C x ∣ s := Iff.mp this hx₁
+    exact Or.resolve_left h_disj hx₂
+  have : ∃ j, s = (X - C x) * j := by rcases h2₁ with ⟨j, hj⟩; exact  ⟨j, hj⟩
+  rcases this with ⟨j, hj⟩
+  have : s.natDegree > 0 := by
+    have t1 : s.natDegree = (X - C x).natDegree + j.natDegree := by
+      rw[hj]
+      apply natDegree_mul
+      exact X_sub_C_ne_zero x
+      rw[hj] at h2₀; exact right_ne_zero_of_mul h2₀
+    have t2 : (X - C x).natDegree = 1 := by simp
+    rw[t2] at t1; rw[t1]
+    exact Nat.pos_of_neZero (1 + j.natDegree)
 
-theorem l_1_14 (ps qs : List CPoly) (hq : 0 ∉ qs) :
+  have h2 : ((proofs_gcd ps qs)* s).natDegree = (proofs_gcd ps qs).natDegree + s.natDegree := by
+    apply natDegree_mul
+    rw[hs] at hyp; exact left_ne_zero_of_mul hyp
+    exact h2₀
+  have h3 : (proofs_gcd ps qs).natDegree + s.natDegree > (proofs_gcd ps qs).natDegree := by
+    exact Nat.lt_add_of_pos_right this
+
+  rw[← h2] at h3; rw[← hs] at h3
+  exact ne_of_gt h3
+
+
+theorem l_1_14 (ps qs : List CPoly) (hq : 0 ∉ qs ) (hs : sgcd ps ≠ 0) :
     (∃ x : Complex , basic_set_prop ps qs x) ↔ deg_prop ps qs := by
   constructor
   · intro h
     have h1 := bsprop_imp_dvd ps qs hq h
     have h2 := dvd_geral ps qs hq h1
     have h3 := dvd_proofsgcd ps qs hq h2
-    have h4 := gcd_degfinal ps qs hq h3
+    have h4 := gcd_degfinal ps qs hs h3
     rw[deg_prop]
     simp at h4
-    exact Nat.ne_of_lt h4
+    rw[proofs_gcd] at h4
+    exact fun a => h4 (id (Eq.symm a))
   · intro h
     simp [deg_prop] at h
     simp [basic_set_prop]
