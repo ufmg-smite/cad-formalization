@@ -378,8 +378,21 @@ theorem gcd_zero (ps : List CPoly) : sgcd ps = 0 → (∀ p ∈ ps , p = 0) := b
 
 noncomputable def proofs_gcd (ps qs : List CPoly) := (gcd (sgcd ps) (cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs)))
 
-theorem bsprop_imp_dvd  (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x : Complex, basic_set_prop ps qs x) → ∃ x:Complex, ∀ p ∈ ps, ∀ q ∈ qs, X - C x ∣ p ∧ ¬(X - C x ∣ q) := by
-  sorry
+theorem bsprop_imp_dvd  (ps qs : List CPoly) : (∃ x : Complex, basic_set_prop ps qs x) → ∃ x:Complex, ∀ p ∈ ps, ∀ q ∈ qs, X - C x ∣ p ∧ ¬(X - C x ∣ q) := by
+  intro h
+  rcases h with ⟨x, hx⟩
+  rw [basic_set_prop] at hx
+  have t1 : ∀ p ∈ ps, X - C x ∣ p := by
+    intro p hp
+    refine dvd_iff_isRoot.mpr ?_; apply hx.left p hp
+  have t2 : ∀ q ∈ qs, ¬ X - C x ∣ q := by
+    intro q hq
+    have hq_root : ¬IsRoot q x := hx.right q hq
+    have : ∀ q ∈ qs, (X - C x ∣ q ↔ IsRoot q x) := by intro q hq; exact dvd_iff_isRoot
+    rw [this q hq]; exact hq_root
+  use x
+  intro p hp q hq
+  exact ⟨t1 p hp, t2 q hq⟩
 
 theorem dvd_geral (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x : Complex, ∀ p ∈ ps, ∀ q ∈ qs, X - C x ∣ p ∧ ¬(X - C x ∣ q)) → (∃ x : Complex , X - C x ∣ sgcd ps ∧ ¬(X - C x ∣ cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs) )) := by
   sorry
@@ -426,7 +439,7 @@ theorem l_1_14 (ps qs : List CPoly) (hq : 0 ∉ qs ) (hs : sgcd ps ≠ 0) :
     (∃ x : Complex , basic_set_prop ps qs x) ↔ deg_prop ps qs := by
   constructor
   · intro h
-    have h1 := bsprop_imp_dvd ps qs hq h
+    have h1 := bsprop_imp_dvd ps qs h
     have h2 := dvd_geral ps qs hq h1
     have h3 := dvd_proofsgcd ps qs hq h2
     have h4 := gcd_degfinal ps qs hs h3
