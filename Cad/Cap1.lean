@@ -1,4 +1,4 @@
-import Mathlib
+import Mathlib.Analysis.Complex.Polynomial.Basic
 
 open Polynomial
 
@@ -117,7 +117,6 @@ theorem prod_root : ∀ (x : Complex) (ps : List CPoly),
        apply Classical.byContradiction
        intro h2
        push_neg at h2
-       have ⟨_, _, hp3⟩  : Prime (X - C a) := Polynomial.prime_X_sub_C a
        exact neg_dvd_poly_prod ps a h h2
      · contrapose!
        rintro ⟨p, ⟨pps, hp⟩⟩
