@@ -378,7 +378,7 @@ theorem gcd_zero (ps : List CPoly) : sgcd ps = 0 → (∀ p ∈ ps , p = 0) := b
 
 noncomputable def proofs_gcd (ps qs : List CPoly) := (gcd (sgcd ps) (cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs)))
 
-theorem bsprop_imp_dvd  (ps qs : List CPoly) : (∃ x : Complex, basic_set_prop ps qs x) → ∃ x:Complex, ∀ p ∈ ps, ∀ q ∈ qs, X - C x ∣ p ∧ ¬(X - C x ∣ q) := by
+theorem bsprop_imp_dvd  (ps qs : List CPoly) : (∃ x : Complex, basic_set_prop ps qs x) → ∃ x:Complex, ∀ p ∈ ps,  X - C x ∣ p ∧ ∀ q ∈ qs, ¬(X - C x ∣ q) := by
   intro h
   rcases h with ⟨x, hx⟩
   rw [basic_set_prop] at hx
@@ -391,14 +391,33 @@ theorem bsprop_imp_dvd  (ps qs : List CPoly) : (∃ x : Complex, basic_set_prop 
     have : ∀ q ∈ qs, (X - C x ∣ q ↔ IsRoot q x) := by intro q hq; exact dvd_iff_isRoot
     rw [this q hq]; exact hq_root
   use x
-  intro p hp q hq
-  exact ⟨t1 p hp, t2 q hq⟩
+  intro p hp
+  exact ⟨t1 p hp, t2⟩
 
-theorem dvd_geral (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x : Complex, ∀ p ∈ ps, ∀ q ∈ qs, X - C x ∣ p ∧ ¬(X - C x ∣ q)) → (∃ x : Complex , X - C x ∣ sgcd ps ∧ ¬(X - C x ∣ cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs) )) := by
+theorem dvd_geral (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x : Complex, ∀ p ∈ ps,  X - C x ∣ p ∧ ∀ q ∈ qs, ¬(X - C x ∣ q)) → (∃ x : Complex , X - C x ∣ sgcd ps ∧ ¬(X - C x ∣ cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs) )) := by
   sorry
 
-theorem dvd_proofsgcd (ps qs : List CPoly) (hq : 0 ∉ qs) : (∃ x : Complex, X - C x ∣ sgcd ps ∧ ¬X - C x ∣ cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs)) → (∃ x : Complex, X - C x ∣ (sgcd ps) ∧ ¬ X - C x ∣proofs_gcd ps qs) := by
-  sorry
+theorem dvd_proofsgcd (ps qs : List CPoly) : (∃ x : Complex, X - C x ∣ sgcd ps ∧ ¬X - C x ∣ cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs)) → (∃ x : Complex, X - C x ∣ (sgcd ps) ∧ ¬ X - C x ∣proofs_gcd ps qs) := by
+  intro h
+  rcases h with ⟨x, hx⟩
+  have : ¬X - C x ∣ cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs) → ¬X - C x ∣ proofs_gcd ps qs := by
+    rw[proofs_gcd]
+    intro hx2; refine Not.intro ?_
+    intro hneg
+    have t1 : ∃ g, gcd (sgcd ps) (cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs)) = (X - C x)*g := by
+      rcases hneg with ⟨g,hg⟩; exact Exists.intro g hg
+    rcases t1 with ⟨g, hg⟩
+    have t2 : ∃ j, cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs) = gcd (sgcd ps) (cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs))*j := by
+      refine exists_eq_mul_right_of_dvd ?_
+      exact gcd_dvd_right (sgcd ps) (cpoly_prod (List.map (fun q => exp' q (sgcd ps)) qs))
+    rcases t2 with ⟨j, hj⟩; rw [hj, hg] at hx2
+    have : X - C x ∣ (X - C x) * g * j := by
+      have : (X - C x) * g * j = (X - C x) * (g * j) := by exact mul_assoc (X - C x) g j
+      rw[this]; exact dvd_mul_right (X - C x) (g * j)
+    exact hx2 this
+  have t1 : ¬X - C x ∣ proofs_gcd ps qs := by apply this; exact hx.right
+  have := hx.left
+  exact Set.not_subset.mp fun a => t1 (a this)
 
 theorem gcd_degfinal (ps qs : List CPoly) (hyp : sgcd ps ≠ 0) : (∃ x:Complex, X - C x ∣ (sgcd ps) ∧ ¬ X - C x ∣proofs_gcd ps qs) → (sgcd ps).natDegree ≠ (proofs_gcd ps qs).natDegree := by
   intro h
@@ -441,7 +460,7 @@ theorem l_1_14 (ps qs : List CPoly) (hq : 0 ∉ qs ) (hs : sgcd ps ≠ 0) :
   · intro h
     have h1 := bsprop_imp_dvd ps qs h
     have h2 := dvd_geral ps qs hq h1
-    have h3 := dvd_proofsgcd ps qs hq h2
+    have h3 := dvd_proofsgcd ps qs h2
     have h4 := gcd_degfinal ps qs hs h3
     rw[deg_prop]
     simp at h4
