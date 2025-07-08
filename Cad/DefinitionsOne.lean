@@ -4,7 +4,7 @@ namespace Definitions
 -- resolver o problema de uma forma computável
 
 structure MyMonomial  where
-  coef : ℝ
+  coef : ℚ
   exp : Nat
 
 abbrev MyPolynomial := List MyMonomial
@@ -174,7 +174,7 @@ def isRoot (p : MyPolynomial) (r : Real) : Prop := evalPoly p r = 0
 
 @[simp]
 noncomputable def monom_toMathlib (m : MyMonomial) : Polynomial ℝ :=
-  Polynomial.C m.coef * Polynomial.X ^ m.exp
+  Polynomial.C (m.coef : ℝ) * Polynomial.X ^ m.exp
 
 @[simp]
 noncomputable def poly_toMathlib (p : MyPolynomial) : Polynomial ℝ :=
@@ -204,20 +204,20 @@ theorem roots : ∀ p : MyPolynomial, ∀ r : ℝ, (poly_toMathlib p).IsRoot r �
   rw [isRoot]
   exact hP
 
-theorem roots_interval: ∀ p : MyPolynomial, ∀ (a b r: ℝ), r >= a ∧ r <= b ∧ (poly_toMathlib p).IsRoot r -> ∃r' : ℝ, r' >= a ∧ r' <= b ∧ isRoot p r' := by 
+theorem roots_interval: ∀ p : MyPolynomial, ∀ (a b r: ℝ), r >= a ∧ r <= b ∧ (poly_toMathlib p).IsRoot r -> ∃r' : ℝ, r' >= a ∧ r' <= b ∧ isRoot p r' := by
   intros p a b r hr
   obtain ⟨hra, hrb, hr_root⟩ := hr
   apply roots p r at hr_root
   exact Exists.intro r ⟨hra, hrb, hr_root⟩
 
-theorem exists_root_interval: ∀ p: MyPolynomial, ∀ (a b : ℝ), a <= b ∧ evalPoly p a <= 0 ∧ 0 <= evalPoly p b -> ∃ r: ℝ, r >= a ∧ r <= b ∧ isRoot p r := by 
+theorem exists_root_interval: ∀ p: MyPolynomial, ∀ (a b : ℝ), a <= b ∧ evalPoly p a <= 0 ∧ 0 <= evalPoly p b -> ∃ r: ℝ, r >= a ∧ r <= b ∧ isRoot p r := by
   intros p a b h
   obtain ⟨hab, ha, hb⟩ := h
   let f_p := fun x => (poly_toMathlib p).eval x
-  have p_continuous : ContinuousOn f_p (Set.Icc a b) := by exact (poly_toMathlib p).continuousOn 
-  have poly_mathlib_root : ∃ r: ℝ, r >= a ∧ r <= b ∧ (poly_toMathlib p).IsRoot r := by 
-    have intermediate_value_app := intermediate_value_Icc hab p_continuous 
-    have zero_in_image : 0 ∈ f_p '' Set.Icc a b := by 
+  have p_continuous : ContinuousOn f_p (Set.Icc a b) := by exact (poly_toMathlib p).continuousOn
+  have poly_mathlib_root : ∃ r: ℝ, r >= a ∧ r <= b ∧ (poly_toMathlib p).IsRoot r := by
+    have intermediate_value_app := intermediate_value_Icc hab p_continuous
+    have zero_in_image : 0 ∈ f_p '' Set.Icc a b := by
       have zab : 0 ∈ Set.Icc (f_p a) (f_p b) := by
         rw [<- evals p a] at ha; rw [<- evals p b] at hb
         exact ⟨ha, hb⟩
@@ -225,5 +225,5 @@ theorem exists_root_interval: ∀ p: MyPolynomial, ∀ (a b : ℝ), a <= b ∧ e
     obtain ⟨x, ⟨hxa, hxb⟩, hx_root⟩ := zero_in_image
     exact Exists.intro x ⟨hxa, hxb, hx_root⟩
   obtain ⟨r, hra, hrb, hr_root⟩ := poly_mathlib_root
-  apply (roots_interval p a b r ⟨hra, hrb, hr_root⟩) 
+  apply (roots_interval p a b r ⟨hra, hrb, hr_root⟩)
 end Definitions
