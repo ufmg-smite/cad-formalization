@@ -56,7 +56,6 @@ syntax (name := find_root) "find_root " term : tactic
 #check abs
 variable (a : Int)
 
-#check Nat.ofInt a
 #check Int.toNat
 
 
