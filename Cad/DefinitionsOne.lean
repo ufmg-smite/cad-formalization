@@ -210,9 +210,8 @@ theorem roots_interval: ∀ p : MyPolynomial, ∀ (a b r: ℝ), r >= a ∧ r <= 
   apply roots p r at hr_root
   exact Exists.intro r ⟨hra, hrb, hr_root⟩
 
-theorem exists_root_interval: ∀ p: MyPolynomial, ∀ (a b : ℝ), a <= b ∧ evalPoly p a <= 0 ∧ 0 <= evalPoly p b -> ∃ r: ℝ, r >= a ∧ r <= b ∧ isRoot p r := by
-  intros p a b h
-  obtain ⟨hab, ha, hb⟩ := h
+theorem exists_root_interval: ∀ p: MyPolynomial, ∀ (a b : ℝ), a <= b → evalPoly p a <= 0 → 0 <= evalPoly p b -> ∃ r: ℝ, r >= a ∧ r <= b ∧ isRoot p r := by
+  intros p a b hab ha hb
   let f_p := fun x => (poly_toMathlib p).eval x
   have p_continuous : ContinuousOn f_p (Set.Icc a b) := by exact (poly_toMathlib p).continuousOn
   have poly_mathlib_root : ∃ r: ℝ, r >= a ∧ r <= b ∧ (poly_toMathlib p).IsRoot r := by
