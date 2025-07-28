@@ -88,9 +88,8 @@ def ratToExpr (r : Rat) : Expr :=
      (simpTheorems := #[← getSimpTheorems])
      (← getSimpCongrTheorems)
 
-  let (mv?, _) ← simpTarget mv3.mvarId! ctx (simprocs := #[← Simp.getSimprocs])
-  if mv?.isNone then
-    normNum mv3.mvarId!
+  let (mv?, _) ← simpTarget mv3.mvarId! ctx
+  if let some mvSimp := mv? then normNum mvSimp
   let (_, mvar'') ← MVarId.intro1P $ ← mvar'.assert `second_hyp sec_hyp mv3
   replaceMainGoal [mvar'']
 
@@ -119,7 +118,7 @@ example : evalPoly p (-1) ≤ 0 := by
 example : True := by
   have := exists_root_interval p (5/4 : ℝ) (3/2 : ℝ)
   have := this (by norm_num)
-  have := this (by simp [p, m1, m2]; norm_num)
+  have := this (by simp; norm_num)
   have := this (by simp [p, m1, m2]; norm_num)
   trivial
 
