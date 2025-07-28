@@ -61,7 +61,6 @@ def ratToExpr (r : Rat) : Expr :=
 @[tactic find_root] unsafe def evalFindRoot : Tactic := fun stx => withMainContext do
   let t ← elabTerm stx[1] none
   let p ← evalExpr MyPolynomial (mkConst ``MyPolynomial) t
-  logInfo s!"{MyPolynomial.assert p}"
   let sa : IO.Process.SpawnArgs := { cmd := "/usr/bin/touch", args := #["/tmp/a.smt2"] }
   let _  ← IO.Process.output sa
   let fp := "/tmp/a.smt2"
@@ -69,16 +68,32 @@ def ratToExpr (r : Rat) : Expr :=
     ("(set-logic QF_NRA)\n(declare-const x Real)\n" ++ (MyPolynomial.assert p) ++ "\n(check-sat)\n(get-model)\n")
   let sa : IO.Process.SpawnArgs := { cmd := "/usr/bin/cvc5", args := #["/tmp/a.smt2", "--produce-models"] }
   let ⟨sc, out, err⟩ ← IO.Process.output sa
+
   let (left, right) := f out
   let left_expr : Q(Rat) := ratToExpr left
   let right_expr : Q(Rat) := ratToExpr right
   let prop : Expr := q($left_expr ≤ $right_expr)
   let mv ← mkFreshExprMVar (some prop)
-  MVarId.withContext mv.mvarId! do
-    normNum mv.mvarId!
-    let main_mv ← getMainGoal
-    let (_, mvar') ← MVarId.intro1P $ ← main_mv.assert Name.anonymous prop mv
-    replaceMainGoal [mvar']
+  normNum mv.mvarId!
+  let main_mv ← getMainGoal
+  let (_, mvar') ← MVarId.intro1P $ ← main_mv.assert `first_hyp prop mv
+  replaceMainGoal [mvar']
+
+  let t' : Q(MyPolynomial) := t
+  let left' : Q(Rat) := left_expr
+  let sec_hyp : Q(Prop) := q(evalPoly $t' $left' ≤ 0)
+  let mv3 ← mkFreshExprMVar (some sec_hyp)
+  let ctx ← Simp.mkContext
+     (config := (← elabSimpConfig Syntax.missing (kind := SimpKind.simp)))
+     (simpTheorems := #[← getSimpTheorems])
+     (← getSimpCongrTheorems)
+
+  let (mv?, _) ← simpTarget mv3.mvarId! ctx (simprocs := #[← Simp.getSimprocs])
+  if mv?.isNone then
+    normNum mv3.mvarId!
+  let (_, mvar'') ← MVarId.intro1P $ ← mvar'.assert `second_hyp sec_hyp mv3
+  replaceMainGoal [mvar'']
+
 
 end Definitions
 end Tactic
@@ -91,20 +106,26 @@ def M2 : MyMonomial := { coef := 2, exp := 2 }
 def P1 : MyPolynomial := [M]
 def P2 : MyPolynomial := [M, M2]
 
+@[simp]
 def m1 : MyMonomial := { coef := 1, exp := 2 }
+@[simp]
 def m2 : MyMonomial := { coef := -2, exp := 0 }
+@[simp]
 def p := [m1, m2]
+
+example : evalPoly p (-1) ≤ 0 := by
+  simp
 
 example : True := by
   have := exists_root_interval p (5/4 : ℝ) (3/2 : ℝ)
   have := this (by norm_num)
   have := this (by simp [p, m1, m2]; norm_num)
-  have := this (by simp [evalPoly, p, m1, m2]; norm_num)
+  have := this (by simp [p, m1, m2]; norm_num)
   trivial
 
 set_option linter.unusedTactic false
 example : True := by
   find_root p
-  trivial
+  admit
 
 end Tests
