@@ -65,6 +65,9 @@ def c_neg (f g : Polynomial ℝ) (a b : ℝ) : ℕ :=
   let k : Finset ℝ := rootsInInterval f a b
   (k.filter (fun x => eval x g < 0)).card
 
+def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
+  (c_pos f g a b : ℤ) - c_neg f g a b
+
 def rightNear (x : ℝ) : Filter ℝ := nhdsWithin x (Set.Ioi x)
 
 -- P(x + eps) > 0 for all sufficiently small eps
@@ -74,8 +77,8 @@ def sign_r_pos (x : ℝ) (p : Polynomial ℝ) : Prop :=
 -- 1 if p / q goes from -inf to +inf in x, -1 if goes from +inf to -inf
 -- 0 otherwise
 def jump_val (p q : Polynomial ℝ) (x : ℝ) : ℤ :=
-  let orderP : Int := rootMultiplicity x p
-  let orderQ : Int := rootMultiplicity x q
+  let orderP : ℤ := rootMultiplicity x p
+  let orderQ : ℤ := rootMultiplicity x q
   let oddOrder := Odd (orderP - orderQ)
   if p ≠ 0 ∧ q ≠ 0 ∧ oddOrder ∧ orderP > orderQ then
     -- note that p * q > 0 is the same as p / q > 0
@@ -86,8 +89,12 @@ def jump_val (p q : Polynomial ℝ) (x : ℝ) : ℤ :=
 def cauchyIndex (p q : Polynomial ℝ) (a b : ℝ) : ℤ :=
   ∑ x ∈ rootsInInterval p a b, jump_val p q x
 
+lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) :
+    tarskiQuery p q a b = cauchyIndex p (derivative p * q) a b :=
+  sorry
+
 theorem Sturm (f g : Polynomial ℝ) (a b : ℝ) (h : a < b) :
       seqVar (seqEval a (sturmSeq f (derivative f * g))) - seqVar (seqEval b (sturmSeq f (derivative f * g)))
-      = c_pos f g a b - c_neg f g a b
+      = tarskiQuery f g a b
       := by
   sorry
