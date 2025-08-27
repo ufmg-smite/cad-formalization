@@ -72,8 +72,10 @@ def sign_r_pos (x : ℝ) (p : Polynomial ℝ) : Prop :=
 -- 1 if p / q goes from -inf to +inf in x, -1 if goes from +inf to -inf
 -- 0 otherwise
 noncomputable def jump_val (p q : Polynomial ℝ) (x : ℝ) : ℤ :=
-  let oddOrder := Odd ((rootMultiplicity x p : ℤ) - rootMultiplicity x q)
-  if p ≠ 0 ∧ q ≠ 0 ∧ oddOrder then
+  let orderP : Int := rootMultiplicity x p
+  let orderQ : Int := rootMultiplicity x q
+  let oddOrder := Odd (orderP - orderQ)
+  if p ≠ 0 ∧ q ≠ 0 ∧ oddOrder ∧ orderP > orderQ then
     -- note that p * q > 0 is the same as p / q > 0
     if sign_r_pos x (p * q) then 1 else -1
   else 0
