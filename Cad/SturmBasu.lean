@@ -78,7 +78,7 @@ noncomputable def jump_val (p q : Polynomial ℝ) (x : ℝ) : ℤ :=
     if sign_r_pos x (p * q) then 1 else -1
   else 0
 
--- Corresponde a Ind(P/Q; a, b)
+-- Corresponde a Ind(Q/P; a, b)
 noncomputable def cauchyIndex (p q : Polynomial ℝ) (a b : ℝ) : ℤ :=
   ∑ x ∈ rootsInInterval p a b, jump_val p q x
 
