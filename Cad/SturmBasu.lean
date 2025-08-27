@@ -60,7 +60,7 @@ noncomputable def c_pos (f g : Polynomial ℝ) (a b : ℝ) : ℕ :=
   (k.filter (fun x => eval x g > 0)).card
 
 noncomputable def c_neg (f g : Polynomial ℝ) (a b : ℝ) : ℕ :=
-  let k : Finset ℝ := (f.roots.toFinset).filter (fun x => x ∈ Ioo a b)
+  let k : Finset ℝ := rootsInInterval f a b
   (k.filter (fun x => eval x g < 0)).card
 
 def rightNear (x : ℝ) : Filter ℝ := nhdsWithin x (Set.Ioi x)
