@@ -93,6 +93,36 @@ lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) :
     tarskiQuery p q a b = cauchyIndex p (derivative p * q) a b :=
   sorry
 
+noncomputable def sigma (b : ℝ) (f : Polynomial ℝ) : ℤ :=
+  sgn (eval b f)
+-- se p e q avaliados em a tem o mesmo sinal, então (seqVar (seqEval a (sturmSeq p q)) (seqVar (seqEval a (sturmSeq q -r))
+-- se p e q em b tem sinais distintos  -1 ok
+-- se p e q em b tem sinais iguais, sigma b = 1 e tá tudo ok
+theorem L_2_59_a (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sigma a (p*q) = -1):
+      ((∀ i : Fin (sturmSeq p q).length, eval a (sturmSeq p q)[i]! ≠ 0) ∧ ( ∀ i : Fin (sturmSeq p q).length, eval b (sturmSeq p q)[i]! ≠ 0))
+      → (seqVar (seqEval a (sturmSeq p q)) - seqVar (seqEval b (sturmSeq p q))) =  sigma b (p*q) + seqVar (seqEval b (sturmSeq q (-p%q))):= by
+  intro h
+  rcases h with ⟨ha, hb⟩
+  have sigma_a_ne_zero : sigma a (p*q) ≠ 0 := by
+    intro H
+    have : sigma b (p*q) * 0 = -1 := by rw [H] at hprod; exact hprod
+    simp at this
+
+  have eval_a_ne_zero : eval a (p*q) ≠ 0 := by
+    intro Heval
+    -- se a avaliação for 0, então sigma a = 0 pela definição de sigma/sgn
+    have : sigma a (p*q) = 0 := by
+      -- expande a definição de sigma e sgn; com Heval obtemos 0
+      simp [sigma, sgn, Heval]
+    exact (sigma_a_ne_zero this)
+
+  have h1 : sigma a (p*q) = 1 ∨ sigma a (p*q) = -1 := by
+    rw [sigma]
+    rw [sgn]
+
+    sorry
+  sorry
+
 theorem Sturm (f g : Polynomial ℝ) (a b : ℝ) (h : a < b) :
       seqVar (seqEval a (sturmSeq f (derivative f * g))) - seqVar (seqEval b (sturmSeq f (derivative f * g)))
       = tarskiQuery f g a b
