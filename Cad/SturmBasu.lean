@@ -49,6 +49,9 @@ def seqEval (k : ℝ) : List (Polynomial ℝ) → List ℝ
 | [] => []
 | a::as => [eval k a]++(seqEval k as)
 
+def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℕ :=
+  seqVar (seqEval a P) - seqVar (seqEval b P)
+
 def sgn (k : ℝ) : ℤ  :=
   if k > 0 then 1
   else if k = 0 then 0
@@ -91,6 +94,26 @@ def cauchyIndex (p q : Polynomial ℝ) (a b : ℝ) : ℤ :=
 
 lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) :
     tarskiQuery p q a b = cauchyIndex p (derivative p * q) a b :=
+  sorry
+
+-- Talvez usar reais extendidos para a e b seja a tradução mais imediata do enunciado.
+-- Por enquanto, podemos seguir desconsiderando esse caso.
+theorem B_2_58 (p q: Polynomial ℝ) (hp: p != Polynomial.C 0) (a b: ℝ) :
+    seqVar_ab (sturmSeq p q) a b = cauchyIndex p q a b :=
+  sorry
+
+def sign_pq (p q: Polynomial ℝ) (a: ℝ) : ℤ :=
+  sgn (eval a (p * q))
+
+-- para o else, precisamos usar ha e hb para mostrar que σ(a) * σ(b) != 0 (e pela definição de sgn, excluir todos outros inteiros).
+-- Talvez seja possível expressar isso de alguma forma melhor.
+lemma B_2_60 (p q r: Polynomial ℝ) (hr: r = p % q) (a b: ℝ)
+             (ha: ∀p' ∈ sturmSeq p q, ¬IsRoot p' a)
+             (hb: ∀p' ∈ sturmSeq p q, ¬IsRoot p' b):
+    if (sign_pq p q a) * (sign_pq p q b) = -1 then
+      cauchyIndex p q a b = (cauchyIndex q (-r) a b) + sign_pq p q b
+    else
+      cauchyIndex p q a b = cauchyIndex q (-r) a b :=
   sorry
 
 theorem Sturm (f g : Polynomial ℝ) (a b : ℝ) (h : a < b) :
