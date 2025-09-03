@@ -90,7 +90,39 @@ def cauchyIndex (p q : Polynomial ℝ) (a b : ℝ) : ℤ :=
 lemma rootsInIntervalZero (a b : ℝ) : rootsInInterval 0 a b = ∅ := by
   simp [rootsInInterval]
 
-lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) (hab : a < b) :
+lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
+    p ≠ 0 → p.eval x = 0 → jump_val p (derivative p * q) x = sgn (q.eval x) := by
+  intros hp hev
+  if hq : q = 0 then
+    rw [hq]
+    simp [sgn, jump_val]
+  else
+    have deriv_ne_0 : derivative p ≠ 0 := by
+      intro abs
+      have := natDegree_eq_zero_of_derivative_eq_zero abs
+      obtain ⟨c, hc⟩  := (natDegree_eq_zero.mp this)
+      have : c ≠ 0 := by
+        intro abs2
+        rw [abs2] at hc
+        rw [<- hc] at hp
+        simp at hp
+      rw [<- hc] at hev
+      simp at hev
+      exact this hev
+    unfold jump_val
+    have := derivative_rootMultiplicity_of_root hev
+    have elim_p_order : rootMultiplicity x p - rootMultiplicity x (derivative p * q) = 1 - rootMultiplicity x q := by
+      rw [Polynomial.rootMultiplicity_mul]
+      · rw [this]
+        have : 1 ≤ rootMultiplicity x p := by
+          apply (Polynomial.le_rootMultiplicity_iff hp).mpr
+          simp
+          exact dvd_iff_isRoot.mpr hev
+        omega
+      · exact (mul_ne_zero_iff_right hq).mpr deriv_ne_0
+    admit
+
+lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) (hab : a < b)  :
     tarskiQuery p q a b = cauchyIndex p (derivative p * q) a b := by
   if hp : p = 0 then
     rw [hp]
@@ -100,7 +132,12 @@ lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) (hab : a < b) :
   else
     unfold tarskiQuery
     unfold cauchyIndex
-    admit
+    apply Finset.sum_congr rfl
+    intros x hx
+    have : p.eval x = 0 := by
+      simp [rootsInInterval] at hx
+      exact hx.1.2
+    rw [jump_poly_sign p q x hp this]
 
 -- Talvez usar reais extendidos para a e b seja a tradução mais imediata do enunciado.
 -- Por enquanto, podemos seguir desconsiderando esse caso.
