@@ -95,32 +95,82 @@ lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) :
 
 noncomputable def sigma (b : ℝ) (f : Polynomial ℝ) : ℤ :=
   sgn (eval b f)
--- se p e q avaliados em a tem o mesmo sinal, então (seqVar (seqEval a (sturmSeq p q)) (seqVar (seqEval a (sturmSeq q -r))
--- se p e q em b tem sinais distintos  -1 ok
--- se p e q em b tem sinais iguais, sigma b = 1 e tá tudo ok
-theorem L_2_59_a (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sigma a (p*q) = -1):
+
+theorem L_2_59_1 (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sigma a (p*q) = -1):
       ((∀ i : Fin (sturmSeq p q).length, eval a (sturmSeq p q)[i]! ≠ 0) ∧ ( ∀ i : Fin (sturmSeq p q).length, eval b (sturmSeq p q)[i]! ≠ 0))
-      → (seqVar (seqEval a (sturmSeq p q)) - seqVar (seqEval b (sturmSeq p q))) =  sigma b (p*q) + seqVar (seqEval b (sturmSeq q (-p%q))):= by
-  intro h
-  rcases h with ⟨ha, hb⟩
+      → (seqVar (seqEval a (sturmSeq p q)) - seqVar (seqEval b (sturmSeq p q)))
+      =  sigma b (p*q) + seqVar (seqEval a (sturmSeq q (-p%q))) - seqVar (seqEval b (sturmSeq q (-p%q))):= by
+  intro h; rcases h with ⟨ha, hb⟩
   have sigma_a_ne_zero : sigma a (p*q) ≠ 0 := by
     intro H
     have : sigma b (p*q) * 0 = -1 := by rw [H] at hprod; exact hprod
     simp at this
-
   have eval_a_ne_zero : eval a (p*q) ≠ 0 := by
     intro Heval
-    -- se a avaliação for 0, então sigma a = 0 pela definição de sigma/sgn
-    have : sigma a (p*q) = 0 := by
-      -- expande a definição de sigma e sgn; com Heval obtemos 0
-      simp [sigma, sgn, Heval]
+    have : sigma a (p*q) = 0 := by simp [sigma, sgn, Heval]
+    exact (sigma_a_ne_zero this)
+  have h1a : sigma a (p*q) = 1 ∨ sigma a (p*q) = -1 := by
+    -- expandimos sigma/sgn e dividimos por casos: >0 ou <0 (não pode ser =0 por eval_a_ne_zero)
+    rw[sigma, sgn]
+    if hpos : eval a (p*q) > 0 then
+      left; split_ifs; rfl
+    else right; split_ifs; rfl
+  if hsigmaa : sigma a (p*q) = -1 then
+    have h2_1 : sigma b (p*q) = 1 := by
+      rw [hsigmaa] at hprod
+      simp at hprod; exact hprod
+
+    have h2_2a : seqVar (seqEval a (sturmSeq p q))
+      = 1 + seqVar (seqEval a (sturmSeq q (-p%q))) := by
+      sorry
+    have h2_2b : seqVar (seqEval b (sturmSeq p q))
+      = seqVar (seqEval b (sturmSeq q (-p%q))) := by
+      sorry
+
+    rw[h2_2a, h2_2b, h2_1]; simp
+  else
+    have hsa_pos : sigma a (p*q) = 1 := by
+      have : sigma a (p*q) = -1 → False := by
+        intro H; apply (by simp [H] at hsigmaa) -- hsigmaa : ¬ (sigma a = -1)
+      rcases h1a with hpos | hneg
+      · exact hpos
+      · exfalso; exact this hneg
+    have h2_1 : sigma b (p*q) = -1 := by
+      rw [hsa_pos] at hprod
+      simp at hprod
+      exact hprod
+
+    have h2_2a : seqVar (seqEval a (sturmSeq p q))
+      = seqVar (seqEval a (sturmSeq q (-p%q))) := by
+      sorry
+    have h2_2b : seqVar (seqEval b (sturmSeq p q))
+      = 1 + seqVar (seqEval b (sturmSeq q (-p%q))) := by
+      sorry
+
+    rw[h2_2a, h2_2b, h2_1]; simp
+    linarith
+
+theorem L_2_59_2 (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sigma a (p*q) = 1):
+      ((∀ i : Fin (sturmSeq p q).length, eval a (sturmSeq p q)[i]! ≠ 0) ∧ ( ∀ i : Fin (sturmSeq p q).length, eval b (sturmSeq p q)[i]! ≠ 0))
+      → (seqVar (seqEval a (sturmSeq p q)) - seqVar (seqEval b (sturmSeq p q)))
+      =  seqVar (seqEval a (sturmSeq q (-p%q))) - seqVar (seqEval b (sturmSeq q (-p%q))):= by
+  have sigma_a_ne_zero : sigma a (p*q) ≠ 0 := by
+    intro H
+    have : sigma b (p*q) * 0 = 1 := by
+      rw [H] at hprod; exact hprod
+    simp at this
+  have eval_a_ne_zero : eval a (p*q) ≠ 0 := by
+    intro Heval
+    have : sigma a (p*q) = 0 := by simp [sigma, sgn, Heval]
     exact (sigma_a_ne_zero this)
 
-  have h1 : sigma a (p*q) = 1 ∨ sigma a (p*q) = -1 := by
-    rw [sigma]
-    rw [sgn]
+  sorry
 
-    sorry
+theorem L_2_59 (a b : ℝ) (p q : Polynomial ℝ) :
+      ((∀ i : Fin (sturmSeq p q).length, eval a (sturmSeq p q)[i]! ≠ 0) ∧ ( ∀ i : Fin (sturmSeq p q).length, eval b (sturmSeq p q)[i]! ≠ 0))
+      → if hprod : sigma b (p*q) * sigma a (p*q) = 1 then (seqVar (seqEval a (sturmSeq p q)) - seqVar (seqEval b (sturmSeq p q)))
+      =  seqVar (seqEval a (sturmSeq q (-p%q))) - seqVar (seqEval b (sturmSeq q (-p%q))) else (seqVar (seqEval a (sturmSeq p q)) - seqVar (seqEval b (sturmSeq p q)))
+      =  sigma b (p*q) + seqVar (seqEval a (sturmSeq q (-p%q))) - seqVar (seqEval b (sturmSeq q (-p%q))):= by
   sorry
 
 theorem Sturm (f g : Polynomial ℝ) (a b : ℝ) (h : a < b) :
