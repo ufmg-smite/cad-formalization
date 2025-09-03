@@ -49,8 +49,11 @@ def seqEval (k : ℝ) : List (Polynomial ℝ) → List ℝ
 | [] => []
 | a::as => [eval k a]++(seqEval k as)
 
-def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℕ :=
-  seqVar (seqEval a P) - seqVar (seqEval b P)
+def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
+  (seqVar (seqEval a P) : Int) - seqVar (seqEval b P)
+
+def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
+  seqVar_ab (sturmSeq p q) a b
 
 def sgn (k : ℝ) : ℤ  :=
   if k > 0 then 1
@@ -99,7 +102,7 @@ lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) :
 -- Talvez usar reais extendidos para a e b seja a tradução mais imediata do enunciado.
 -- Por enquanto, podemos seguir desconsiderando esse caso.
 theorem B_2_58 (p q: Polynomial ℝ) (hp: p != Polynomial.C 0) (a b: ℝ) :
-    seqVar_ab (sturmSeq p q) a b = cauchyIndex p q a b :=
+    seqVarSturm_ab p q a b = cauchyIndex p q a b :=
   sorry
 
 noncomputable def sigma (b : ℝ) (f : Polynomial ℝ) : ℤ :=
@@ -118,8 +121,9 @@ sorry
 
 theorem L_2_59_1 (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sigma a (p*q) = -1):
       ((∀p' ∈ sturmSeq p q, ¬IsRoot p' a) ∧ ( ∀p' ∈ sturmSeq p q, ¬IsRoot p' b))
-      → (seqVar (seqEval a (sturmSeq p q)) - seqVar (seqEval b (sturmSeq p q)))
-      =  sigma b (p*q) + seqVar (seqEval a (sturmSeq q (-p%q))) - seqVar (seqEval b (sturmSeq q (-p%q))):= by
+      → seqVarSturm_ab p q a b
+      =  sigma b (p*q) + seqVarSturm_ab q (-p%q) a b := by
+  rw [seqVarSturm_ab, seqVar_ab]
   intro h; rcases h with ⟨ha, hb⟩
   have sigma_a_ne_zero : sigma a (p*q) ≠ 0 := by
     intro H
@@ -148,6 +152,8 @@ theorem L_2_59_1 (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sig
       sorry
 
     rw[h2_2a, h2_2b, h2_1]; simp
+    rw [seqVarSturm_ab, seqVar_ab]
+    linarith
   else
     have hsa_pos : sigma a (p*q) = 1 := by
       have : sigma a (p*q) = -1 → False := by
@@ -168,6 +174,7 @@ theorem L_2_59_1 (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sig
       sorry
 
     rw[h2_2a, h2_2b, h2_1]; simp
+    rw [seqVarSturm_ab, seqVar_ab]
     linarith
 
 theorem L_2_59_2 (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sigma a (p*q) = 1):
@@ -193,8 +200,11 @@ theorem L_2_59 (a b : ℝ) (p q : Polynomial ℝ) :
       =  sigma b (p*q) + seqVar (seqEval a (sturmSeq q (-p%q))) - seqVar (seqEval b (sturmSeq q (-p%q))):= by
   sorry
 
-theorem Sturm (f g : Polynomial ℝ) (a b : ℝ) (h : a < b) :
-      seqVar (seqEval a (sturmSeq f (derivative f * g))) - seqVar (seqEval b (sturmSeq f (derivative f * g)))
+theorem Tarski (f g : Polynomial ℝ) (hf : f ≠ C 0) (a b : ℝ) (h : a < b) :
+      seqVarSturm_ab f (derivative f * g) a b
       = tarskiQuery f g a b
       := by
-  sorry
+  rw [B_2_57]
+  rw [<- B_2_58]
+  simp [hf]
+  simp_all only [map_zero, ne_eq, not_false_eq_true]
