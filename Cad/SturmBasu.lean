@@ -63,16 +63,8 @@ def sgn (k : ℝ) : ℤ  :=
 def rootsInInterval (f : Polynomial ℝ) (a b : ℝ) : Finset ℝ :=
   f.roots.toFinset.filter (fun x => x ∈ Ioo a b)
 
-def c_pos (f g : Polynomial ℝ) (a b : ℝ) : ℕ :=
-  let k : Finset ℝ := rootsInInterval f a b
-  (k.filter (fun x => eval x g > 0)).card
-
-def c_neg (f g : Polynomial ℝ) (a b : ℝ) : ℕ :=
-  let k : Finset ℝ := rootsInInterval f a b
-  (k.filter (fun x => eval x g < 0)).card
-
 def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
-  (c_pos f g a b : ℤ) - c_neg f g a b
+  ∑ x ∈ rootsInInterval f a b, sgn (g.eval x)
 
 def rightNear (x : ℝ) : Filter ℝ := nhdsWithin x (Set.Ioi x)
 
@@ -95,9 +87,20 @@ def jump_val (p q : Polynomial ℝ) (x : ℝ) : ℤ :=
 def cauchyIndex (p q : Polynomial ℝ) (a b : ℝ) : ℤ :=
   ∑ x ∈ rootsInInterval p a b, jump_val p q x
 
+lemma rootsInIntervalZero (a b : ℝ) : rootsInInterval 0 a b = ∅ := by
+  simp [rootsInInterval]
+
 lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) (hab : a < b) :
-    tarskiQuery p q a b = cauchyIndex p (derivative p * q) a b :=
-  sorry
+    tarskiQuery p q a b = cauchyIndex p (derivative p * q) a b := by
+  if hp : p = 0 then
+    rw [hp]
+    simp [tarskiQuery, cauchyIndex]
+    rw [rootsInIntervalZero]
+    simp
+  else
+    unfold tarskiQuery
+    unfold cauchyIndex
+    admit
 
 -- Talvez usar reais extendidos para a e b seja a tradução mais imediata do enunciado.
 -- Por enquanto, podemos seguir desconsiderando esse caso.
@@ -105,7 +108,7 @@ theorem B_2_58 (p q: Polynomial ℝ) (hp: p != Polynomial.C 0) (a b: ℝ) (hab :
     seqVarSturm_ab p q a b = cauchyIndex p q a b :=
   sorry
 
-noncomputable def sigma (b : ℝ) (f : Polynomial ℝ) : ℤ :=
+def sigma (b : ℝ) (f : Polynomial ℝ) : ℤ :=
   sgn (eval b f)
 
 -- para o else, precisamos usar ha e hb para mostrar que σ(a) * σ(b) != 0 (e pela definição de sgn, excluir todos outros inteiros).
