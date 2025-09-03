@@ -117,7 +117,7 @@ lemma B_2_60 (p q r: Polynomial ℝ) (hr: r = p % q) (a b: ℝ)
 sorry
 
 theorem L_2_59_1 (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sigma a (p*q) = -1):
-      ((∀ i : Fin (sturmSeq p q).length, eval a (sturmSeq p q)[i]! ≠ 0) ∧ ( ∀ i : Fin (sturmSeq p q).length, eval b (sturmSeq p q)[i]! ≠ 0))
+      ((∀p' ∈ sturmSeq p q, ¬IsRoot p' a) ∧ ( ∀p' ∈ sturmSeq p q, ¬IsRoot p' b))
       → (seqVar (seqEval a (sturmSeq p q)) - seqVar (seqEval b (sturmSeq p q)))
       =  sigma b (p*q) + seqVar (seqEval a (sturmSeq q (-p%q))) - seqVar (seqEval b (sturmSeq q (-p%q))):= by
   intro h; rcases h with ⟨ha, hb⟩
@@ -171,7 +171,7 @@ theorem L_2_59_1 (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sig
     linarith
 
 theorem L_2_59_2 (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sigma a (p*q) = 1):
-      ((∀ i : Fin (sturmSeq p q).length, eval a (sturmSeq p q)[i]! ≠ 0) ∧ ( ∀ i : Fin (sturmSeq p q).length, eval b (sturmSeq p q)[i]! ≠ 0))
+      ((∀p' ∈ sturmSeq p q, ¬IsRoot p' a) ∧ (∀p' ∈ sturmSeq p q, ¬IsRoot p' b))
       → (seqVar (seqEval a (sturmSeq p q)) - seqVar (seqEval b (sturmSeq p q)))
       =  seqVar (seqEval a (sturmSeq q (-p%q))) - seqVar (seqEval b (sturmSeq q (-p%q))):= by
   have sigma_a_ne_zero : sigma a (p*q) ≠ 0 := by
@@ -187,7 +187,7 @@ theorem L_2_59_2 (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sig
   sorry
 
 theorem L_2_59 (a b : ℝ) (p q : Polynomial ℝ) :
-      ((∀ i : Fin (sturmSeq p q).length, eval a (sturmSeq p q)[i]! ≠ 0) ∧ ( ∀ i : Fin (sturmSeq p q).length, eval b (sturmSeq p q)[i]! ≠ 0))
+      ((∀p' ∈ sturmSeq p q, ¬IsRoot p' a) ∧ (∀p' ∈ sturmSeq p q, ¬IsRoot p' b))
       → if hprod : sigma b (p*q) * sigma a (p*q) = 1 then (seqVar (seqEval a (sturmSeq p q)) - seqVar (seqEval b (sturmSeq p q)))
       =  seqVar (seqEval a (sturmSeq q (-p%q))) - seqVar (seqEval b (sturmSeq q (-p%q))) else (seqVar (seqEval a (sturmSeq p q)) - seqVar (seqEval b (sturmSeq p q)))
       =  sigma b (p*q) + seqVar (seqEval a (sturmSeq q (-p%q))) - seqVar (seqEval b (sturmSeq q (-p%q))):= by
