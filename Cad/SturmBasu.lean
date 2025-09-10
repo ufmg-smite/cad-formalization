@@ -71,6 +71,9 @@ def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
 
 def rightNear (x : ℝ) : Filter ℝ := nhdsWithin x (Set.Ioi x)
 
+def eventually_at_right (x : ℝ) (P : Real → Prop) : Prop :=
+  Filter.Eventually P (rightNear x)
+
 -- P(x + eps) > 0 for all sufficiently small eps
 def sign_r_pos (x : ℝ) (p : Polynomial ℝ) : Prop :=
   Filter.Eventually (fun a => eval a p > 0) (rightNear x)
@@ -92,6 +95,106 @@ def cauchyIndex (p q : Polynomial ℝ) (a b : ℝ) : ℤ :=
 
 lemma rootsInIntervalZero (a b : ℝ) : rootsInInterval 0 a b = ∅ := by
   simp [rootsInInterval]
+
+lemma next_non_root_interval (p : Polynomial Real) (lb : Real) (hp : p ≠ 0) :
+    ∃ ub : Real, lb < ub ∧ (∀ z ∈ Ioc lb ub, eval z p ≠ 0) := by
+  cases Classical.em (∃ r : Real, eval r p = 0 ∧ r > lb)
+  next hr =>
+    obtain ⟨r, hr1, hr2⟩ := hr
+    let S := p.roots.toFinset.filter (fun w => w > lb)
+    if hS: Finset.Nonempty S then
+      obtain ⟨lr, hlr⟩ := Finset.min_of_nonempty hS
+      have : lr ∈ S := Finset.mem_of_min hlr
+      simp [S] at this
+      have H1 : lb < lr := by linarith
+      have H2 : ∀ z ∈ Ioo lb lr, eval z p ≠ 0 := by
+        intros z hz
+        simp at hz
+        obtain ⟨hz1, hz2⟩ := hz
+        intro abs
+        have : z ∉ S := Finset.not_mem_of_lt_min hz2 hlr
+        simp [S] at this
+        have := this hp abs
+        linarith
+      use (lb + lr) / 2
+      simp
+      constructor
+      · linarith
+      · intros z hz1 hz2 abs
+        have : z ∈ Ioo lb lr := by
+          simp
+          constructor
+          · exact hz1
+          · linarith
+        have := H2 z this
+        exact this abs
+    else
+      use lb + 1
+      simp
+      intros z hz1 hz2 abs
+      have : z ∈ S := by simp [S, hp, abs, hz1]
+      have : Finset.Nonempty S := by simp_all only [ne_eq, gt_iff_lt, Finset.not_nonempty_iff_eq_empty, Finset.not_mem_empty, S]
+      exact hS this
+  next hr =>
+    push_neg at hr
+    use lb + 1
+    simp
+    intros z hz1 hz2 abs
+    have := hr z abs
+    linarith
+
+lemma last_non_root_interval (p : Polynomial Real) (ub : Real) (hp : p ≠ 0) :
+    ∃ lb : Real, lb < ub ∧ (∀ z ∈ Ico lb ub, eval z p ≠ 0) := by
+  cases Classical.em (∃ r : Real, eval r p = 0 ∧ r < ub)
+  next hr =>
+    obtain ⟨r, hr1, hr2⟩ := hr
+    let S := p.roots.toFinset.filter (fun w => w < ub)
+    if hS: Finset.Nonempty S then
+      obtain ⟨mr, hmr⟩ := Finset.max_of_nonempty hS
+      have : mr ∈ S := Finset.mem_of_max hmr
+      simp [S] at this
+      have H1 : mr < ub := by linarith
+      have H2 : ∀ z ∈ Ioo mr ub, eval z p ≠ 0 := by
+        intros z hz
+        simp at hz
+        obtain ⟨hz1, hz2⟩ := hz
+        intro abs
+        have : z ∉ S := Finset.not_mem_of_max_lt hz1 hmr
+        simp [S] at this
+        have := this hp abs
+        linarith
+      use (mr + ub) / 2
+      simp
+      constructor
+      · linarith
+      · intros z hz1 hz2 abs
+        have : z ∈ Ioo mr ub := by
+          simp
+          constructor
+          · linarith
+          · exact hz2
+        have := H2 z this
+        exact this abs
+    else
+      use ub - 1
+      simp
+      intros z hz1 hz2 abs
+      have : z ∈ S := by simp [S, abs, hz2, hp]
+      have : Finset.Nonempty S := by simp_all only [ne_eq, Finset.not_nonempty_iff_eq_empty, Finset.not_mem_empty, S]
+      exact hS this
+  next hr =>
+    push_neg at hr
+    use ub - 1
+    simp
+    intros z hz1 hz2 abs
+    have := hr z abs
+    linarith
+
+lemma sign_r_pos_mult (p q : Polynomial Real) (x : Real) (hp : p ≠ 0) (hq : q ≠ 0) :
+    sign_r_pos x (p * q) = (sign_r_pos x p ↔ sign_r_pos x q) := by
+  obtain ⟨ub, hub1, hub2⟩  : ∃ ub : ℝ , x < ub ∧ ((∀ z ∈ Ioo x ub, 0 < eval z p) ∨ (∀ z ∈ Ioo x ub, eval z p < 0)) := by
+    admit
+  admit
 
 lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
     p ≠ 0 → p.eval x = 0 → jump_val p (derivative p * q) x = sgn (q.eval x) := by
@@ -123,6 +226,9 @@ lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
           exact dvd_iff_isRoot.mpr hev
         omega
       · exact (mul_ne_zero_iff_right hq).mpr deriv_ne_0
+    have elim_sgn_r_pos_p : sign_r_pos x (p * (derivative p * q)) = sign_r_pos x q := by
+      have sign_r_pos_iff : True := sorry
+      admit
     admit
 
 lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) (hab : a < b)  :
