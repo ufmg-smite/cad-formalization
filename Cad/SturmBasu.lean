@@ -74,6 +74,15 @@ def rightNear (x : ℝ) : Filter ℝ := nhdsWithin x (Set.Ioi x)
 def eventually_at_right (x : ℝ) (P : Real → Prop) : Prop :=
   Filter.Eventually P (rightNear x)
 
+theorem eventually_at_right_equiv : eventually_at_right x P ↔ (∃ b : Real, (b > x) ∧ (∀ y : Real, x < y ∧ y < b → P y)) := by
+  constructor
+  · intro hev
+    simp [eventually_at_right] at hev
+    exact mem_nhdsGT_iff_exists_Ioo_subset.mp hev
+  · intro h
+    simp [eventually_at_right]
+    exact mem_nhdsGT_iff_exists_Ioo_subset.mpr h
+
 -- P(x + eps) > 0 for all sufficiently small eps
 def sign_r_pos (x : ℝ) (p : Polynomial ℝ) : Prop :=
   Filter.Eventually (fun a => eval a p > 0) (rightNear x)
