@@ -88,10 +88,10 @@ def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
 -- 1 if p / q goes from -inf to +inf at x, -1 if goes from +inf to -inf
 -- 0 otherwise
 def jump_val (p q : Polynomial ℝ) (x : ℝ) : ℤ :=
-  let orderP : ℤ := rootMultiplicity x p
-  let orderQ : ℤ := rootMultiplicity x q
+  let orderP : Nat := rootMultiplicity x p
+  let orderQ : Nat := rootMultiplicity x q
   let oddOrder := Odd (orderP - orderQ)
-  if p ≠ 0 ∧ q ≠ 0 ∧ oddOrder ∧ orderP > orderQ then
+  if p ≠ 0 ∧ q ≠ 0 ∧ oddOrder then
     -- note that p * q > 0 is the same as p / q > 0
     if sign_r_pos x (p * q) then 1 else -1
   else 0
@@ -120,17 +120,48 @@ lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
           exact dvd_iff_isRoot.mpr hev
         omega
       · exact (mul_ne_zero_iff_right hq).mpr deriv_ne_0
-    have elim_sgn_r_pos_p : sign_r_pos x ((derivative p * q) * p) = sign_r_pos x q := by
-      have : sign_r_pos x ((derivative p * q) * p) = (sign_r_pos x (derivative p * p) ↔ sign_r_pos x q) := by
-        rw [mul_comm, <- mul_assoc]
+    have elim_sgn_r_pos_p : sign_r_pos x (p * (derivative p * q)) = sign_r_pos x q := by
+      have : sign_r_pos x (p * (derivative p * q)) = (sign_r_pos x (derivative p * p) ↔ sign_r_pos x q) := by
         have := sign_r_pos_mult (p * derivative p) q x ((mul_ne_zero_iff_right deriv_ne_0).mpr hp) hq
         nth_rw 2 [mul_comm p (derivative p)] at this
+        rw [<- mul_assoc]
         exact this
       rw [this]
       have := sign_r_pos_deriv p x hp hev
       aesop
-    unfold jump_val
-    admit
+    let simpleL : Int :=
+      if derivative p * q ≠ 0 ∧ Odd (1 - rootMultiplicity x q) then
+        (if sign_r_pos x q then 1 else -1)
+      else 0
+    have : jump_val p (derivative p * q) x = simpleL := by
+      simp [jump_val, simpleL, hp, deriv_ne_0, hq, elim_p_order, elim_sgn_r_pos_p]
+    rw [this]
+    cases Classical.em (eval x q = 0)
+    next hevQ =>
+      have : 0 < rootMultiplicity x q := (rootMultiplicity_pos hq).mpr hevQ
+      have : 1 - rootMultiplicity x q = 0 := by omega
+      have : ¬ Odd (1 - rootMultiplicity x q) := by rw [this]; exact Nat.not_odd_zero
+      have lhs : simpleL = 0 := by
+        simp [simpleL, this]
+      have rhs : sgn (eval x q) = 0 := by rw [hevQ]; simp [sgn]
+      rw [lhs, rhs]
+    next hevQ =>
+      have : rootMultiplicity x q = 0 := rootMultiplicity_eq_zero hevQ
+      have h1 : Odd (1 - rootMultiplicity x q) := by
+        rw [this]
+        exact Nat.odd_iff.mpr rfl
+      have h2 : derivative p * q ≠ 0 := by
+        clear * - hq deriv_ne_0
+        intro abs
+        simp_all only [ne_eq, mul_eq_zero, or_self]
+      have h3 : sign_r_pos x q ↔ 0 < eval x q := by
+        rw [sign_r_pos_rec]
+        simp [hevQ]
+        exact hq
+      have h4 : simpleL = if 0 < eval x q then 1 else -1 := by
+        simp [simpleL, h1, h2, h3]
+      rw [h4]
+      simp [sgn, hevQ]
 
 lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) (hab : a < b)  :
     tarskiQuery p q a b = cauchyIndex p (derivative p * q) a b := by
@@ -148,6 +179,8 @@ lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) (hab : a < b)  :
       simp [rootsInInterval] at hx
       exact hx.1.2
     rw [jump_poly_sign p q x hp this]
+
+#print axioms B_2_57
 
 -- Talvez usar reais extendidos para a e b seja a tradução mais imediata do enunciado.
 -- Por enquanto, podemos seguir desconsiderando esse caso.
