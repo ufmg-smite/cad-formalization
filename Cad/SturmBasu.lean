@@ -7,120 +7,6 @@ open Classical
 
 noncomputable section
 
-def polyRemSeq (f g : Polynomial ℝ) (h : g.natDegree ≠ 0) : List (Polynomial ℝ) :=
-  go f g [f] h
-where
-  go (h₀ h₁ : Polynomial ℝ) (acc : List (Polynomial ℝ)) (j : h₁.natDegree ≠ 0): List (Polynomial ℝ) :=
-    if h₁ = 0 then acc
-    else
-      let r := - h₀ % h₁
-      if k : r.natDegree = 0 then acc ++ [h₁]
-      else
-        go h₁ r (acc ++ [h₁]) k
-  termination_by h₁.natDegree
-  decreasing_by
-    apply Polynomial.natDegree_mod_lt
-    exact j
-
-def sturmSeq (f g : Polynomial ℝ) : List (Polynomial ℝ) :=
-  if f = 0 then
-    []
-  else
-    f::(sturmSeq g (-f%g))
-  termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
-  decreasing_by
-    simp_all
-    if g1: g = 0 then
-      simp_all
-    else if h : g ∣ f then
-      simp_all
-      have gnatdeg : g.degree ≥ 0 := by exact zero_le_degree_iff.mpr g1
-      refine lt_add_of_lt_of_nonneg ?_ gnatdeg; simp
-    else
-      simp_all
-      have :(-f % g).degree < g.degree := by
-        refine degree_lt_degree ?_; refine natDegree_mod_lt (-f) ?_
-        have : g.natDegree = 0 → g ∣ f := by
-          intro hg
-          have : ∃ c : ℝ, C c = g := by
-            exact natDegree_eq_zero.mp hg
-          rcases this with ⟨c, rfl⟩; use C c⁻¹ * f
-          have hds : c ≠ 0 := by
-            intro abs; rw [abs] at hg; simp at g1; exact g1 abs
-          ext x; simp; field_simp
-        have : g.natDegree ≠ 0 := by intro abs; exact h (this abs)
-        exact this
-      refine WithBot.add_lt_add_left ?_ this; simp_all
-
--- Considerando só os não nulos
-def seqVar : List ℝ → ℕ
-| [] => 0
-| _::[] => 0
-| a::(b::as) =>
-  if b == 0 then
-    seqVar (a::as)
-  else if a * b < 0 then
-    1 + seqVar (b::as)
-  else
-    seqVar (b::as)
-
-def seqEval (k : ℝ) : List (Polynomial ℝ) → List ℝ
-| [] => []
-| a::as => (eval k a)::(seqEval k as)
-
-def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
-  (seqVar (seqEval a P) : Int) - seqVar (seqEval b P)
-
-def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
-  seqVar_ab (sturmSeq p q) a b
-
-def sgn (k : ℝ) : ℤ  :=
-  if k > 0 then 1
-  else if k = 0 then 0
-  else -1
-
-def rootsInInterval (f : Polynomial ℝ) (a b : ℝ) : Finset ℝ :=
-  f.roots.toFinset.filter (fun x => x ∈ Ioo a b)
-
-def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
-  ∑ x ∈ rootsInInterval f a b, sgn (g.eval x)
-
-def rightNear (x : ℝ) : Filter ℝ := nhdsWithin x (Set.Ioi x)
-
-def eventually_at_right (x : ℝ) (P : Real → Prop) : Prop :=
-  Filter.Eventually P (rightNear x)
-
-theorem eventually_at_right_equiv : eventually_at_right x P ↔ (∃ b : Real, (b > x) ∧ (∀ y : Real, x < y ∧ y < b → P y)) := by
-  constructor
-  · intro hev
-    simp [eventually_at_right] at hev
-    exact mem_nhdsGT_iff_exists_Ioo_subset.mp hev
-  · intro h
-    simp [eventually_at_right]
-    exact mem_nhdsGT_iff_exists_Ioo_subset.mpr h
-
--- P(x + eps) > 0 for all sufficiently small eps
-def sign_r_pos (x : ℝ) (p : Polynomial ℝ) : Prop :=
-  Filter.Eventually (fun a => eval a p > 0) (rightNear x)
-
--- 1 if p / q goes from -inf to +inf in x, -1 if goes from +inf to -inf
--- 0 otherwise
-def jump_val (p q : Polynomial ℝ) (x : ℝ) : ℤ :=
-  let orderP : ℤ := rootMultiplicity x p
-  let orderQ : ℤ := rootMultiplicity x q
-  let oddOrder := Odd (orderP - orderQ)
-  if p ≠ 0 ∧ q ≠ 0 ∧ oddOrder ∧ orderP > orderQ then
-    -- note that p * q > 0 is the same as p / q > 0
-    if sign_r_pos x (p * q) then 1 else -1
-  else 0
-
--- Corresponde a Ind(Q/P; a, b)
-def cauchyIndex (p q : Polynomial ℝ) (a b : ℝ) : ℤ :=
-  ∑ x ∈ rootsInInterval p a b, jump_val p q x
-
-lemma rootsInIntervalZero (a b : ℝ) : rootsInInterval 0 a b = ∅ := by
-  simp [rootsInInterval]
-
 lemma next_non_root_interval (p : Polynomial Real) (lb : Real) (hp : p ≠ 0) :
     ∃ ub : Real, lb < ub ∧ (∀ z ∈ Ioc lb ub, eval z p ≠ 0) := by
   cases Classical.em (∃ r : Real, eval r p = 0 ∧ r > lb)
@@ -215,11 +101,564 @@ lemma last_non_root_interval (p : Polynomial Real) (ub : Real) (hp : p ≠ 0) :
     have := hr z abs
     linarith
 
+theorem exists_root_interval : ∀ p: Polynomial Real, ∀ (a b : ℝ), a <= b → eval a p <= 0 → 0 <= eval b p -> ∃ r: ℝ, r >= a ∧ r <= b ∧ eval r p = 0 := by
+  intros p a b hab ha hb
+  have p_continuous : ContinuousOn p.eval (Set.Icc a b) := p.continuousOn
+  have poly_mathlib_root : ∃ r: ℝ, r >= a ∧ r <= b ∧ p.IsRoot r := by
+    have intermediate_value_app := intermediate_value_Icc hab p_continuous
+    have zero_in_image : 0 ∈ p.eval '' Set.Icc a b := by
+      have zab : 0 ∈ Set.Icc (p.eval a) (p.eval b) := by
+        simp
+        aesop
+      exact Set.mem_of_mem_of_subset zab intermediate_value_app
+    obtain ⟨x, ⟨hxa, hxb⟩, hx_root⟩ := zero_in_image
+    exact Exists.intro x ⟨hxa, hxb, hx_root⟩
+  obtain ⟨r, hra, hrb, hr_root⟩ := poly_mathlib_root
+  use r
+  exact ⟨hra, hrb, hr_root⟩
+
+def polyRemSeq (f g : Polynomial ℝ) (h : g.natDegree ≠ 0) : List (Polynomial ℝ) :=
+  go f g [f] h
+where
+  go (h₀ h₁ : Polynomial ℝ) (acc : List (Polynomial ℝ)) (j : h₁.natDegree ≠ 0): List (Polynomial ℝ) :=
+    if h₁ = 0 then acc
+    else
+      let r := - h₀ % h₁
+      if k : r.natDegree = 0 then acc ++ [h₁]
+      else
+        go h₁ r (acc ++ [h₁]) k
+  termination_by h₁.natDegree
+  decreasing_by
+    apply Polynomial.natDegree_mod_lt
+    exact j
+
+def sturmSeq (f g : Polynomial ℝ) : List (Polynomial ℝ) :=
+  if f = 0 then
+    []
+  else
+    f::(sturmSeq g (-f%g))
+  termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
+  decreasing_by
+    simp_all
+    if g1: g = 0 then
+      simp_all
+    else if h : g ∣ f then
+      simp_all
+      have gnatdeg : g.degree ≥ 0 := by exact zero_le_degree_iff.mpr g1
+      refine lt_add_of_lt_of_nonneg ?_ gnatdeg; simp
+    else
+      simp_all
+      have :(-f % g).degree < g.degree := by
+        refine degree_lt_degree ?_; refine natDegree_mod_lt (-f) ?_
+        have : g.natDegree = 0 → g ∣ f := by
+          intro hg
+          have : ∃ c : ℝ, C c = g := by
+            exact natDegree_eq_zero.mp hg
+          rcases this with ⟨c, rfl⟩; use C c⁻¹ * f
+          have hds : c ≠ 0 := by
+            intro abs; rw [abs] at hg; simp at g1; exact g1 abs
+          ext x; simp; field_simp
+        have : g.natDegree ≠ 0 := by intro abs; exact h (this abs)
+        exact this
+      refine WithBot.add_lt_add_left ?_ this; simp_all
+
+-- Considerando só os não nulos
+def seqVar : List ℝ → ℕ
+| [] => 0
+| _::[] => 0
+| a::(b::as) =>
+  if b == 0 then
+    seqVar (a::as)
+  else if a * b < 0 then
+    1 + seqVar (b::as)
+  else
+    seqVar (b::as)
+
+def seqEval (k : ℝ) : List (Polynomial ℝ) → List ℝ
+| [] => []
+| a::as => (eval k a)::(seqEval k as)
+
+def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
+  (seqVar (seqEval a P) : Int) - seqVar (seqEval b P)
+
+def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
+  seqVar_ab (sturmSeq p q) a b
+
+def sgn (k : ℝ) : ℤ  :=
+  if k > 0 then 1
+  else if k = 0 then 0
+  else -1
+
+def rootsInInterval (f : Polynomial ℝ) (a b : ℝ) : Finset ℝ :=
+  f.roots.toFinset.filter (fun x => x ∈ Ioo a b)
+
+def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
+  ∑ x ∈ rootsInInterval f a b, sgn (g.eval x)
+
+lemma not_eq_pos_or_neg_iff_1 (p : Polynomial Real) (lb ub : Real) :
+    (∀ z ∈ Ioc lb ub, eval z p ≠ 0) ↔ ((∀ z ∈ Ioc lb ub, eval z p < 0) ∨ (∀ z ∈ Ioc lb ub, 0 < eval z p)) := by
+  by_contra!
+  cases this
+  next H =>
+    obtain ⟨H₁, ⟨z₁, hz₁, hz₁'⟩, ⟨z₂, hz₂, hz₂'⟩⟩ := H
+    have z1Neq0 : eval z₁ p ≠ 0 := by aesop
+    have z2Neq0 : eval z₂ p ≠ 0 := by aesop
+    have z1Pos : 0 < eval z₁ p := lt_of_le_of_ne hz₁' (id (Ne.symm z1Neq0))
+    have z2Neg : eval z₂ p < 0 := lt_of_le_of_ne hz₂' (H₁ z₂ hz₂)
+    have : z₁ ≠ z₂ := by
+      intro abs
+      rw [abs] at  hz₁'
+      have : eval z₂ p = 0 := by linarith
+      exact H₁ z₂ hz₂ this
+    cases Classical.em (z₁ < z₂)
+    next hle =>
+      obtain ⟨r, hr₁, hr₂, hr₃⟩ := exists_root_interval (-p) z₁ z₂ (le_of_lt hle) (by simp; exact hz₁') (by simp; exact hz₂')
+      simp at hr₃
+      have : r ∈ Set.Ioc lb ub := by
+        simp at hz₁ hz₂ ⊢
+        constructor
+        · linarith
+        · linarith
+      exact H₁ r this hr₃
+    next hge =>
+      push_neg at hge
+      obtain ⟨r, hr₁, hr₂, hr₃⟩ := exists_root_interval p z₂ z₁ hge (le_of_lt z2Neg) (le_of_lt z1Pos)
+      have : r ∈ Set.Ioc lb ub := by
+        simp at hz₁ hz₂ ⊢
+        constructor
+        · linarith
+        · linarith
+      exact H₁ r this hr₃
+  next H =>
+    obtain ⟨⟨z, hz1, hz2⟩, H₂⟩ := H
+    cases H₂
+    next H₂ =>
+      have := H₂ z hz1
+      linarith
+    next H₂ =>
+      have := H₂ z hz1
+      linarith
+
+def rightNear (x : ℝ) : Filter ℝ := nhdsWithin x (Set.Ioi x)
+
+def eventually_at_right (x : ℝ) (P : Real → Prop) : Prop :=
+  Filter.Eventually P (rightNear x)
+
+theorem eventually_at_right_equiv {x : Real} {P : Real -> Prop} : eventually_at_right x P ↔ (∃ b : Real, (b > x) ∧ (∀ y : Real, x < y ∧ y < b → P y)) := by
+  constructor
+  · intro hev
+    simp [eventually_at_right] at hev
+    exact mem_nhdsGT_iff_exists_Ioo_subset.mp hev
+  · intro h
+    simp [eventually_at_right]
+    exact mem_nhdsGT_iff_exists_Ioo_subset.mpr h
+
+-- P(x + eps) > 0 for all sufficiently small eps
+def sign_r_pos (x : ℝ) (p : Polynomial ℝ) : Prop :=
+  Filter.Eventually (fun a => eval a p > 0) (rightNear x)
+
+-- We should define sign_r_pos in terms of eventually_at_right
+theorem eventually_at_right_equiv' {x : Real} {p : Polynomial Real} : sign_r_pos x p ↔ (∃ b : Real, (b > x) ∧ (∀ y : Real, x < y ∧ y < b → 0 < eval y p)) := by
+  constructor
+  · intro hev
+    simp [eventually_at_right] at hev
+    exact mem_nhdsGT_iff_exists_Ioo_subset.mp hev
+  · intro h
+    simp [sign_r_pos, eventually_at_right]
+    exact mem_nhdsGT_iff_exists_Ioo_subset.mpr h
+
+lemma exists_deriv_eq_slope_poly (a b : Real) (hab : a < b) (p : Polynomial Real) :
+    ∃ c : Real, c > a ∧ c < b ∧
+                eval b p - eval a p = (b - a) * eval c (derivative p) := by
+  obtain ⟨c, hc1, hc2⟩ :=
+    exists_deriv_eq_slope (a := a) (b := b) (fun x => eval x p) hab
+      (Polynomial.continuousOn_aeval p) (Polynomial.differentiableOn_aeval p)
+  simp at hc1
+  obtain ⟨hc_low, hc_high⟩ := hc1
+  use c
+  refine ⟨hc_low, hc_high, ?_⟩
+  rw [Polynomial.deriv] at hc2
+  rw [hc2]
+  have : (b - a) ≠ 0 := by linarith
+  field_simp
+
+lemma derivative_ne_0 (p : Polynomial Real) (x : Real) (hev : eval x p = 0) (hp : p ≠ 0) : derivative p ≠ 0 := by
+  intro abs
+  have := natDegree_eq_zero_of_derivative_eq_zero abs
+  obtain ⟨c, hc⟩  := (natDegree_eq_zero.mp this)
+  have : c ≠ 0 := by
+    intro abs2
+    rw [abs2] at hc
+    rw [<- hc] at hp
+    simp at hp
+  rw [<- hc] at hev
+  simp at hev
+  exact this hev
+
+lemma sign_r_pos_rec (p : Polynomial Real) (x : Real) (hp : p ≠ 0) :
+    sign_r_pos x p = if eval x p = 0 then sign_r_pos x (derivative p) else eval x p > 0 := by
+  if hev : eval x p = 0 then
+    have H1 : sign_r_pos x (derivative p) → sign_r_pos x p := by
+      by_contra!
+      obtain ⟨H1, H2⟩ := this
+      obtain ⟨b, hb1, hb2⟩  := eventually_at_right_equiv'.mp H1
+      have HF := (iff_false_right H2).mp (Iff.symm eventually_at_right_equiv')
+      push_neg at HF
+      obtain ⟨z, ⟨hz1, hz2⟩, hz3⟩ := HF b hb1
+      obtain ⟨z', hz1', hz2', hz3'⟩ := exists_deriv_eq_slope_poly x z hz1 p
+      have abs1 : eval z' (derivative p) ≤ 0 := by
+        rw [hev] at hz3'
+        have foo : eval z p ≤ 0 := hz3
+        simp at hz3'
+        have : 0 < z - x := by linarith
+        clear * - hz3' this hz3
+        simp_all only [ge_iff_le]
+        exact nonpos_of_mul_nonpos_right hz3 this
+      have abs2 := hb2 z' ⟨hz1', lt_trans hz2' hz2⟩
+      linarith
+    have H2 : sign_r_pos x p → sign_r_pos x (derivative p) := by
+      intro H
+      have : derivative p ≠ 0 := derivative_ne_0 p x hev hp
+      obtain ⟨ub, hub1, hub2⟩ := next_non_root_interval (derivative p) x this
+      have H1 := (not_eq_pos_or_neg_iff_1 (derivative p) x ub).mp hub2
+      simp at H1
+      have : ¬ (∀ z : Real, x < z → z ≤ ub → eval z (derivative p) < 0) := by
+        intro abs
+        rw [eventually_at_right_equiv'] at H
+        obtain ⟨ub', hub1', hub2'⟩ := H
+        let T := (x + (min ub ub')) / 2
+        have hx1 : 2 * x < (x + ub) := by linarith
+        have hx2 : 2 * x < (x + ub') := by linarith
+        have hx3 : 2 * x < min (x + ub) (x + ub') := lt_min hx1 hx2
+        have hx4 : min (x + ub) (x + ub') = x + min ub ub' := min_add_add_left x ub ub'
+        have : x < T := by
+          simp only [T]
+          rw [<- hx4]
+          linarith
+        obtain ⟨z', hz1', hz2', hz3'⟩ := exists_deriv_eq_slope_poly x T this p
+        clear hx1 hx2 hx3 hx4
+        have hT : 0 < eval T p := by
+          refine hub2' T ⟨this, ?_⟩
+          simp [T]
+          if Hub : ub < ub' then
+            rw [min_eq_left_of_lt Hub]
+            linarith
+          else
+            push_neg at Hub
+            rw [min_eq_right Hub]
+            linarith
+        have : 0 < T - x := by linarith
+        rw [hev] at hz3'
+        simp at hz3'
+        have : 0 < eval z' (derivative p) := by
+          clear * -  this hz3' hT
+          have foo : 0 < (T - x) * eval z' (derivative p) := lt_of_lt_of_eq hT hz3'
+          exact (pos_iff_pos_of_mul_pos foo).mp this
+        have foo : z' ≤ ub := by
+          simp [T] at hz2'
+          if Hub : ub < ub' then
+            rw [min_eq_left_of_lt Hub] at hz2'
+            linarith
+          else
+            push_neg at Hub
+            rw [min_eq_right Hub] at hz2'
+            linarith
+        have := abs z' hz1' foo
+        linarith
+      have : ∀ z : Real, x < z → z ≤ ub → 0 < eval z (derivative p) := by
+        cases H1
+        next H1 => exact False.elim (this H1)
+        next H1 => exact H1
+      rw [eventually_at_right_equiv']
+      use ub
+      refine ⟨hub1, ?_⟩
+      rintro y ⟨hy1, hy2⟩
+      exact this y hy1 (le_of_lt hy2)
+    simp [hev]
+    exact ⟨H2, H1⟩
+  else
+    simp [hev]
+    have : sign_r_pos x p → 0 < eval x p := by
+      by_contra!
+      obtain ⟨h1, h2⟩ := this
+      obtain ⟨ub, hub1, hub2⟩  : ∃ ub : Real, x < ub ∧ (∀ z : Real, z > x ∧ z < ub → 0 < eval z p) := by
+        obtain ⟨ub, hub1, hub2⟩  := eventually_at_right_equiv'.mp h1
+        use ub
+      have H : 0 < eval ((ub + x) / 2) p := by
+        have h1 : ((ub + x) / 2) > x := by linarith
+        have h2 : ((ub + x) / 2) < ub := by linarith
+        exact hub2 ((ub + x) / 2) ⟨h1, h2⟩
+      have H2 : eval x p < 0 := lt_of_le_of_ne h2 hev
+      obtain ⟨r, hr1, hr2, hr3⟩ := exists_root_interval p x ((ub + x) / 2) (by linarith) (le_of_lt H2) (le_of_lt H)
+      have : r ≠ x := by
+        intro abs
+        rw [<- abs] at hev
+        exact hev hr3
+      have : x < r := lt_of_le_of_ne hr1 (Ne.symm this)
+      have := hub2 r ⟨this, by linarith⟩
+      linarith
+    have : 0 < eval x p → sign_r_pos x p := by
+      intro H
+      rw [eventually_at_right_equiv']
+      obtain ⟨ub, hub1, hub2⟩ := next_non_root_interval p x hp
+      have := (not_eq_pos_or_neg_iff_1 p x ub).mp hub2
+      cases this
+      next H1 =>
+        clear hub2
+        apply False.elim
+        have : eval ub p < 0 := H1 ub (by simp; exact hub1)
+        obtain ⟨r, hr1, hr2, hr3⟩ :=
+          exists_root_interval (-p) x ub (le_of_lt hub1) (by simp; exact le_of_lt H) (by simp; exact le_of_lt this)
+        simp at hr3
+        cases Classical.em (x = r)
+        next heq =>
+          rw [<- heq] at hr3
+          rw [hr3] at H
+          simp at H
+        next hneq =>
+          have : x < r := lt_of_le_of_ne hr1 hneq
+          have : r ∈ Ioc x ub := by simp; aesop
+          have := H1 r this
+          rw [hr3] at this
+          simp at this
+      next H1 =>
+        use ub
+        refine ⟨hub1, ?_⟩
+        rintro y ⟨hy1, hy2⟩
+        simp at H1
+        exact H1 y hy1 (le_of_lt hy2)
+    aesop
+
+lemma sign_r_pos_minus (x : ℝ) (p : Polynomial ℝ) : p ≠ 0 → (sign_r_pos x p ↔ (¬ sign_r_pos x (-p))) := by
+  intro hp
+  have : sign_r_pos x p ∨ sign_r_pos x (-p) := by
+    obtain ⟨ub, hub1, hub2⟩ := next_non_root_interval p x hp
+    have := (not_eq_pos_or_neg_iff_1 p x ub).mp hub2
+    cases this
+    next H =>
+      right
+      rw [eventually_at_right_equiv']
+      use ub
+      refine ⟨hub1, ?_⟩
+      rintro y ⟨hy1, hy2⟩
+      simp at H ⊢
+      exact H y hy1 (le_of_lt hy2)
+    next H =>
+      left
+      rw [eventually_at_right_equiv']
+      use ub
+      refine ⟨hub1, ?_⟩
+      rintro y ⟨hy1, hy2⟩
+      simp at H
+      exact H y hy1 (le_of_lt hy2)
+  have : sign_r_pos x p → ¬ (sign_r_pos x (-p)) := by
+    intros H abs
+    rw [eventually_at_right_equiv'] at H abs
+    obtain ⟨b, hb1, hb2⟩ := H
+    obtain ⟨c, hc1, hc2⟩ := abs
+    let s := min b c
+    have xs : x < s := lt_min hb1 hc1
+    let y := (x + s) / 2
+    have xy : x < y := left_lt_add_div_two.mpr xs
+    have ys : y < s := add_div_two_lt_right.mpr xs
+    have sb : s ≤ b := min_le_left b c
+    have yb : y < b := gt_of_ge_of_gt sb ys
+    have sc : s ≤ c := min_le_right b c
+    have yc : y < c := gt_of_ge_of_gt sc ys
+    have h1 := hb2 y ⟨xy, yb⟩
+    have h2 := hc2 y ⟨xy, yc⟩
+    simp at h2
+    linarith
+  aesop
+
+-- 1 if p / q goes from -inf to +inf at x, -1 if goes from +inf to -inf
+-- 0 otherwise
+def jump_val (p q : Polynomial ℝ) (x : ℝ) : ℤ :=
+  let orderP : ℤ := rootMultiplicity x p
+  let orderQ : ℤ := rootMultiplicity x q
+  let oddOrder := Odd (orderP - orderQ)
+  if p ≠ 0 ∧ q ≠ 0 ∧ oddOrder ∧ orderP > orderQ then
+    -- note that p * q > 0 is the same as p / q > 0
+    if sign_r_pos x (p * q) then 1 else -1
+  else 0
+
+-- Corresponde a Ind(Q/P; a, b)
+def cauchyIndex (p q : Polynomial ℝ) (a b : ℝ) : ℤ :=
+  ∑ x ∈ rootsInInterval p a b, jump_val p q x
+
+lemma rootsInIntervalZero (a b : ℝ) : rootsInInterval 0 a b = ∅ := by
+  simp [rootsInInterval]
+
+set_option maxHeartbeats 500000
 lemma sign_r_pos_mult (p q : Polynomial Real) (x : Real) (hp : p ≠ 0) (hq : q ≠ 0) :
     sign_r_pos x (p * q) = (sign_r_pos x p ↔ sign_r_pos x q) := by
-  obtain ⟨ub, hub1, hub2⟩  : ∃ ub : ℝ , x < ub ∧ ((∀ z ∈ Ioo x ub, 0 < eval z p) ∨ (∀ z ∈ Ioo x ub, eval z p < 0)) := by
-    admit
-  admit
+  obtain ⟨ub, hub1, hub2⟩ : ∃ ub : ℝ , x < ub ∧ ((∀ z ∈ Ioo x ub, 0 < eval z p) ∨ (∀ z ∈ Ioo x ub, eval z p < 0)) := by
+    obtain ⟨ub, hub1, hub2⟩ := next_non_root_interval p x hp
+    have := (not_eq_pos_or_neg_iff_1 p x ub).mp hub2
+    replace this : (∀ z ∈ Set.Ioo x ub, eval z p < 0) ∨ (∀ z ∈ Set.Ioo x ub, 0 < eval z p) := by
+      cases this
+      next H =>
+        left
+        simp_all only [ne_eq, mem_Ioc, and_imp, mem_Ioo]
+        intros z hz1 hz2
+        exact H z hz1 (le_of_lt hz2)
+      next H =>
+        right
+        simp_all only [ne_eq, mem_Ioc, and_imp, mem_Ioo]
+        intros z hz1 hz2
+        exact H z hz1 (le_of_lt hz2)
+    use ub
+    exact ⟨hub1, (Or.symm this)⟩
+  obtain ⟨ub', hub1', hub2'⟩ : ∃ ub' : ℝ , x < ub' ∧ ((∀ z ∈ Ioo x ub', 0 < eval z q) ∨ (∀ z ∈ Ioo x ub', eval z q < 0)) := by
+    obtain ⟨ub', hub1', hub2'⟩ := next_non_root_interval q x hq
+    have := (not_eq_pos_or_neg_iff_1 q x ub').mp hub2'
+    replace this : (∀ z ∈ Set.Ioo x ub', eval z q < 0) ∨ (∀ z ∈ Set.Ioo x ub', 0 < eval z q) := by
+      cases this
+      next H =>
+        left
+        simp_all only [ne_eq, mem_Ioc, and_imp, mem_Ioo]
+        intros z hz1 hz2
+        exact H z hz1 (le_of_lt hz2)
+      next H =>
+        right
+        simp_all only [ne_eq, mem_Ioc, and_imp, mem_Ioo]
+        intros z hz1 hz2
+        exact H z hz1 (le_of_lt hz2)
+    use ub'
+    exact ⟨hub1', (Or.symm this)⟩
+  have H1 : (∀ z ∈ Ioo x ub, 0 < eval z p) → (∀ z ∈ Ioo x ub', 0 < eval z q) → sign_r_pos x (p * q) = (sign_r_pos x p ↔ sign_r_pos x q) := by
+    intros hzp hzq
+    have sign_r_pos_p : sign_r_pos x p := by
+      unfold sign_r_pos
+      apply eventually_at_right_equiv.mpr
+      use ub
+      aesop
+    have sign_r_pos_q : sign_r_pos x q := by
+      unfold sign_r_pos
+      apply eventually_at_right_equiv.mpr
+      use ub'
+      aesop
+    have : Filter.Eventually (fun z => 0 < eval z p ∧ 0 < eval z q) (rightNear x) := Eventually.and sign_r_pos_p sign_r_pos_q
+    have : sign_r_pos x (p * q) := by
+      unfold sign_r_pos
+      apply Eventually.mono (p := fun z => 0 < eval z p ∧ 0 < eval z q) (q := fun z => 0 < eval z (p * q)) this
+      rintro x ⟨hx₁, hx₂⟩
+      rw [eval_mul]
+      exact Left.mul_pos hx₁ hx₂
+    aesop
+  have H2 : (∀ z ∈ Ioo x ub, 0 < eval z p) → (∀ z ∈ Ioo x ub', 0 > eval z q) → sign_r_pos x (p * q) = (sign_r_pos x p ↔ sign_r_pos x q) := by
+    intros hzp hzq
+    have sign_r_pos_p : sign_r_pos x p := by
+      unfold sign_r_pos
+      apply eventually_at_right_equiv.mpr
+      use ub
+      aesop
+    have sign_r_pos_q : sign_r_pos x (-q) := by
+      unfold sign_r_pos
+      apply eventually_at_right_equiv.mpr
+      use ub'
+      aesop
+    have : Filter.Eventually (fun z => 0 < eval z p ∧ 0 < eval z (-q)) (rightNear x) := Eventually.and sign_r_pos_p sign_r_pos_q
+    have : sign_r_pos x (- p * q) := by
+      unfold sign_r_pos
+      apply Eventually.mono (p := fun z => 0 < eval z p ∧ 0 < eval z (-q)) (q := fun z => 0 < eval z (-p * q)) this
+      rintro x ⟨hx₁, hx₂⟩
+      rw [eval_mul]
+      have hp : eval x (-p) < 0 := by simp; exact hx₁
+      have hq : eval x q < 0 := by simp at hx₂; exact hx₂
+      exact mul_pos_of_neg_of_neg hp hq
+    have : ¬ sign_r_pos x (p * q) := by
+      have eq : p * q = - (-p * q) := by
+        clear * -
+        simp_all only [neg_mul, neg_neg]
+      rw [eq]
+      have neq0 : p * q ≠ 0 := (mul_ne_zero_iff_right hq).mpr hp
+      have neq0' : -p * q ≠ 0 := by
+        clear * - neq0
+        simp_all only [ne_eq, mul_eq_zero, not_or, neg_mul, neg_eq_zero, or_self, not_false_eq_true]
+      exact (sign_r_pos_minus x (-p * q) neq0').mp this
+    have sign_r_pos_q' : ¬ sign_r_pos x q := by
+      clear * -  sign_r_pos_q hq
+      have := sign_r_pos_minus x q hq
+      aesop
+    clear * - this sign_r_pos_p sign_r_pos_q'
+    aesop
+  have H3 : (∀ z ∈ Ioo x ub, 0 > eval z p) → (∀ z ∈ Ioo x ub', 0 < eval z q) → sign_r_pos x (p * q) = (sign_r_pos x p ↔ sign_r_pos x q) := by
+    intros hzp hzq
+    have sign_r_pos_p : sign_r_pos x (-p) := by
+      unfold sign_r_pos
+      apply eventually_at_right_equiv.mpr
+      use ub
+      aesop
+    have sign_r_pos_q : sign_r_pos x q := by
+      unfold sign_r_pos
+      apply eventually_at_right_equiv.mpr
+      use ub'
+      aesop
+    have : Filter.Eventually (fun z => 0 < eval z (-p) ∧ 0 < eval z q) (rightNear x) := Eventually.and sign_r_pos_p sign_r_pos_q
+    have : sign_r_pos x (- p * q) := by
+      unfold sign_r_pos
+      apply Eventually.mono (p := fun z => 0 < eval z (-p) ∧ 0 < eval z q) (q := fun z => 0 < eval z (-p * q)) this
+      rintro x ⟨hx₁, hx₂⟩
+      rw [eval_mul]
+      have hp : eval x p < 0 := by simp at hx₁; exact hx₁
+      have hq : eval x (-q) < 0 := by simp; exact hx₂
+      exact Left.mul_pos hx₁ hx₂
+    have : ¬ sign_r_pos x (p * q) := by
+      have eq : p * q = - (-p * q) := by
+        clear * -
+        simp_all only [neg_mul, neg_neg]
+      rw [eq]
+      have neq0 : p * q ≠ 0 := (mul_ne_zero_iff_right hq).mpr hp
+      have neq0' : -p * q ≠ 0 := by
+        clear * - neq0
+        simp_all only [ne_eq, mul_eq_zero, not_or, neg_mul, neg_eq_zero, or_self, not_false_eq_true]
+      exact (sign_r_pos_minus x (-p * q) neq0').mp this
+    have sign_r_pos_p' : ¬ sign_r_pos x p := by
+      clear * -  sign_r_pos_p hp
+      have := sign_r_pos_minus x p hp
+      aesop
+    clear * - this sign_r_pos_p' sign_r_pos_q
+    aesop
+  have H4 : (∀ z ∈ Ioo x ub, 0 > eval z p) → (∀ z ∈ Ioo x ub', 0 > eval z q) → sign_r_pos x (p * q) = (sign_r_pos x p ↔ sign_r_pos x q) := by
+    intros hzp hzq
+    have sign_r_pos_p : sign_r_pos x (-p) := by
+      unfold sign_r_pos
+      apply eventually_at_right_equiv.mpr
+      use ub
+      aesop
+    have sign_r_pos_q : sign_r_pos x (-q) := by
+      unfold sign_r_pos
+      apply eventually_at_right_equiv.mpr
+      use ub'
+      aesop
+    have : Filter.Eventually (fun z => 0 < eval z (-p) ∧ 0 < eval z (-q)) (rightNear x) := Eventually.and sign_r_pos_p sign_r_pos_q
+    have : sign_r_pos x (p * q) := by
+      unfold sign_r_pos
+      apply Eventually.mono (p := fun z => 0 < eval z (-p) ∧ 0 < eval z (-q)) (q := fun z => 0 < eval z (p * q)) this
+      rintro x ⟨hx₁, hx₂⟩
+      rw [eval_mul]
+      simp at hx₁
+      simp at hx₂
+      exact mul_pos_of_neg_of_neg hx₁ hx₂
+    clear * - this sign_r_pos_p sign_r_pos_q hp hq
+    have : ¬ sign_r_pos x p := by
+      have := sign_r_pos_minus x p hp
+      aesop
+    have : ¬ sign_r_pos x q := by
+      have := sign_r_pos_minus x q hq
+      aesop
+    aesop
+  aesop
+
+lemma sign_r_pos_deriv (p : Polynomial Real) (x : Real) (hp : p ≠ 0) (hev : eval x p = 0) : sign_r_pos x (derivative p * p) := by
+  have deriv_ne_0 : derivative p ≠ 0 := derivative_ne_0 p x hev hp
+  suffices sign_r_pos x (derivative p) = sign_r_pos x p by
+    rw [sign_r_pos_mult (derivative p) p x deriv_ne_0 hp]
+    exact Eq.to_iff this
+  rw [sign_r_pos_rec p]
+  · simp [hev]
+  · exact hp
 
 lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
     p ≠ 0 → p.eval x = 0 → jump_val p (derivative p * q) x = sgn (q.eval x) := by
@@ -228,32 +667,26 @@ lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
     rw [hq]
     simp [sgn, jump_val]
   else
-    have deriv_ne_0 : derivative p ≠ 0 := by
-      intro abs
-      have := natDegree_eq_zero_of_derivative_eq_zero abs
-      obtain ⟨c, hc⟩  := (natDegree_eq_zero.mp this)
-      have : c ≠ 0 := by
-        intro abs2
-        rw [abs2] at hc
-        rw [<- hc] at hp
-        simp at hp
-      rw [<- hc] at hev
-      simp at hev
-      exact this hev
-    unfold jump_val
-    have := derivative_rootMultiplicity_of_root hev
+    have deriv_ne_0 : derivative p ≠ 0 := derivative_ne_0 p x hev hp
     have elim_p_order : rootMultiplicity x p - rootMultiplicity x (derivative p * q) = 1 - rootMultiplicity x q := by
       rw [Polynomial.rootMultiplicity_mul]
-      · rw [this]
+      · rw [derivative_rootMultiplicity_of_root hev]
         have : 1 ≤ rootMultiplicity x p := by
           apply (Polynomial.le_rootMultiplicity_iff hp).mpr
           simp
           exact dvd_iff_isRoot.mpr hev
         omega
       · exact (mul_ne_zero_iff_right hq).mpr deriv_ne_0
-    have elim_sgn_r_pos_p : sign_r_pos x (p * (derivative p * q)) = sign_r_pos x q := by
-      have sign_r_pos_iff : True := sorry
-      admit
+    have elim_sgn_r_pos_p : sign_r_pos x ((derivative p * q) * p) = sign_r_pos x q := by
+      have : sign_r_pos x ((derivative p * q) * p) = (sign_r_pos x (derivative p * p) ↔ sign_r_pos x q) := by
+        rw [mul_comm, <- mul_assoc]
+        have := sign_r_pos_mult (p * derivative p) q x ((mul_ne_zero_iff_right deriv_ne_0).mpr hp) hq
+        nth_rw 2 [mul_comm p (derivative p)] at this
+        exact this
+      rw [this]
+      have := sign_r_pos_deriv p x hp hev
+      aesop
+    unfold jump_val
     admit
 
 lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) (hab : a < b)  :
