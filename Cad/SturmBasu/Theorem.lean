@@ -481,16 +481,9 @@ theorem L_2_59_2 (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sig
     simp at h2_1; simp at h2_2a; simp at h2_2b; rw[h2_2a, h2_2b]; simp_all; ring_nf
     rw [seqVarSturm_ab, seqVar_ab]
 
-/-
-def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
-  (seqVar (seqEval a P) : Int) - seqVar (seqEval b P)
-
-def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
-  seqVar_ab (sturmSeq p q) a b
--/
 theorem L_2_59 (a b : ℝ) (p q : Polynomial ℝ) (hq : q ≠ 0) (hp : p ≠ 0):
       ((∀p' ∈ sturmSeq p q, ¬IsRoot p' a) ∧ (∀p' ∈ sturmSeq p q, ¬IsRoot p' b))
-      → if hprod : sigma b (p*q) * sigma a (p*q) = 1 then (seqVarSturm_ab p q a b)
+      → if sigma b (p*q) * sigma a (p*q) = 1 then (seqVarSturm_ab p q a b)
       =  seqVarSturm_ab q (-p%q) a b else seqVarSturm_ab p q a b
       =  sigma b (p*q) + seqVarSturm_ab q (-p%q) a b := by
   intro h
@@ -500,23 +493,95 @@ theorem L_2_59 (a b : ℝ) (p q : Polynomial ℝ) (hq : q ≠ 0) (hp : p ≠ 0):
   else
     simp_all
     have hneg : sigma b (p*q) * sigma a (p*q) = -1 := by
-      have : sigma b (p*q) * sigma a (p*q) ≠ 1 := by intro H; exact hprod H
-      have : sigma b (p*q) * sigma a (p*q) ≠ 0 := by
-        intro H
-        have : sigma b (p*q) ≠ 0 := by
-          intro Haux; rw[sigma, sgn] at Haux; simp_all
-          have : eval b (p*q) ≠ 0 := by
+      have aux1 : sigma b (p*q) * sigma a (p*q) ≠ 1 := by intro H; exact hprod H
+      have auxevb : eval b (p*q) ≠ 0 := by
+        intro Heval
+        have aux := And.right h
+        have t1: ¬ eval b p = 0 := by
+          apply aux p; rw[sturmSeq]; simp; exact hp
+        have t2: ¬ eval b q = 0 := by
+          apply aux q; rw[sturmSeq, sturmSeq];
+          simp
+          if hq0 : q = p then
+            rw[hq0]; simp; exact hp
+          else
+          simp_all
+        rw[eval_mul] at Heval
+        exact (mul_ne_zero t1 t2) Heval
+      have auxeva : eval a (p*q) ≠ 0 := by
             intro Heval
-            have aux := And.right h
-            have : ¬ eval b p = 0 := by
+            have aux := And.left h
+            have t1: ¬ eval a p = 0 := by
               apply aux p; rw[sturmSeq]; simp; exact hp
-            have : ¬ eval b q = 0 := by
-              apply aux q; rw[sturmSeq]; simp;
-              sorry
-            sorry
-          sorry
-        sorry
-      sorry
+            have t2: ¬ eval a q = 0 := by
+              apply aux q; rw[sturmSeq, sturmSeq];
+              simp
+              if hq0 : q = p then
+                rw[hq0]; simp; exact hp
+              else
+                simp_all
+            rw[eval_mul] at Heval
+            exact (mul_ne_zero t1 t2) Heval
+      have aux2 : sigma b (p*q) * sigma a (p*q) ≠ 0 := by
+        intro H
+        have T1 : sigma b (p*q) ≠ 0 := by
+          intro Haux
+          have := auxevb
+          rw[sigma] at Haux
+          simp [sgn] at Haux; simp_all; split_ifs at Haux
+          if hnew : 0 < eval b p * eval b q then
+            linarith
+          else
+            linarith
+        have T2 : sigma a (p*q) ≠ 0 := by
+          intro Haux
+          have := auxeva
+          rw[sigma] at Haux; simp [sgn] at Haux;
+          simp_all; split_ifs at Haux
+          if hnew : 0 < eval a p * eval a q then
+            linarith
+          else
+            linarith
+        exact (mul_ne_zero T1 T2) H
+      simp_all; rw[sigma, sigma]; simp [sigma] at aux1 aux2
+      rw[sgn,sgn] at aux1; rw[sgn,sgn] at aux2; rw[sgn,sgn]; simp_all
+      if h1a : 0 < eval a p * eval a q then
+        have : eval b p * eval b q < 0 := by
+          have t0bpq : eval b p * eval b q > 0 → False := by
+            intro Haux; simp [h1a, Haux] at aux1;
+          have t1bpq : eval b p * eval b q = 0 → False := by
+            exact mul_ne_zero (And.left auxevb) (And.right auxevb)
+          have h : ¬(eval b p * eval b q > 0) := t0bpq
+          have h0 : ¬(eval b p * eval b q = 0) := t1bpq
+          classical
+          have tri := lt_trichotomy (eval b p * eval b q) 0
+          cases tri with
+          | inl hlt => exact hlt               -- caso < 0, é o que queremos
+          | inr h =>
+            cases h with
+            | inl heq => exfalso; exact (h0 heq)     -- caso = 0 → contradição
+            | inr hgt => exfalso; exact (t0bpq hgt)     -- caso > 0 → contradição
+        simp_all
+      else
+        have a1 : eval b p * eval b q > 0 := by
+          have : (-if 0 < eval b p * eval b q then 1 else -1) = 1 ↔ ¬(0 < eval b p * eval b q) := by
+            by_cases hpos : 0 < eval b p * eval b q
+            · simp [hpos]
+            · simp [hpos]
+          simp_all
+        have a2 : eval a p * eval a q < 0 := by
+          simp_all
+          have hp := auxeva.left
+          have hq := auxeva.right
+          have hne : eval a p * eval a q ≠ 0 := by
+            intro hzero
+            have : eval a p = 0 ∨ eval a q = 0 := by
+              apply mul_eq_zero.mp;exact hzero
+            cases this with
+            | inl hp0 => exact hp hp0
+            | inr hq0 => exact hq hq0
+          exact lt_of_le_of_ne h1a hne
+        simp_all
     exact L_2_59_1 a b p q hneg hq hp h
 
 theorem Tarski (f g : Polynomial ℝ) (hf : f ≠ C 0) (a b : ℝ) (h : a < b) :
