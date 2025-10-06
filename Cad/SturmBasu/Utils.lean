@@ -4,6 +4,11 @@ open Polynomial Set Filter Classical
 
 noncomputable section
 
+def sgn (k : ℝ) : ℤ  :=
+  if k > 0 then 1
+  else if k = 0 then 0
+  else -1
+
 lemma next_non_root_interval (p : Polynomial Real) (lb : Real) (hp : p ≠ 0) :
     ∃ ub : Real, lb < ub ∧ (∀ z ∈ Ioc lb ub, eval z p ≠ 0) := by
   cases Classical.em (∃ r : Real, eval r p = 0 ∧ r > lb)
@@ -185,4 +190,16 @@ lemma exists_deriv_eq_slope_poly (a b : Real) (hab : a < b) (p : Polynomial Real
   rw [hc2]
   have : (b - a) ≠ 0 := by linarith
   field_simp
+
+lemma eval_mod (p q: Polynomial ℝ) (x: ℝ) (h: eval x q = 0) : eval x (p % q) = eval x p := by
+ have : eval x (p % q) = eval x (p / q * q) + eval x (p % q) := by simp; exact Or.inr h
+ rw [<- eval_add, EuclideanDomain.div_add_mod'] at this; exact this
+
+lemma eval_non_zero(p: Polynomial ℝ) (x: ℝ) (h: eval x p ≠ 0) : p ≠ 0 := by aesop
+
+lemma mul_C_eq_root_multiplicity (p: Polynomial ℝ) (c r: ℝ) (hc: ¬ c = 0):
+                                        (rootMultiplicity r p = rootMultiplicity r (C c * p)) := by
+  simp only [<-count_roots]
+  rw [roots_C_mul]
+  exact hc
 
