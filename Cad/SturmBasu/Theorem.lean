@@ -74,11 +74,6 @@ def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
 def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
   seqVar_ab (sturmSeq p q) a b
 
-def sgn (k : ℝ) : ℤ  :=
-  if k > 0 then 1
-  else if k = 0 then 0
-  else -1
-
 def rootsInInterval (f : Polynomial ℝ) (a b : ℝ) : Finset ℝ :=
   f.roots.toFinset.filter (fun x => x ∈ Ioo a b)
 
