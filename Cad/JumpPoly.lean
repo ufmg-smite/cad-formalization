@@ -204,6 +204,7 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
       exact pow_ne_zero n (X_sub_C_ne_zero x)
     rw [hp', hq']
     simp [jump_poly_mult h_mon_z]
+    admit
 
  lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
                         jump_val p (Polynomial.C c * q) x = (sgn c) * jump_val p q x := by
@@ -260,4 +261,4 @@ lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
       have := sign_r_pos_deriv p x hp hev
       aesop
     unfold jump_val
-    admit 
+    admit
