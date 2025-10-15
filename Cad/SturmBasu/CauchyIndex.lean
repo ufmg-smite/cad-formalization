@@ -5,6 +5,8 @@ import Cad.SturmBasu.JumpPoly
 
 noncomputable section
 
+open Polynomial
+
 -- Corresponde a Ind(Q/P; a, b)
 def cauchyIndex (p q : Polynomial ℝ) (a b : ℝ) : ℤ :=
   ∑ x ∈ rootsInInterval p a b, jump_val p q x
@@ -26,5 +28,10 @@ lemma cauchyIndex_poly_mod (p q : Polynomial Real) (a b : Real) :
   exact Finset.sum_congr rfl fun x a => this x
 
 lemma cauchyIndex_smult_1 (p q : Polynomial Real) (a b c : Real) :
-    cauchyIndex p (c • q) a b = sgn c * cauchyIndex p q a b := sorry
-
+    cauchyIndex p (C c * q) a b = sgn c * cauchyIndex p q a b := by
+  unfold cauchyIndex
+  have : sgn c * ∑ x ∈ rootsInInterval p a b, jump_val p q x = ∑ x ∈ rootsInInterval p a b, sgn c * (jump_val p q x) := Finset.mul_sum (rootsInInterval p a b) (jump_val p q) (sgn c)
+  rw [this]
+  congr
+  ext x
+  exact jump_poly_smult_1 p q c x
