@@ -2,6 +2,8 @@ import Mathlib
 
 import Cad.SturmBasu.Utils
 import Cad.SturmBasu.SignRPos
+import Cad.SturmBasu.CauchyIndex
+import Cad.SturmBasu.JumpPoly
 
 open Polynomial Set Filter Classical
 
@@ -74,26 +76,8 @@ def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
 def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
   seqVar_ab (sturmSeq p q) a b
 
-def rootsInInterval (f : Polynomial ℝ) (a b : ℝ) : Finset ℝ :=
-  f.roots.toFinset.filter (fun x => x ∈ Ioo a b)
-
 def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
   ∑ x ∈ rootsInInterval f a b, sgn (g.eval x)
-
--- 1 if p / q goes from -inf to +inf at x, -1 if goes from +inf to -inf
--- 0 otherwise
-def jump_val (p q : Polynomial ℝ) (x : ℝ) : ℤ :=
-  let orderP : Nat := rootMultiplicity x p
-  let orderQ : Nat := rootMultiplicity x q
-  let oddOrder := Odd (orderP - orderQ)
-  if p ≠ 0 ∧ q ≠ 0 ∧ oddOrder then
-    -- note that p * q > 0 is the same as p / q > 0
-    if sign_r_pos x (p * q) then 1 else -1
-  else 0
-
--- Corresponde a Ind(Q/P; a, b)
-def cauchyIndex (p q : Polynomial ℝ) (a b : ℝ) : ℤ :=
-  ∑ x ∈ rootsInInterval p a b, jump_val p q x
 
 lemma rootsInIntervalZero (a b : ℝ) : rootsInInterval 0 a b = ∅ := by
   simp [rootsInInterval]
@@ -175,27 +159,61 @@ lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) (hab : a < b)  :
       exact hx.1.2
     rw [jump_poly_sign p q x hp this]
 
-#print axioms B_2_57
+lemma smod_nil_eq (p q : Polynomial Real) :
+    sturmSeq p q = [] ↔ p = 0 := by
+  constructor
+  · intro hs
+    apply Classical.byContradiction
+    intro h_abs
+    unfold sturmSeq at hs
+    simp [h_abs] at hs
+  · intro hp
+    simp [hp, sturmSeq]
 
+-- cindex_poly_changes_itv_mods
 -- Talvez usar reais extendidos para a e b seja a tradução mais imediata do enunciado.
 -- Por enquanto, podemos seguir desconsiderando esse caso.
-theorem B_2_58 (p q: Polynomial ℝ) (hp: p != Polynomial.C 0) (a b: ℝ) (hab : a < b) :
-    seqVarSturm_ab p q a b = cauchyIndex p q a b :=
-  sorry
+theorem B_2_58 (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.eval b ≠ 0) (hab : a < b) :
+    seqVarSturm_ab p q a b = cauchyIndex p q a b := by
+  cases h: sturmSeq p q
+  next =>
+    unfold seqVarSturm_ab
+    rw [h]
+    simp [seqVar_ab, seqVar, seqEval]
+    have := (smod_nil_eq p q).mp h
+    rw [this]
+    simp [cauchyIndex, rootsInInterval]
+  next hd tl =>
+    have : p ≠ 0 := eval_non_zero p a hpa
+    admit
 
 def sigma (b : ℝ) (f : Polynomial ℝ) : ℤ :=
   sgn (eval b f)
 
+-- cindex_poly_rec
 -- para o else, precisamos usar ha e hb para mostrar que σ(a) * σ(b) != 0 (e pela definição de sgn, excluir todos outros inteiros).
 -- Talvez seja possível expressar isso de alguma forma melhor.
-lemma B_2_60 (p q r: Polynomial ℝ) (hr: r = p % q) (a b: ℝ)
-             (ha: ∀p' ∈ sturmSeq p q, ¬IsRoot p' a)
-             (hb: ∀p' ∈ sturmSeq p q, ¬IsRoot p' b):
-    if (sigma a p * q) * (sigma b p * q) = -1 then
-      cauchyIndex p q a b = (cauchyIndex q (-r) a b) + sigma b p * q
-    else
-      cauchyIndex p q a b = cauchyIndex q (-r) a b :=
-sorry
+lemma B_2_60 (p q : Polynomial ℝ) (a b: ℝ) (hab : a < b)
+    (ha : (p * q).eval a ≠ 0) (hb : (p * q).eval b ≠ 0) :
+    cauchyIndex p q a b = cross (p * q) a b + cauchyIndex q (- p % q) a b
+    := by
+  have : q ≠ 0 := by
+    intro abs
+    rw [abs] at ha
+    simp at ha
+  have := cauchyIndex_poly_inverse_cross p q a b hab ha hb
+  have : - cauchyIndex q p a b = cauchyIndex q (- p % q) a b := by
+    have h1 := cauchyIndex_poly_mod q (-p) a b
+    have h2 := cauchyIndex_smult_1 q p a b (-1)
+    simp [sgn] at h2
+    have : (if (1 : Real) < 0 then cauchyIndex q p a b else (-cauchyIndex q p a b)) = -cauchyIndex q p a b := by
+      split
+      next h => linarith
+      next h => rfl
+    rw [this] at h2
+    clear this
+    rw [<- h2, h1]
+  linarith
 
 lemma seqVar_sign_change {x y : ℝ} {xs : List ℝ} (hy : y ≠ 0) :
   seqVar (x :: (y :: xs)) = (if x * y < 0 then 1 else 0) + seqVar (y :: xs) := by
@@ -579,11 +597,11 @@ theorem L_2_59 (a b : ℝ) (p q : Polynomial ℝ) (hq : q ≠ 0) (hp : p ≠ 0):
         simp_all
     exact L_2_59_1 a b p q hneg hq hp h
 
-theorem Tarski (f g : Polynomial ℝ) (hf : f ≠ C 0) (a b : ℝ) (h : a < b) :
-      seqVarSturm_ab f (derivative f * g) a b
-      = tarskiQuery f g a b
-      := by
-  rw [B_2_57 _ _ _ _ h]
-  rw [<- B_2_58 _ _ _ _ _ h]
-  simp [hf]
-  simp_all only [map_zero, ne_eq, not_false_eq_true]
+/- theorem Tarski (f g : Polynomial ℝ) (hf : f ≠ C 0) (a b : ℝ) (h : a < b) : -/
+/-       seqVarSturm_ab f (derivative f * g) a b -/
+/-       = tarskiQuery f g a b -/
+/-       := by -/
+/-   rw [B_2_57 _ _ _ _ h] -/
+/-   rw [<- B_2_58 _ _ _ _ _ h] -/
+/-   simp [hf] -/
+/-   simp_all only [map_zero, ne_eq, not_false_eq_true] -/

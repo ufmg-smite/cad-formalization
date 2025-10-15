@@ -4,6 +4,9 @@ open Polynomial Set Filter Classical
 
 noncomputable section
 
+def rootsInInterval (f : Polynomial ℝ) (a b : ℝ) : Finset ℝ :=
+  f.roots.toFinset.filter (fun x => x ∈ Ioo a b)
+
 def sgn (k : ℝ) : ℤ  :=
   if k > 0 then 1
   else if k = 0 then 0
