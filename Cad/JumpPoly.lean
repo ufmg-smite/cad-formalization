@@ -245,11 +245,8 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
     rw [hp', hq']
     simp [jump_poly_mult h_mon_z]
     have : (X - C x) ^ n * q' % ((X - C x) ^ n * p') = (X - C x) ^ n * (q' % p') := by
-      apply mod_mult_mult1'
-      apply t3
-      · exact hz'.1
-      · exact hz'.2
-      · admit
+      /- apply mod_mult_mult1' -/
+      admit
     rw [this]
     simp [jump_poly_mult h_mon_z]
     exact h_ult
@@ -281,32 +278,3 @@ lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
      else
        simp [hc, hf.1] at h ⊢
        simp only [h, ite_not]
-
-/- lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) : -/
-/-     p ≠ 0 → p.eval x = 0 → jump_val p (derivative p * q) x = sgn (q.eval x) := by -/
-/-   intros hp hev -/
-/-   if hq : q = 0 then -/
-/-     rw [hq] -/
-/-     simp [sgn, jump_val] -/
-/-   else -/
-/-     have deriv_ne_0 : derivative p ≠ 0 := derivative_ne_0 p x hev hp -/
-/-     have elim_p_order : rootMultiplicity x p - rootMultiplicity x (derivative p * q) = 1 - rootMultiplicity x q := by -/
-/-       rw [Polynomial.rootMultiplicity_mul] -/
-/-       · rw [derivative_rootMultiplicity_of_root hev] -/
-/-         have : 1 ≤ rootMultiplicity x p := by -/
-/-           apply (le_rootMultiplicity_iff hp).mpr -/
-/-           simp -/
-/-           exact dvd_iff_isRoot.mpr hev -/
-/-         omega -/
-/-       · exact (mul_ne_zero_iff_right hq).mpr deriv_ne_0 -/
-/-     have elim_sgn_r_pos_p : sign_r_pos x ((derivative p * q) * p) = sign_r_pos x q := by -/
-/-       have : sign_r_pos x ((derivative p * q) * p) = (sign_r_pos x (derivative p * p) ↔ sign_r_pos x q) := by -/
-/-         rw [mul_comm, <- mul_assoc] -/
-/-         have := sign_r_pos_mult (p * derivative p) q x ((mul_ne_zero_iff_right deriv_ne_0).mpr hp) hq -/
-/-         nth_rw 2 [mul_comm p (derivative p)] at this -/
-/-         exact this -/
-/-       rw [this] -/
-/-       have := sign_r_pos_deriv p x hp hev -/
-/-       aesop -/
-/-     unfold jump_val -/
-/-     admit -/
