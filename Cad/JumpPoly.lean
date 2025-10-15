@@ -83,6 +83,45 @@ lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
   unfold jump_val; simp_all
   rw [mul_comm, h_sign, mul_comm]
 
+
+theorem mod_mult_mult1' {K : Type*} [EuclideanDomain K] :
+    ∀ (a b c : K), (c * a) / (c * b) = a / b → (c * a) % (c * b) = c * (a % b) := by
+  intros a b c H
+  cases Classical.em (c = 0)
+  next Hc => simp [Hc]
+  next Hc =>
+    have : (c * a) = ((c * a) / (c * b)) * (c * b) + (c * a) % (c * b) := Eq.symm (EuclideanDomain.div_add_mod' (c * a) (c * b))
+    have : c * ((a / b) * b + a % b) + (c * a) % (c * b) = (c * a) + (c * (a  % b)) := by
+      nth_rw 2 [this]
+      rw [add_assoc, add_comm (c * a % (c * b)), <- add_assoc]
+      simp only [add_left_inj]
+      have : c * ((a / b) * b + a % b) = c * (a / b) * b + c * (a % b) := by ring
+      rw [this]
+      simp only [add_left_inj]
+      rw [<- H]
+      ring
+    have : c * a % (c * b) = c * a + c * (a % b) - c * (a / b * b + a % b) := by
+      exact eq_sub_of_add_eq' this
+    rw [this]
+    rw [EuclideanDomain.div_add_mod' a]
+    ring
+
+theorem t1 (a c : Polynomial Real) (hc : c ≠ 0) :
+    (c * a) / c = a  := by
+  exact mul_div_cancel_left₀ a hc
+
+theorem t2 (a b c : Polynomial Real) (ha : a ≠ 0) (hb : b ≠ 0) (hc : c ≠ 0) :
+    a / (c * b) = (a / c) / b  := by
+  admit
+
+theorem t3 (a b c : Polynomial Real) (ha : a ≠ 0) (hb : b ≠ 0) (hc : c ≠ 0) :
+    (c * a) / (c * b) = a / b := by
+  rw [t2 (c * a) _ _, t1 a _]
+  · assumption
+  · exact (mul_ne_zero_iff_right ha).mpr hc
+  · assumption
+  · assumption
+
 lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p (q % p) x := by
   rcases Classical.em (p = 0 ∨ q = 0) with ht | hf
   · aesop
@@ -205,12 +244,17 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
       exact pow_ne_zero n (X_sub_C_ne_zero x)
     rw [hp', hq']
     simp [jump_poly_mult h_mon_z]
-    have : (X - C x) ^ n * q' % ((X - C x) ^ n * p') = (X - C x) ^ n * (q' % p') := sorry
+    have : (X - C x) ^ n * q' % ((X - C x) ^ n * p') = (X - C x) ^ n * (q' % p') := by
+      apply mod_mult_mult1'
+      apply t3
+      · exact hz'.1
+      · exact hz'.2
+      · admit
     rw [this]
     simp [jump_poly_mult h_mon_z]
     exact h_ult
 
- lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
+lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
                         jump_val p (Polynomial.C c * q) x = (sgn c) * jump_val p q x := by
   rcases Classical.em (c = 0 ∨ q = 0)  with ht|hf
   · unfold jump_val
