@@ -17,9 +17,7 @@ def variation (a b : Real) : Int :=
 def cross (p : Polynomial Real) (a b : Real) : Int :=
   variation (p.eval a) (p.eval b)
 
-
-
-theorem jump_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
+theorem cauchyIndex_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
     (hab : a < b) (hapq : eval a (p*q) ≠ 0) (hbpq : eval b (p*q) ≠ 0) :
     cauchyIndex p q a b + cauchyIndex q p a b = cross (p * q) a b
     := by
