@@ -93,7 +93,7 @@ lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
   unfold jump_val; simp_all
   rw [mul_comm, h_sign, mul_comm]
 
-
+/-
 theorem mod_mult_mult1' {K : Type*} [EuclideanDomain K] :
     ∀ (a b c : K), (c * a) / (c * b) = a / b → (c * a) % (c * b) = c * (a % b) := by
   intros a b c H
@@ -131,6 +131,7 @@ theorem t3 (a b c : Polynomial Real) (ha : a ≠ 0) (hb : b ≠ 0) (hc : c ≠ 0
   · exact (mul_ne_zero_iff_right ha).mpr hc
   · assumption
   · assumption
+-/
 
 lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p (q % p) x := by
   rcases Classical.em (p = 0 ∨ q = 0) with ht | hf
@@ -139,22 +140,17 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
     let n := min (rootMultiplicity x q) (rootMultiplicity x p)
     have ⟨q', hq'⟩ : ∃q', q = (X - C x)^n * q' := by
       have  : (X - C x)^n ∣ q := by
-        rw [<- le_rootMultiplicity_iff]
-        exact Nat.min_le_left (rootMultiplicity x q) (rootMultiplicity x p)
-        exact hf.2
+        rw [<- le_rootMultiplicity_iff hf.2]
+        exact Nat.min_le_left (rootMultiplicity x q) (rootMultiplicity x p) 
       exact this
     have ⟨p', hp'⟩ : ∃p', p = (X - C x)^n * p' := by
       have : (X - C x)^n ∣ p := by
-        rw [<- le_rootMultiplicity_iff]
+        rw [<- (le_rootMultiplicity_iff hf.1)]
         exact Nat.min_le_right (rootMultiplicity x q) (rootMultiplicity x p)
-        exact hf.1
       exact this
     have hz' : q' ≠ 0 ∧ p' ≠ 0:= by
-      have := hf
-      rw [hq', hp'] at this
-      constructor
-      exact right_ne_zero_of_mul this.2
-      exact right_ne_zero_of_mul this.1
+      rw [hq', hp'] at hf
+      exact ⟨right_ne_zero_of_mul hf.2, right_ne_zero_of_mul hf.1⟩
     have hrm: rootMultiplicity x q' = 0 ∨ rootMultiplicity x p' = 0 := by
       if H: n = rootMultiplicity x q then
         have : ¬(X - C x)^1 ∣ q' := by
@@ -163,8 +159,7 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
          simp [H] at hbound
          by_contra!
          have ⟨f, hf⟩ := exists_eq_mul_left_of_dvd this
-         rw [hf] at hq'
-         rw [mul_comm, mul_assoc, mul_comm, <- pow_succ'] at hq'
+         rw [hf, mul_comm, mul_assoc, mul_comm, <- pow_succ'] at hq'
          have hcontra : (X - C x)^(n + 1) ∣ q := by
            simp [hq']
          rw [H] at hcontra
@@ -200,8 +195,7 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
               apply (le_rootMultiplicity_iff hz'.2).mp at this
               simp at this; exact this
             have hq_mod_ndvd : ¬ ((X - C x)^1 ∣ q' % p') := by
-              simp
-              simp at hq_ndvd
+              simp at hq_ndvd ⊢
               simp [EuclideanDomain.dvd_mod_iff hp_dvd]; exact hq_ndvd
             have : rootMultiplicity x (q' % p') = 0 ∧ q' % p' ≠ 0 := by
               simp at hq_mod_ndvd hq_ndvd
@@ -220,8 +214,8 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
       have : eval x q' ≠ 0 := by
         simp_all [<- IsRoot.def, rootMultiplicity_eq_zero_iff]
       have : sign_r_pos x q' = sign_r_pos x (q' % p') := by exact Eq.symm (sign_r_pos_mod p' q' h_eval_z this)
-      rw [sign_r_pos_mult, sign_r_pos_mult];
-      simp at this ⊢; exact this; exact h_mod_z; exact hz'.2; exact hz'.1; exact hz'.2
+      rw [sign_r_pos_mult _ _ _ h_mod_z hz'.2, sign_r_pos_mult _ _ _ hz'.1 hz'.2];
+      simp at this ⊢; exact this;
     have h: q' % p' = 0 ∨ eval x p' ≠ 0 -> jump_val p' q' x = jump_val p' (q' % p') x := by
       intros h_or
       if h_modz: (q' % p' = 0) then unfold jump_val; simp [*]
@@ -249,16 +243,16 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
        else
          simp only [Lean.Grind.not_and, ne_eq, not_not, <-ne_eq] at h'
          exact h h'
-    clear *- h_ult hq' hp' hz'
+    clear *- h_ult hq' hp' hf hz'
     have h_mon_z :  (X - C x) ^ n ≠ 0:= by
       exact pow_ne_zero n (X_sub_C_ne_zero x)
     rw [hp', hq']
-    simp [jump_poly_mult h_mon_z]
-    have : (X - C x) ^ n * q' % ((X - C x) ^ n * p') = (X - C x) ^ n * (q' % p') := by
-      /- apply mod_mult_mult1' -/
-      admit
-    rw [this]
-    simp [jump_poly_mult h_mon_z]
+    have h_p'_monic: Monic (p' * C p'.leadingCoeff⁻¹) := by
+      rw [Monic.def]; simp [*]
+    have h_p'_monic' : Monic ((X - C x)^n * p' * C p'.leadingCoeff⁻¹) := by rw [Monic.def]; simp [*]
+    have h_mod : ((X - C x)^n * q') % ((X - C x)^n * p') = (X - C x)^n * (q' % p') := by
+      exact mod_mul q' p' ((X - C x) ^ n) h_mon_z
+    simp [h_mod, jump_poly_mult h_mon_z]
     exact h_ult
 
 lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
