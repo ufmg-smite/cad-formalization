@@ -201,7 +201,7 @@ lemma B_2_60 (p q : Polynomial ℝ) (a b: ℝ) (hab : a < b)
     intro abs
     rw [abs] at ha
     simp at ha
-  have := cauchyIndex_poly_inverse_add_cross p q a b hab ha hb
+  have H := cindex_poly_inverse_add_cross p q a b hab ha hb
   have : - cauchyIndex q p a b = cauchyIndex q (- p % q) a b := by
     have h1 := cauchyIndex_poly_mod q (-p) a b
     have h2 := cauchyIndex_smult_1 q p a b (-1)
@@ -213,6 +213,7 @@ lemma B_2_60 (p q : Polynomial ℝ) (a b: ℝ) (hab : a < b)
     rw [this] at h2
     clear this
     rw [<- h2, h1]
+  simp only [cross, variation] at *
   linarith
 
 lemma seqVar_sign_change {x y : ℝ} {xs : List ℝ} (hy : y ≠ 0) :

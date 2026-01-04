@@ -8,17 +8,6 @@ open Polynomial Set Filter Classical
 
 noncomputable section
 
--- 1 if p / q goes from -inf to +inf in x, -1 if goes from +inf to -inf
--- 0 otherwise
-/- def jump_val (p q : Polynomial ℝ) (x : ℝ) : ℤ := -/
-/-   let orderP := rootMultiplicity x p -/
-/-   let orderQ := rootMultiplicity x q -/
-/-   let oddOrder := Odd (orderP - orderQ) -/
-/-   if p ≠ 0 ∧ q ≠ 0 ∧ oddOrder then -/
-/-     -- note that p * q > 0 is the same as p / q > 0 -/
-/-     if sign_r_pos x (p * q) then 1 else -1 -/
-/-   else 0 -/
-
 -- 1 if p / q goes from -inf to +inf at x, -1 if goes from +inf to -inf
 -- 0 otherwise
 def jump_val (p q : Polynomial ℝ) (x : ℝ) : ℤ :=
@@ -33,7 +22,7 @@ def jump_val (p q : Polynomial ℝ) (x : ℝ) : ℤ :=
 lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
                     jump_val (p' * p) (p'* q) x = jump_val p q x := by
   cases Classical.em (q = 0 ∨ p = 0)
-  next H => 
+  next H =>
     unfold jump_val; simp only;
     cases H <;> simp_all
   next H =>
@@ -45,13 +34,13 @@ lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
           have := finite_setOf_isRoot hp'
           unfold IsRoot at this; exact Finite.sep this fun a => a > x
         let roots_x : Finset ℝ := Finite.toFinset roots_fin
-        have : roots_x.Nonempty := by 
+        have : roots_x.Nonempty := by
           unfold roots_x; simp [roots_fin]; exact Set.nonempty_of_mem hz
         let lr := Finset.min' (roots_x) this
         have h_eval_nz: (∀z: ℝ, x < z ∧ z < lr -> eval z p' ≠ 0) ∧ lr > x := by
           have : lr > x := by
             unfold lr; unfold roots_x;
-            simp [roots_fin] 
+            simp [roots_fin]
           simp only [this, and_true]
           intros z hz; unfold lr roots_x at hz
           have hz_n : z ∉ roots_x := by
@@ -59,7 +48,7 @@ lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
             simp [roots_x, roots_fin] at this hz
             simp [this] at hz; have h_contra := hz z this.1 this.2
             exact (lt_self_iff_false z).mp h_contra
-          simp [roots_x, roots_fin, hz] at hz_n; exact hz_n 
+          simp [roots_x, roots_fin, hz] at hz_n; exact hz_n
         have h_eval_gz : ∀z: ℝ, x < z ∧ z < lr ->  eval z (p' * p') > 0 := by
           intros z hz; simp; exact h_eval_nz.1 z hz
         use lr; exact ⟨h_eval_nz.2, h_eval_gz⟩
@@ -71,8 +60,8 @@ lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
         have h_eval_gz: ∀z:ℝ, x < z ∧ z < x + 1 -> eval z (p' * p') > 0 := by
           intros z hz; simp; exact h_eval_nz z hz
         have h_trivial : x + 1 > x := by exact lt_add_one x
-        use x+1 
-    have h_bb : ∃b, b > x ∧ ∀z: ℝ, x < z ∧ z < b -> ((0 < eval z (p' * q * (p' * p))) = (0 < eval z (q * p))) := by 
+        use x+1
+    have h_bb : ∃b, b > x ∧ ∀z: ℝ, x < z ∧ z < b -> ((0 < eval z (p' * q * (p' * p))) = (0 < eval z (q * p))) := by
         use b; simp only [h_b, true_and];
         intros z hz; simp; have := h_b.2 z hz
         simp only [eval_mul] at this; ring_nf at this ⊢
@@ -80,8 +69,8 @@ lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
         have ans := mul_pos_iff_of_pos_left (b := eval z q * eval z p) this
         ring_nf at ans; exact ans
     simp only [eventually_at_right_equiv']
-    have := eventually_subst (fun a => eval a (p' * q * (p' * p)) > 0)  (fun a => eval a (q * p) > 0) (rightNear x) 
-    simp only [<-eventually_at_right_def, eventually_at_right_equiv] at this 
+    have := eventually_subst (fun a => eval a (p' * q * (p' * p)) > 0)  (fun a => eval a (q * p) > 0) (rightNear x)
+    simp only [<-eventually_at_right_def, eventually_at_right_equiv] at this
     exact this h_bb
   have h_odd : Odd (rootMultiplicity x (p' * p) - rootMultiplicity x (p' * q)) =
               Odd (rootMultiplicity x p - rootMultiplicity x q) := by
@@ -93,55 +82,15 @@ lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
   unfold jump_val; simp_all
   rw [mul_comm, h_sign, mul_comm]
 
-/-
-theorem mod_mult_mult1' {K : Type*} [EuclideanDomain K] :
-    ∀ (a b c : K), (c * a) / (c * b) = a / b → (c * a) % (c * b) = c * (a % b) := by
-  intros a b c H
-  cases Classical.em (c = 0)
-  next Hc => simp [Hc]
-  next Hc =>
-    have : (c * a) = ((c * a) / (c * b)) * (c * b) + (c * a) % (c * b) := Eq.symm (EuclideanDomain.div_add_mod' (c * a) (c * b))
-    have : c * ((a / b) * b + a % b) + (c * a) % (c * b) = (c * a) + (c * (a  % b)) := by
-      nth_rw 2 [this]
-      rw [add_assoc, add_comm (c * a % (c * b)), <- add_assoc]
-      simp only [add_left_inj]
-      have : c * ((a / b) * b + a % b) = c * (a / b) * b + c * (a % b) := by ring
-      rw [this]
-      simp only [add_left_inj]
-      rw [<- H]
-      ring
-    have : c * a % (c * b) = c * a + c * (a % b) - c * (a / b * b + a % b) := by
-      exact eq_sub_of_add_eq' this
-    rw [this]
-    rw [EuclideanDomain.div_add_mod' a]
-    ring
-
-theorem t1 (a c : Polynomial Real) (hc : c ≠ 0) :
-    (c * a) / c = a  := by
-  exact mul_div_cancel_left₀ a hc
-
-theorem t2 (a b c : Polynomial Real) (ha : a ≠ 0) (hb : b ≠ 0) (hc : c ≠ 0) :
-    a / (c * b) = (a / c) / b  := by
-  admit
-
-theorem t3 (a b c : Polynomial Real) (ha : a ≠ 0) (hb : b ≠ 0) (hc : c ≠ 0) :
-    (c * a) / (c * b) = a / b := by
-  rw [t2 (c * a) _ _, t1 a _]
-  · assumption
-  · exact (mul_ne_zero_iff_right ha).mpr hc
-  · assumption
-  · assumption
--/
-
 lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p (q % p) x := by
   rcases Classical.em (p = 0 ∨ q = 0) with ht | hf
   · aesop
-  · simp [<- ne_eq] at hf 
+  · simp [<- ne_eq] at hf
     let n := min (rootMultiplicity x q) (rootMultiplicity x p)
     have ⟨q', hq'⟩ : ∃q', q = (X - C x)^n * q' := by
       have  : (X - C x)^n ∣ q := by
         rw [<- le_rootMultiplicity_iff hf.2]
-        exact Nat.min_le_left (rootMultiplicity x q) (rootMultiplicity x p) 
+        exact Nat.min_le_left (rootMultiplicity x q) (rootMultiplicity x p)
       exact this
     have ⟨p', hp'⟩ : ∃p', p = (X - C x)^n * p' := by
       have : (X - C x)^n ∣ p := by
@@ -236,7 +185,7 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
           simp only; split
           next H =>
             simp only [eq_iff_iff] at hcond; simp [(hcond.2.mp H.2.2), hpz]
-            rw [mul_comm, this, mul_comm]; 
+            rw [mul_comm, this, mul_comm];
           next H =>
             simp only [Lean.Grind.not_and] at H;
             rcases H with ha | hb | hc <;> simp_all [<-Nat.not_odd_iff_even]
