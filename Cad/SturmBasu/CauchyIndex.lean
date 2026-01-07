@@ -187,7 +187,7 @@ theorem cindex_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
     exact qneq0 this
 
   have cauchyMuls : cauchyIndex p q a b + cauchyIndex q p a b
-      = cauchyIndex p' q' a b + cauchyIndex q' p' a b:= by
+      = cauchyIndex p' q' a b + cauchyIndex q' p' a b:= by -- cindex_poly_mult
     --rw[cauchyIndex, cauchyIndex, cauchyIndex, cauchyIndex]
     rw[hp',hq']
     if h1p0 : p = 0 then
@@ -202,9 +202,9 @@ theorem cindex_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
       -- rootsInInterval (g * p') a b = rootsInInterval p' a b ?
       sorry
   have cauchy1 : cauchyIndex p' q' a b + cauchyIndex q' p' a b
-      = cauchyIndex 1 (q' * p') a b := by sorry
+      = cauchyIndex 1 (q' * p') a b := by sorry -- cindex_poly_inverse_add (short)
   have cauchyVar : cauchyIndex 1 (q' * p') a b
-      = variation (eval a (p' * q'))  (eval b (p'*q')) := by sorry
+      = variation (eval a (p' * q'))  (eval b (p'*q')) := by sorry -- cindex_poly_cross (long, but doesn't seem to use many lemmas from their formalization)
   have : variation (eval a (p' * q'))  (eval b (p'*q'))
       = variation (eval a (p * q)) (eval b (p*q)) := by
     have t1 : eval a (p * q) = eval a (g*g) * eval a (p' * q') := by
