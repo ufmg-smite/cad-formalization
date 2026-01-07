@@ -1,0 +1,608 @@
+import Mathlib
+
+import Cad.SturmBasu.Utils
+import Cad.SturmBasu.SignRPos
+import Cad.SturmBasu.CauchyIndex
+import Cad.SturmBasu.JumpPoly
+
+open Polynomial Set Filter Classical
+
+noncomputable section
+
+def polyRemSeq (f g : Polynomial ℝ) (h : g.natDegree ≠ 0) : List (Polynomial ℝ) :=
+  go f g [f] h
+where
+  go (h₀ h₁ : Polynomial ℝ) (acc : List (Polynomial ℝ)) (j : h₁.natDegree ≠ 0): List (Polynomial ℝ) :=
+    if h₁ = 0 then acc
+    else
+      let r := - h₀ % h₁
+      if k : r.natDegree = 0 then acc ++ [h₁]
+      else
+        go h₁ r (acc ++ [h₁]) k
+  termination_by h₁.natDegree
+  decreasing_by
+    apply Polynomial.natDegree_mod_lt
+    exact j
+
+def sturmSeq (f g : Polynomial ℝ) : List (Polynomial ℝ) :=
+  if f = 0 then
+    []
+  else
+    f::(sturmSeq g (-f%g))
+  termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
+  decreasing_by
+    simp_all
+    if g1: g = 0 then
+      simp_all
+    else if h : g ∣ f then
+      simp_all
+      have gnatdeg : g.degree ≥ 0 := by exact zero_le_degree_iff.mpr g1
+      refine lt_add_of_lt_of_nonneg ?_ gnatdeg; simp
+    else
+      simp_all
+      have :(-f % g).degree < g.degree := by
+        refine degree_lt_degree ?_; refine natDegree_mod_lt (-f) ?_
+        have : g.natDegree = 0 → g ∣ f := by
+          intro hg
+          have : ∃ c : ℝ, C c = g := by
+            exact natDegree_eq_zero.mp hg
+          rcases this with ⟨c, rfl⟩; use C c⁻¹ * f
+          have hds : c ≠ 0 := by
+            intro abs; rw [abs] at hg; simp at g1; exact g1 abs
+          ext x; simp; field_simp
+        have : g.natDegree ≠ 0 := by intro abs; exact h (this abs)
+        exact this
+      refine WithBot.add_lt_add_left ?_ this; simp_all
+
+-- Considerando só os não nulos
+def seqVar : List ℝ → ℕ
+| [] => 0
+| _::[] => 0
+| a::(b::as) =>
+  if b == 0 then
+    seqVar (a::as)
+  else if a * b < 0 then
+    1 + seqVar (b::as)
+  else
+    seqVar (b::as)
+
+def seqEval (k : ℝ) : List (Polynomial ℝ) → List ℝ
+| [] => []
+| a::as => (eval k a)::(seqEval k as)
+
+def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
+  (seqVar (seqEval a P) : Int) - seqVar (seqEval b P)
+
+def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
+  seqVar_ab (sturmSeq p q) a b
+
+def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
+  ∑ x ∈ rootsInInterval f a b, sgn (g.eval x)
+
+lemma rootsInIntervalZero (a b : ℝ) : rootsInInterval 0 a b = ∅ := by
+  simp [rootsInInterval]
+
+lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
+    p ≠ 0 → p.eval x = 0 → jump_val p (derivative p * q) x = sgn (q.eval x) := by
+  intros hp hev
+  if hq : q = 0 then
+    rw [hq]
+    simp [sgn, jump_val]
+  else
+    have deriv_ne_0 : derivative p ≠ 0 := derivative_ne_0 p x hev hp
+    have elim_p_order : rootMultiplicity x p - rootMultiplicity x (derivative p * q) = 1 - rootMultiplicity x q := by
+      rw [Polynomial.rootMultiplicity_mul]
+      · rw [derivative_rootMultiplicity_of_root hev]
+        have : 1 ≤ rootMultiplicity x p := by
+          apply (Polynomial.le_rootMultiplicity_iff hp).mpr
+          simp
+          exact dvd_iff_isRoot.mpr hev
+        omega
+      · exact (mul_ne_zero_iff_right hq).mpr deriv_ne_0
+    have elim_sgn_r_pos_p : sign_r_pos x (p * (derivative p * q)) = sign_r_pos x q := by
+      have : sign_r_pos x (p * (derivative p * q)) = (sign_r_pos x (derivative p * p) ↔ sign_r_pos x q) := by
+        have := sign_r_pos_mult (p * derivative p) q x ((mul_ne_zero_iff_right deriv_ne_0).mpr hp) hq
+        nth_rw 2 [mul_comm p (derivative p)] at this
+        rw [<- mul_assoc]
+        exact this
+      rw [this]
+      have := sign_r_pos_deriv p x hp hev
+      aesop
+    let simpleL : Int :=
+      if derivative p * q ≠ 0 ∧ Odd (1 - rootMultiplicity x q) then
+        (if sign_r_pos x q then 1 else -1)
+      else 0
+    have : jump_val p (derivative p * q) x = simpleL := by
+      simp [jump_val, simpleL, hp, deriv_ne_0, hq, elim_p_order, elim_sgn_r_pos_p]
+    rw [this]
+    cases Classical.em (eval x q = 0)
+    next hevQ =>
+      have : 0 < rootMultiplicity x q := (rootMultiplicity_pos hq).mpr hevQ
+      have : 1 - rootMultiplicity x q = 0 := by omega
+      have : ¬ Odd (1 - rootMultiplicity x q) := by rw [this]; exact Nat.not_odd_zero
+      have lhs : simpleL = 0 := by
+        simp [simpleL, this]
+      have rhs : sgn (eval x q) = 0 := by rw [hevQ]; simp [sgn]
+      rw [lhs, rhs]
+    next hevQ =>
+      have : rootMultiplicity x q = 0 := rootMultiplicity_eq_zero hevQ
+      have h1 : Odd (1 - rootMultiplicity x q) := by
+        rw [this]
+        exact Nat.odd_iff.mpr rfl
+      have h2 : derivative p * q ≠ 0 := by
+        clear * - hq deriv_ne_0
+        intro abs
+        simp_all only [ne_eq, mul_eq_zero, or_self]
+      have h3 : sign_r_pos x q ↔ 0 < eval x q := by
+        rw [sign_r_pos_rec]
+        simp [hevQ]
+        exact hq
+      have h4 : simpleL = if 0 < eval x q then 1 else -1 := by
+        simp [simpleL, h1, h2, h3]
+      rw [h4]
+      simp [sgn, hevQ]
+
+lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) (hab : a < b)  :
+    tarskiQuery p q a b = cauchyIndex p (derivative p * q) a b := by
+  if hp : p = 0 then
+    rw [hp]
+    simp [tarskiQuery, cauchyIndex]
+    rw [rootsInIntervalZero]
+    simp
+  else
+    unfold tarskiQuery
+    unfold cauchyIndex
+    apply Finset.sum_congr rfl
+    intros x hx
+    have : p.eval x = 0 := by
+      simp [rootsInInterval] at hx
+      exact hx.1.2
+    rw [jump_poly_sign p q x hp this]
+
+lemma smod_nil_eq (p q : Polynomial Real) :
+    sturmSeq p q = [] ↔ p = 0 := by
+  constructor
+  · intro hs
+    apply Classical.byContradiction
+    intro h_abs
+    unfold sturmSeq at hs
+    simp [h_abs] at hs
+  · intro hp
+    simp [hp, sturmSeq]
+
+-- cindex_poly_changes_itv_mods
+-- Talvez usar reais extendidos para a e b seja a tradução mais imediata do enunciado.
+-- Por enquanto, podemos seguir desconsiderando esse caso.
+theorem B_2_58 (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.eval b ≠ 0) (hab : a < b) :
+    seqVarSturm_ab p q a b = cauchyIndex p q a b := by
+  cases h: sturmSeq p q
+  next =>
+    unfold seqVarSturm_ab
+    rw [h]
+    simp [seqVar_ab, seqVar, seqEval]
+    have := (smod_nil_eq p q).mp h
+    rw [this]
+    simp [cauchyIndex, rootsInInterval]
+  next hd tl =>
+    have : p ≠ 0 := eval_non_zero p a hpa
+    admit
+
+def sigma (b : ℝ) (f : Polynomial ℝ) : ℤ :=
+  sgn (eval b f)
+
+-- cindex_poly_rec
+-- para o else, precisamos usar ha e hb para mostrar que σ(a) * σ(b) != 0 (e pela definição de sgn, excluir todos outros inteiros).
+-- Talvez seja possível expressar isso de alguma forma melhor.
+lemma B_2_60 (p q : Polynomial ℝ) (a b: ℝ) (hab : a < b)
+    (ha : (p * q).eval a ≠ 0) (hb : (p * q).eval b ≠ 0) :
+    cauchyIndex p q a b = cross (p * q) a b + cauchyIndex q (- p % q) a b
+    := by
+  have : q ≠ 0 := by
+    intro abs
+    rw [abs] at ha
+    simp at ha
+  have H := cindex_poly_inverse_add_cross p q a b hab ha hb
+  have : - cauchyIndex q p a b = cauchyIndex q (- p % q) a b := by
+    have h1 := cauchyIndex_poly_mod q (-p) a b
+    have h2 := cauchyIndex_smult_1 q p a b (-1)
+    simp [sgn] at h2
+    have : (if (1 : Real) < 0 then cauchyIndex q p a b else (-cauchyIndex q p a b)) = -cauchyIndex q p a b := by
+      split
+      next h => linarith
+      next h => rfl
+    rw [this] at h2
+    clear this
+    rw [<- h2, h1]
+  simp only [cross, variation] at *
+  linarith
+
+lemma seqVar_sign_change {x y : ℝ} {xs : List ℝ} (hy : y ≠ 0) :
+  seqVar (x :: (y :: xs)) = (if x * y < 0 then 1 else 0) + seqVar (y :: xs) := by
+    simp_all
+    rw[seqVar]
+    simp [hy]
+    split_ifs; simp_all
+    simp
+
+lemma sigma_eq_def (a : ℝ) (p q : Polynomial ℝ) : sigma a (p*q) = sgn (eval a p * eval a q) := by rw[sigma]; simp
+
+theorem L_2_59_1 (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sigma a (p*q) = -1) (hq : q ≠ 0) (hp : p ≠ 0) (hj : ((∀p' ∈ sturmSeq p q, ¬IsRoot p' a) ∧ ( ∀p' ∈ sturmSeq p q, ¬IsRoot p' b))):
+      seqVarSturm_ab p q a b
+      =  sigma b (p*q) + seqVarSturm_ab q (-p%q) a b := by
+  rw [seqVarSturm_ab, seqVar_ab];  rcases hj with ⟨ha, hb⟩
+  have sigma_a_ne_zero : sigma a (p*q) ≠ 0 := by
+    intro H
+    have : sigma b (p*q) * 0 = -1 := by rw [H] at hprod; exact hprod
+    simp at this
+  have eval_a_ne_zero : eval a (p*q) ≠ 0 := by
+    intro Heval
+    have : sigma a (p*q) = 0 := by simp [sigma, sgn, Heval]
+    exact (sigma_a_ne_zero this)
+  have eval_a_q_ne_zero : eval a q ≠ 0 := by
+    have : eval a p * eval a q ≠ 0 := by rw [eval_mul] at eval_a_ne_zero; exact eval_a_ne_zero
+    exact right_ne_zero_of_mul this
+  have sigma_b_ne_zero : sigma b (p*q) ≠ 0 := by
+    intro H
+    have : 0 * sigma a (p*q) = -1 := by rw [H] at hprod; exact hprod
+    simp at this
+  have eval_b_ne_zero : eval b (p*q) ≠ 0 := by
+    intro Heval
+    have : sigma b (p*q) = 0 := by simp [sigma, sgn, Heval]
+    exact (sigma_b_ne_zero this)
+  have eval_b_q_ne_zero : eval b q ≠ 0 := by
+    have : eval b p * eval b q ≠ 0 := by rw [eval_mul] at eval_b_ne_zero; exact eval_b_ne_zero
+    exact right_ne_zero_of_mul this
+  have h1a : sigma a (p*q) = 1 ∨ sigma a (p*q) = -1 := by
+    rw[sigma, sgn]
+    if hpos : eval a (p*q) > 0 then
+      left; split_ifs; rfl
+    else right; split_ifs; rfl
+  have hseqEval : seqEval a (sturmSeq p q) = eval a p :: seqEval a (sturmSeq q (-p % q)) := by rw[sturmSeq, seqEval.eq_def]; simp at hp; simp[hp]
+  have hseqEvalb : seqEval b (sturmSeq p q) = eval b p :: seqEval b (sturmSeq q (-p % q)) := by rw[sturmSeq, seqEval.eq_def]; simp at hp; simp[hp]
+  if hsigmaa : sigma a (p*q) = -1 then
+    have h2_1 : sigma b (p*q) = 1 := by
+      rw [hsigmaa] at hprod
+      simp at hprod; exact hprod
+    have h2_2a : seqVar (seqEval a (sturmSeq p q)) = 1 + seqVar (seqEval a (sturmSeq q (-p%q))) := by
+      rw[hseqEval]
+      calc
+        seqVar (eval a p :: seqEval a (sturmSeq q (-p % q)))
+          = (if eval a p * eval a q < 0 then 1 else 0) + seqVar (seqEval a (sturmSeq q (-p % q))) := by
+            have : seqEval a (sturmSeq q (-p % q)) = eval a q :: seqEval a (sturmSeq (-p % q) (-q%(-p % q))) := by
+              rw[sturmSeq, seqEval.eq_def]; simp at hq; simp[hq]
+            rw [this]; apply seqVar_sign_change eval_a_q_ne_zero
+        _ = 1 + seqVar (seqEval a (sturmSeq q (-p % q))) := by
+          simp [hprod]
+          have haqsgn : eval a p * eval a q < 0 := by
+            rw[sigma_eq_def, sgn] at hsigmaa; simp at hsigmaa
+            by_cases hpos : eval a p * eval a q > 0
+            · simp [hpos] at hsigmaa
+            by_cases heq : eval a p * eval a q = 0
+            · simp [heq] at hsigmaa; exfalso
+              have contra : eval a p * eval a q ≠ 0 := mul_ne_zero (And.left hsigmaa) (And.right hsigmaa)
+              exact contra heq
+            have hle : eval a p * eval a q ≤ 0 := le_of_not_gt hpos
+            have : 0 ≠ eval a p * eval a q := by intro Haux; exact heq Haux.symm
+            exact lt_of_le_of_ne hle (Ne.symm this)
+          exact haqsgn
+    have h2_2b : seqVar (seqEval b (sturmSeq p q))= seqVar (seqEval b (sturmSeq q (-p%q))) := by
+      rw[hseqEvalb]
+      calc
+        seqVar (eval b p :: seqEval b (sturmSeq q (-p % q)))
+          = (if eval b p * eval b q < 0 then 1 else 0) + seqVar (seqEval b (sturmSeq q (-p % q))) := by
+            have : seqEval b (sturmSeq q (-p % q)) = eval b q :: seqEval b (sturmSeq (-p % q) (-q%(-p % q))) := by
+              rw[sturmSeq, seqEval.eq_def]; simp at hq; simp[hq]
+            rw [this]
+            apply seqVar_sign_change eval_b_q_ne_zero
+        _ = 0 + seqVar (seqEval b (sturmSeq q (-p % q))) := by
+          simp [hprod]
+          have hbsgn : eval b p * eval b q > 0 := by
+            rw[sigma_eq_def, sgn] at h2_1
+            split_ifs at h2_1
+            assumption
+            linarith
+          linarith
+      linarith
+    rw[h2_2a, h2_2b, h2_1]; simp
+    rw [seqVarSturm_ab, seqVar_ab]
+    linarith
+  else
+    have hsa_pos : sigma a (p*q) = 1 := by
+      have : sigma a (p*q) = -1 → False := by
+        intro H; apply (by simp [H] at hsigmaa)
+      rcases h1a with hpos | hneg
+      · exact hpos
+      · exfalso; exact this hneg
+    have h2_1 : sigma b (p*q) = -1 := by rw [hsa_pos] at hprod; simp at hprod; exact hprod
+    have h2_2a : seqVar (seqEval a (sturmSeq p q))
+      = seqVar (seqEval a (sturmSeq q (-p%q))) := by
+      have : seqEval a (sturmSeq p q) = eval a p :: seqEval a (sturmSeq q (-p % q)) := by rw[sturmSeq, seqEval.eq_def]; simp at hp; simp[hp]
+      rw[this]
+      calc
+        seqVar (eval a p :: seqEval a (sturmSeq q (-p % q)))
+          = (if eval a p * eval a q < 0 then 1 else 0) + seqVar (seqEval a (sturmSeq q (-p % q))) := by
+            have : seqEval a (sturmSeq q (-p % q)) = eval a q :: seqEval a (sturmSeq (-p % q) (-q%(-p % q))) := by
+              rw[sturmSeq, seqEval.eq_def]; simp at hq; simp[hq]
+            rw [this]
+            apply seqVar_sign_change eval_a_q_ne_zero
+        _ = 0 + seqVar (seqEval a (sturmSeq q (-p % q))) := by
+          simp [hprod]
+          have haqsgn : eval a p * eval a q > 0 := by
+            rw[sigma_eq_def, sgn] at hsa_pos
+            split_ifs at hsa_pos
+            assumption
+            linarith
+          linarith
+      linarith
+    have h2_2b : seqVar (seqEval b (sturmSeq p q))
+      = 1 + seqVar (seqEval b (sturmSeq q (-p%q))) := by
+      have : seqEval b (sturmSeq p q) = eval b p :: seqEval b (sturmSeq q (-p % q)) := by rw[sturmSeq, seqEval.eq_def]; simp at hp; simp[hp]
+      rw[this]
+      calc
+        seqVar (eval b p :: seqEval b (sturmSeq q (-p % q)))
+          = (if eval b p * eval b q < 0 then 1 else 0) + seqVar (seqEval b (sturmSeq q (-p % q))) := by
+            have : seqEval b (sturmSeq q (-p % q)) = eval b q :: seqEval b (sturmSeq (-p % q) (-q%(-p % q))) := by
+              rw[sturmSeq, seqEval.eq_def]; simp at hq; simp[hq]
+            rw [this]
+            apply seqVar_sign_change eval_b_q_ne_zero
+        _ = 1 + seqVar (seqEval b (sturmSeq q (-p % q))) := by
+          simp [hprod]
+          have hbsgn : eval b p * eval b q < 0 := by
+            rw[sigma_eq_def, sgn] at h2_1
+            simp at h2_1
+            by_cases hpos : eval b p * eval b q > 0
+            · simp [hpos] at h2_1
+            by_cases heq : eval b p * eval b q = 0
+            · simp [heq] at h2_1
+              exfalso
+              have contra : eval b p * eval b q ≠ 0 :=
+                mul_ne_zero (And.left h2_1) (And.right h2_1)
+              exact contra heq
+            have hle : eval b p * eval b q ≤ 0 := le_of_not_gt hpos
+            have : 0 ≠ eval b p * eval b q := by intro Haux; exact heq Haux.symm
+            exact lt_of_le_of_ne hle (Ne.symm this)
+          exact hbsgn
+    rw[h2_2a, h2_2b, h2_1]; simp
+    rw [seqVarSturm_ab, seqVar_ab]
+    linarith
+
+theorem L_2_59_2 (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sigma a (p*q) = 1) (hq : q ≠ 0) (hp : p ≠ 0) (hj : ((∀p' ∈ sturmSeq p q, ¬IsRoot p' a) ∧ (∀p' ∈ sturmSeq p q, ¬IsRoot p' b))):
+      seqVarSturm_ab p q a b =  seqVarSturm_ab q (-p%q) a b := by
+  rw [seqVarSturm_ab, seqVar_ab]; rcases hj with ⟨ha, hb⟩
+  have sigma_a_ne_zero : sigma a (p*q) ≠ 0 := by
+    intro H
+    have : sigma b (p*q) * 0 = 1 := by
+      rw [H] at hprod; exact hprod
+    simp at this
+  have eval_a_ne_zero : eval a (p*q) ≠ 0 := by
+    intro Heval
+    have : sigma a (p*q) = 0 := by simp [sigma, sgn, Heval]
+    exact (sigma_a_ne_zero this)
+  have eval_a_q_ne_zero : eval a q ≠ 0 := by
+    have : eval a p * eval a q ≠ 0 := by rw [eval_mul] at eval_a_ne_zero; exact eval_a_ne_zero
+    exact right_ne_zero_of_mul this
+  have sigma_b_ne_zero : sigma b (p*q) ≠ 0 := by
+    intro H
+    have : 0 * sigma a (p*q) = 1 := by
+      rw [H] at hprod; exact hprod
+    simp at this
+  have eval_b_ne_zero : eval b (p*q) ≠ 0 := by
+    intro Heval
+    have : sigma b (p*q) = 0 := by simp [sigma, sgn, Heval]
+    exact (sigma_b_ne_zero this)
+  have eval_b_q_ne_zero : eval b q ≠ 0 := by
+    have : eval b p * eval b q ≠ 0 := by rw [eval_mul] at eval_b_ne_zero; exact eval_b_ne_zero
+    exact right_ne_zero_of_mul this
+  have h1a : sigma a (p*q) = 1 ∨ sigma a (p*q) = -1 := by
+    rw[sigma, sgn]
+    if hpos : eval a (p*q) > 0 then
+      left; split_ifs; rfl
+    else right; split_ifs; rfl
+  have hseqEval : seqEval a (sturmSeq p q) = eval a p :: seqEval a (sturmSeq q (-p % q)) := by rw[sturmSeq, seqEval.eq_def]; simp at hp; simp[hp]
+  have hseqEvalb : seqEval b (sturmSeq p q) = eval b p :: seqEval b (sturmSeq q (-p % q)) := by rw[sturmSeq, seqEval.eq_def]; simp at hp; simp[hp]
+  if hsigmaa : sigma a (p*q) = 1 then
+    have h2_1 : sigma b (p*q) = 1 := by
+      rw [hsigmaa] at hprod
+      simp at hprod; exact hprod
+    have h2_2a : seqVar (seqEval a (sturmSeq p q)) = 0 + seqVar (seqEval a (sturmSeq q (-p%q))) := by
+      rw[hseqEval]
+      calc
+        seqVar (eval a p :: seqEval a (sturmSeq q (-p % q)))
+          = (if eval a p * eval a q < 0 then 1 else 0) + seqVar (seqEval a (sturmSeq q (-p % q))) := by
+            have : seqEval a (sturmSeq q (-p % q)) = eval a q :: seqEval a (sturmSeq (-p % q) (-q%(-p % q))) := by
+              rw[sturmSeq, seqEval.eq_def]; simp at hq; simp[hq]
+            rw [this]; apply seqVar_sign_change eval_a_q_ne_zero
+        _ = 0 + seqVar (seqEval a (sturmSeq q (-p % q))) := by
+          simp [hprod]
+          have haqsgn : eval a p * eval a q > 0 := by
+            rw[sigma_eq_def, sgn] at hsigmaa
+            split_ifs at hsigmaa
+            assumption
+            linarith
+          linarith
+    simp at hsigmaa
+    simp at h2_2a
+    have h2_2b : seqVar (seqEval b (sturmSeq p q)) = 0 + seqVar (seqEval b (sturmSeq q (-p%q))) := by
+      rw[hseqEvalb]
+      calc
+        seqVar (eval b p :: seqEval b (sturmSeq q (-p % q)))
+          = (if eval b p * eval b q < 0 then 1 else 0) + seqVar (seqEval b (sturmSeq q (-p % q))) := by
+            have : seqEval b (sturmSeq q (-p % q)) = eval b q :: seqEval b (sturmSeq (-p % q) (-q%(-p % q))) := by
+              rw[sturmSeq, seqEval.eq_def]; simp at hq; simp[hq]
+            rw [this]; apply seqVar_sign_change eval_b_q_ne_zero
+        _ = 0 + seqVar (seqEval b (sturmSeq q (-p % q))) := by
+          simp [hprod]
+          have haqsgn : eval b p * eval b q > 0 := by
+            rw[sigma_eq_def, sgn] at h2_1
+            split_ifs at h2_1
+            assumption
+            linarith
+          linarith
+    simp at h2_1; simp at h2_2b; rw[h2_2a, h2_2b]
+    rw [seqVarSturm_ab, seqVar_ab]
+  else
+    have hsa_neg : sigma a (p*q) = -1 := by
+      have : sigma a (p*q) = 1 → False := by
+        intro H; apply (by simp [H] at hsigmaa)
+      rcases h1a with hpos | hneg
+      · exfalso; exact this hpos
+      · exact hneg
+    have h2_1 : sigma b (p*q) = -1 := by rw [hsa_neg] at hprod; simp at hprod; linarith
+    have h2_2a : seqVar (seqEval a (sturmSeq p q)) = 1 + seqVar (seqEval a (sturmSeq q (-p%q))) := by
+      rw[hseqEval]
+      calc
+        seqVar (eval a p :: seqEval a (sturmSeq q (-p % q)))
+          = (if eval a p * eval a q < 0 then 1 else 0) + seqVar (seqEval a (sturmSeq q (-p % q))) := by
+            have : seqEval a (sturmSeq q (-p % q)) = eval a q :: seqEval a (sturmSeq (-p % q) (-q%(-p % q))) := by
+              rw[sturmSeq, seqEval.eq_def]; simp at hq; simp[hq]
+            rw [this]; apply seqVar_sign_change eval_a_q_ne_zero
+        _ = 1 + seqVar (seqEval a (sturmSeq q (-p % q))) := by
+          simp [hprod]
+          have hbsgn : eval a p * eval a q < 0 := by
+            rw[sigma_eq_def, sgn] at hsa_neg
+            simp at hsa_neg
+            by_cases hpos : eval a p * eval a q > 0
+            · simp [hpos] at hsa_neg
+            by_cases heq : eval a p * eval a q = 0
+            · simp [heq] at hsa_neg
+              exfalso
+              have contra : eval a p * eval a q ≠ 0 :=
+                mul_ne_zero (And.left hsa_neg) (And.right hsa_neg)
+              exact contra heq
+            have hle : eval a p * eval a q ≤ 0 := le_of_not_gt hpos
+            have : 0 ≠ eval a p * eval a q := by intro Haux; exact heq Haux.symm
+            exact lt_of_le_of_ne hle (Ne.symm this)
+          exact hbsgn
+    have h2_2b : seqVar (seqEval b (sturmSeq p q)) = 1 + seqVar (seqEval b (sturmSeq q (-p%q))) := by
+      rw[hseqEvalb]
+      calc
+        seqVar (eval b p :: seqEval b (sturmSeq q (-p % q)))
+          = (if eval b p * eval b q < 0 then 1 else 0) + seqVar (seqEval b (sturmSeq q (-p % q))) := by
+            have : seqEval b (sturmSeq q (-p % q)) = eval b q :: seqEval b (sturmSeq (-p % q) (-q%(-p % q))) := by
+              rw[sturmSeq, seqEval.eq_def]; simp at hq; simp[hq]
+            rw [this]; apply seqVar_sign_change eval_b_q_ne_zero
+        _ = 1 + seqVar (seqEval b (sturmSeq q (-p % q))) := by
+          have haqsgn : eval b p * eval b q < 0 := by
+            rw[sigma_eq_def, sgn] at h2_1
+            by_cases hpos : eval b p * eval b q > 0
+            · simp [hpos] at h2_1
+            by_cases heq : eval b p * eval b q = 0
+            · simp [heq] at h2_1
+            have hle : eval b p * eval b q ≤ 0 := le_of_not_gt hpos
+            have : 0 ≠ eval b p * eval b q := by intro Haux; exact heq Haux.symm
+            exact lt_of_le_of_ne hle (Ne.symm this)
+          simp_all
+    simp at h2_1; simp at h2_2a; simp at h2_2b; rw[h2_2a, h2_2b]; simp_all; ring_nf
+    rw [seqVarSturm_ab, seqVar_ab]
+
+theorem L_2_59 (a b : ℝ) (p q : Polynomial ℝ) (hq : q ≠ 0) (hp : p ≠ 0):
+      ((∀p' ∈ sturmSeq p q, ¬IsRoot p' a) ∧ (∀p' ∈ sturmSeq p q, ¬IsRoot p' b))
+      → if sigma b (p*q) * sigma a (p*q) = 1 then (seqVarSturm_ab p q a b)
+      =  seqVarSturm_ab q (-p%q) a b else seqVarSturm_ab p q a b
+      =  sigma b (p*q) + seqVarSturm_ab q (-p%q) a b := by
+  intro h
+  if hprod : sigma b (p*q) * sigma a (p*q) = 1 then
+    simp_all
+    exact L_2_59_2 a b p q hprod hq hp h
+  else
+    simp_all
+    have hneg : sigma b (p*q) * sigma a (p*q) = -1 := by
+      have aux1 : sigma b (p*q) * sigma a (p*q) ≠ 1 := by intro H; exact hprod H
+      have auxevb : eval b (p*q) ≠ 0 := by
+        intro Heval
+        have aux := And.right h
+        have t1: ¬ eval b p = 0 := by
+          apply aux p; rw[sturmSeq]; simp; exact hp
+        have t2: ¬ eval b q = 0 := by
+          apply aux q; rw[sturmSeq, sturmSeq];
+          simp
+          if hq0 : q = p then
+            rw[hq0]; simp; exact hp
+          else
+          simp_all
+        rw[eval_mul] at Heval
+        exact (mul_ne_zero t1 t2) Heval
+      have auxeva : eval a (p*q) ≠ 0 := by
+            intro Heval
+            have aux := And.left h
+            have t1: ¬ eval a p = 0 := by
+              apply aux p; rw[sturmSeq]; simp; exact hp
+            have t2: ¬ eval a q = 0 := by
+              apply aux q; rw[sturmSeq, sturmSeq];
+              simp
+              if hq0 : q = p then
+                rw[hq0]; simp; exact hp
+              else
+                simp_all
+            rw[eval_mul] at Heval
+            exact (mul_ne_zero t1 t2) Heval
+      have aux2 : sigma b (p*q) * sigma a (p*q) ≠ 0 := by
+        intro H
+        have T1 : sigma b (p*q) ≠ 0 := by
+          intro Haux
+          have := auxevb
+          rw[sigma] at Haux
+          simp [sgn] at Haux; simp_all; split_ifs at Haux
+          if hnew : 0 < eval b p * eval b q then
+            linarith
+          else
+            linarith
+        have T2 : sigma a (p*q) ≠ 0 := by
+          intro Haux
+          have := auxeva
+          rw[sigma] at Haux; simp [sgn] at Haux;
+          simp_all; split_ifs at Haux
+          if hnew : 0 < eval a p * eval a q then
+            linarith
+          else
+            linarith
+        exact (mul_ne_zero T1 T2) H
+      simp_all; rw[sigma, sigma]; simp [sigma] at aux1 aux2
+      rw[sgn,sgn] at aux1; rw[sgn,sgn] at aux2; rw[sgn,sgn]; simp_all
+      if h1a : 0 < eval a p * eval a q then
+        have : eval b p * eval b q < 0 := by
+          have t0bpq : eval b p * eval b q > 0 → False := by
+            intro Haux; simp [h1a, Haux] at aux1;
+          have t1bpq : eval b p * eval b q = 0 → False := by
+            exact mul_ne_zero (And.left auxevb) (And.right auxevb)
+          have h : ¬(eval b p * eval b q > 0) := t0bpq
+          have h0 : ¬(eval b p * eval b q = 0) := t1bpq
+          classical
+          have tri := lt_trichotomy (eval b p * eval b q) 0
+          cases tri with
+          | inl hlt => exact hlt               -- caso < 0, é o que queremos
+          | inr h =>
+            cases h with
+            | inl heq => exfalso; exact (h0 heq)     -- caso = 0 → contradição
+            | inr hgt => exfalso; exact (t0bpq hgt)     -- caso > 0 → contradição
+        simp_all
+      else
+        have a1 : eval b p * eval b q > 0 := by
+          have : (-if 0 < eval b p * eval b q then 1 else -1) = 1 ↔ ¬(0 < eval b p * eval b q) := by
+            by_cases hpos : 0 < eval b p * eval b q
+            · simp [hpos]
+            · simp [hpos]
+          simp_all
+        have a2 : eval a p * eval a q < 0 := by
+          simp_all
+          have hp := auxeva.left
+          have hq := auxeva.right
+          have hne : eval a p * eval a q ≠ 0 := by
+            intro hzero
+            have : eval a p = 0 ∨ eval a q = 0 := by
+              apply mul_eq_zero.mp;exact hzero
+            cases this with
+            | inl hp0 => exact hp hp0
+            | inr hq0 => exact hq hq0
+          exact lt_of_le_of_ne h1a hne
+        simp_all
+    exact L_2_59_1 a b p q hneg hq hp h
+
+/- theorem Tarski (f g : Polynomial ℝ) (hf : f ≠ C 0) (a b : ℝ) (h : a < b) : -/
+/-       seqVarSturm_ab f (derivative f * g) a b -/
+/-       = tarskiQuery f g a b -/
+/-       := by -/
+/-   rw [B_2_57 _ _ _ _ h] -/
+/-   rw [<- B_2_58 _ _ _ _ _ h] -/
+/-   simp [hf] -/
+/-   simp_all only [map_zero, ne_eq, not_false_eq_true] -/
