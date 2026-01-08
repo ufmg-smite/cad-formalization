@@ -231,3 +231,43 @@ lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
      else
        simp [hc, hf.1] at h ⊢
        simp only [h, ite_not]
+
+@[simp]
+lemma jump_poly_not_root {p q: Polynomial ℝ} {x: ℝ} (hp: eval x p ≠ 0) : jump_val p q x = 0 := by
+  unfold jump_val
+  have hpz: p ≠ 0 := by exact eval_non_zero p x hp
+  if hqz: q = 0 then
+    simp [hqz, hpz]
+  else
+    have : rootMultiplicity x p = 0 := by simp [hp] 
+    simp [hp, hpz, hqz, this]
+
+@[simp]
+lemma jump_poly_z1 {p: Polynomial ℝ} {x: ℝ} : jump_val p 0 x = 0 := by
+  unfold jump_val
+  simp 
+
+@[simp]
+lemma jump_poly_z2 {q: Polynomial ℝ} {x: ℝ} : jump_val 0 q x = 0 := by
+  unfold jump_val
+  simp 
+
+
+lemma jump_poly_coprime {p q: Polynomial ℝ} (hp: eval x p = 0) (hpq_coprime : IsCoprime p q) : jump_val p q x = jump_val (q*p) 1 x := by
+  if hpqz: (p = 0 ∨ q  = 0) then
+    rcases hpqz with h | h <;> simp[h]
+  else
+    rw [Mathlib.Tactic.PushNeg.not_or_eq] at hpqz; have ⟨hpz, hqz⟩ := hpqz
+    have hroot : eval x p ≠ 0 ∨ eval x q ≠ 0 := by
+      exact aeval_ne_zero_of_isCoprime hpq_coprime x
+    have hq_root : eval x q ≠ 0 := by aesop
+    have hq_multiplicity : rootMultiplicity x q = 0 := by aesop
+    have h: rootMultiplicity x p - rootMultiplicity x q = rootMultiplicity x (p * q) := by
+      have : p * q ≠ 0 := by exact mul_ne_zero_iff.mpr hpqz
+      have := rootMultiplicity_mul (x := x) this
+      rw [hq_multiplicity] at this ⊢
+      simp [this]
+    unfold jump_val
+    have h_one: rootMultiplicity x 1 = 0 := by exact rootMultiplicity_C 1 x
+    simp [hqz, h_one, h]
+    rw [mul_comm]

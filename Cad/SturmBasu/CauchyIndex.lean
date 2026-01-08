@@ -154,6 +154,101 @@ theorem variation_mult_pos2 (c x y : ℝ) (hc : c > 0) : variation x (c*y) = var
   rw [<- mul_assoc, this]
   aesop
 
+@[simp]
+theorem cindex_poly_z_1 {p q: Polynomial ℝ} {a b: ℝ} (hp: p = 0) : cauchyIndex p q a b  = 0 := by 
+  unfold cauchyIndex jump_val
+  simp [hp]
+
+@[simp]
+theorem cindex_poly_z_2 {p q: Polynomial ℝ} {a b: ℝ} (hq: q = 0) : cauchyIndex p q a b  = 0 := by
+  unfold cauchyIndex jump_val
+  simp [hq]
+
+theorem cindex_poly_mult {p q p': Polynomial ℝ} {a b: ℝ} (hp' : p' ≠ 0) :
+    (cauchyIndex (p' * p) (p' * q) a b) = cauchyIndex p q a b := by
+  if hp: p = 0 then
+    simp [hp]
+  else 
+    unfold cauchyIndex
+    simp only [ne_eq, not_false_eq_true, jump_poly_mult, hp', hp]
+    have : ∑ x ∈ rootsInInterval p' a b \ rootsInInterval p a b, jump_val p q x = 0 := by
+      apply Finset.sum_eq_zero
+      intros x hx
+      simp only [Finset.mem_sdiff] at hx
+      unfold rootsInInterval at hx
+      have : eval x p ≠ 0 := by
+        have ⟨hx_1, hx_2⟩ := hx
+        simp_all
+      exact jump_poly_not_root this
+    have h_interval : rootsInInterval (p' * p) a b = rootsInInterval p a b ∪ (rootsInInterval p' a b \ rootsInInterval p a b) := by
+      unfold rootsInInterval
+      aesop
+    simp only [h_interval]
+    have hdsj : Disjoint (rootsInInterval p a b) (rootsInInterval p' a b \ rootsInInterval p a b) := by
+      exact Finset.disjoint_sdiff
+    rw [Finset.sum_union hdsj]
+    simp [this]
+         
+theorem cindex_poly_inverse_add {p q: Polynomial ℝ} {a b: ℝ} (hpq_coprime: IsCoprime p q) : cauchyIndex p q a b + cauchyIndex q p a b = cauchyIndex (q * p) 1 a b := by
+  if hpqz: p = 0 ∨ q = 0 then
+   rcases hpqz with hp | hq <;> simp_all
+  else
+    rw [Mathlib.Tactic.PushNeg.not_or_eq] at hpqz; have ⟨hpz, hqz⟩ := hpqz
+    let A := rootsInInterval p a b
+    let B := rootsInInterval q a b
+    have hl: cauchyIndex p q a b + cauchyIndex q p a b = ∑ x ∈ A, jump_val (q * p) 1 x + ∑ x ∈ B, jump_val (q*p) 1 x := by
+      have hf: cauchyIndex p q a b = ∑ x ∈ A, jump_val (q * p) 1 x := by
+        unfold A cauchyIndex 
+        refine Finset.sum_congr rfl ?_
+        intros x hx
+        unfold rootsInInterval at hx
+        have : eval x p = 0 := by aesop
+        exact jump_poly_coprime this hpq_coprime
+      have hs: cauchyIndex q p a b = ∑ x ∈ B, jump_val (q * p) 1 x := by
+       unfold B cauchyIndex
+       refine Finset.sum_congr rfl ?_
+       intros x hx
+       unfold rootsInInterval at hx
+       have : eval x q = 0 := by aesop
+       have hqp_coprime: IsCoprime q p := by exact id (IsCoprime.symm hpq_coprime)
+       rw [mul_comm]
+       exact jump_poly_coprime this hqp_coprime
+      linarith
+    have hab_union : A ∪ B = rootsInInterval (q * p) a b := by
+      unfold A B rootsInInterval
+      aesop
+    have hab_disjoint' : A ∩ B = ∅ := by
+      if H: A = ∅ ∨ B = ∅ then aesop
+      else
+        by_contra!
+        have hy: ∃ y: ℝ, y ∈ A ∧ y ∈ B := by
+         simp only [not_or, ne_eq, <-Finset.nonempty_iff_ne_empty] at H this
+         exact Finset.filter_nonempty_iff.mp this
+        have ⟨y, hy⟩ := hy
+        have h_eval : eval y p = 0 ∧ eval y q = 0 := by
+          unfold A B rootsInInterval at hy
+          simp_all
+        have h_monom: (X - C y) ∣ p ∧ (X - C y) ∣ q := by
+            simp [dvd_iff_isRoot, h_eval]
+        have h_monon_dvd : (X - C y) ∣ gcd p q := by exact (dvd_gcd_iff (X - C y) p q).mpr h_monom
+        have hf : ¬IsUnit (gcd p q)  := by
+          by_contra!
+          rw [isUnit_iff] at this; have ⟨r, hr⟩ := this
+          have h_contra :¬ X - C y ∣ (gcd p q) := by
+            rw [<-hr.2]
+            refine not_dvd_of_degree_lt ?_ ?_
+            · aesop
+            · have hrz : r ≠ 0 := by exact isUnit_iff_ne_zero.mp hr.1
+              rw [degree_C hrz];
+              exact (Monic.degree_pos (monic_X_sub_C y)).mpr (X_sub_C_ne_one y)
+          exact h_contra h_monon_dvd
+        exact hf ((gcd_isUnit_iff p q).mpr hpq_coprime)
+    have hab_disjoint : (Disjoint A B) := by exact Finset.disjoint_iff_inter_eq_empty.mpr hab_disjoint'
+    rw [hl]
+    unfold cauchyIndex
+    unfold A B at hab_disjoint hab_union
+    rw [<-Finset.sum_union hab_disjoint, hab_union]
+    
 theorem cindex_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
     (hab : a < b) (hapq : eval a (p*q) ≠ 0) (hbpq : eval b (p*q) ≠ 0) :
     cauchyIndex p q a b + cauchyIndex q p a b = variation (eval a (p * q)) (eval b (p*q))
@@ -195,12 +290,7 @@ theorem cindex_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
       have : ¬ p = 0 := by apply pneq0;
       exact this h1p0
     else
-      unfold cauchyIndex
-      have (x : ℝ) : jump_val (g * p') (g * q') x =  jump_val p' q' x := by exact jump_poly_mult h_gcd
-      have (x : ℝ) : jump_val (g * q') (g * p') x =  jump_val q' p' x := by exact jump_poly_mult h_gcd
-      simp_all
-      -- rootsInInterval (g * p') a b = rootsInInterval p' a b ?
-      sorry
+      rw [cindex_poly_mult h_gcd, cindex_poly_mult h_gcd]
   have cauchy1 : cauchyIndex p' q' a b + cauchyIndex q' p' a b
       = cauchyIndex 1 (q' * p') a b := by sorry -- cindex_poly_inverse_add (short)
   have cauchyVar : cauchyIndex 1 (q' * p') a b
