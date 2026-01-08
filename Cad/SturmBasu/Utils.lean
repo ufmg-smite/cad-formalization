@@ -287,3 +287,8 @@ theorem mod_mul (p q r: Polynomial ℝ) (hr: r ≠ 0) : (r * p) % (r * q) = r * 
   ring_nf at this; 
   rw [mul_cancel' hr, mul_assoc, <-mul_sub, mul_comm q (p/q), <- mod_eq_sub_div (a := p) (b := q) ] at this
   exact this
+
+lemma X_sub_C_ne_one (r : ℝ) : X - C r ≠ 1 := by
+  rw [sub_eq_neg_add, add_comm, <-C_neg]
+  exact X_add_C_ne_one (-r) 
+
