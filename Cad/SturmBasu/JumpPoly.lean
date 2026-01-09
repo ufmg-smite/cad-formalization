@@ -253,7 +253,7 @@ lemma jump_poly_z2 {q: Polynomial ℝ} {x: ℝ} : jump_val 0 q x = 0 := by
   simp 
 
 
-lemma jump_poly_coprime {p q: Polynomial ℝ} (hp: eval x p = 0) (hpq_coprime : IsCoprime p q) : jump_val p q x = jump_val (q*p) 1 x := by
+lemma jump_poly_coprime {p q: Polynomial ℝ} {x: ℝ} (hp: eval x p = 0) (hpq_coprime : IsCoprime p q) : jump_val p q x = jump_val (q*p) 1 x := by
   if hpqz: (p = 0 ∨ q  = 0) then
     rcases hpqz with h | h <;> simp[h]
   else
