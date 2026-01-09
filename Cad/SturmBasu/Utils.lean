@@ -299,4 +299,10 @@ theorem mod_mul (p q r: Polynomial ℝ) (hr: r ≠ 0) : (r * p) % (r * q) = r * 
 
 lemma X_sub_C_ne_one (r : ℝ) : X - C r ≠ 1 := by
   rw [sub_eq_neg_add, add_comm, <-C_neg]
-  exact X_add_C_ne_one (-r) 
+  exact X_add_C_ne_one (-r)
+
+lemma rootsInInterval_mul {p q: Polynomial ℝ} (a b: ℝ) (hpq: p * q ≠ 0): rootsInInterval (p * q) a b = rootsInInterval p a b ∪ rootsInInterval q a b := by
+  unfold rootsInInterval
+  rw [roots_mul hpq, Multiset.toFinset_add]
+  exact Finset.filter_union (fun x => x ∈ Ioo a b) p.roots.toFinset q.roots.toFinset
+
