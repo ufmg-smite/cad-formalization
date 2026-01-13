@@ -434,3 +434,29 @@ lemma sign_r_pos_smult (p: Polynomial ℝ) (x c: ℝ) : ¬(c = 0) -> ¬(p = 0) -
       aesop
     have : sign_r_pos x p = (¬ sign_r_pos x (-p)) := by simp only [sign_r_pos_minus x p hp]
     aesop
+
+lemma sign_r_pos_power (a: ℝ) (n: ℕ): sign_r_pos a ((X - C a)^n) := by
+  induction n with
+  | zero => rw [eventually_at_right_equiv']; simp; exact exists_gt a
+  | succ n ih =>
+    have hd: (derivative ((X - C a)^(n + 1)) = (C (n + 1: ℝ)) *  (X - C a)^n)  := by 
+      rw [derivative_X_sub_C_pow]
+      simp
+    have hnz: ((X - C a)^ (n + 1)) ≠ 0 := by
+       have : X - C a ≠ 0 := by exact X_sub_C_ne_zero a
+       exact pow_ne_zero (n + 1) this
+    have hnz': ((X - C a)^ (n)) ≠ 0 := by
+       have : X - C a ≠ 0 := by exact X_sub_C_ne_zero a
+       exact pow_ne_zero (n) this 
+    have heval: eval a ((X - C a)^ (n + 1)) = 0 := by simp
+    have hsrpos1: sign_r_pos  a ((X - C a)^ (n + 1)) = (sign_r_pos a ((C (n + 1: ℝ)) *  ((X - C a)^n))) := by
+      rw [sign_r_pos_rec ((X - C a)^ (n + 1)) a hnz, hd]
+      simp [heval]
+    have hsrpos2: sign_r_pos  a ((X - C a)^ (n + 1)) = sign_r_pos  a ((X - C a)^ n) := by
+      have haux: ¬ (n + 1: ℝ)= 0 := by linarith
+      have haux': (n + 1: ℝ) > 0 := by linarith
+      rw [ne_eq] at hnz
+      rw [hsrpos1, sign_r_pos_smult ((X - C a) ^ n) a (n + 1: ℝ) haux hnz']
+      simp [haux']
+    rw [<- hsrpos2] at ih
+    exact ih

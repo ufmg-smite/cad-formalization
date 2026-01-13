@@ -130,7 +130,16 @@ theorem exists_root_ioo' {p: Polynomial ℝ} {a b : ℝ} (hab: a <= b) (hap: eva
     aesop
   obtain ⟨x, ⟨hxa, hxb⟩, hx_root⟩ := zero_in_image
   use x
-  
+
+theorem exists_root_ioo_mul {p: Polynomial ℝ} {a b: ℝ} (hab: a ≤ b) (hap: (eval a p) * (eval b p) < 0) : ∃ r: ℝ, r > a ∧ r < b ∧ eval r p = 0 := by
+  if H: eval a p > 0 then
+    have haux: eval b p < 0 := by nlinarith
+    exact exists_root_ioo' hab H haux
+  else
+    have haux1: eval b p > 0 := by nlinarith
+    have haux: eval a p < 0 := by nlinarith
+    exact exists_root_ioo hab haux haux1
+
 lemma not_eq_pos_or_neg_iff_1 (p : Polynomial Real) (lb ub : Real) :
     (∀ z ∈ Ioc lb ub, eval z p ≠ 0) ↔ ((∀ z ∈ Ioc lb ub, eval z p < 0) ∨ (∀ z ∈ Ioc lb ub, 0 < eval z p)) := by
   by_contra!
@@ -305,4 +314,3 @@ lemma rootsInInterval_mul {p q: Polynomial ℝ} (a b: ℝ) (hpq: p * q ≠ 0): r
   unfold rootsInInterval
   rw [roots_mul hpq, Multiset.toFinset_add]
   exact Finset.filter_union (fun x => x ∈ Ioo a b) p.roots.toFinset q.roots.toFinset
-

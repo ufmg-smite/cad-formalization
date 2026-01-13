@@ -179,6 +179,82 @@ theorem variation_mult_pos2 (c x y : ℝ) (hc : c > 0) : variation x (c*y) = var
   rw [<- mul_assoc, this]
   aesop
 
+lemma variation_cases (x y: ℝ):
+      (x > 0 ∧ y > 0 -> variation x y = 0) ∧
+      (x > 0 ∧ y < 0 -> variation x y = -1) ∧
+      (x < 0 ∧ y > 0 -> variation x y = 1) ∧
+      (x < 0 ∧ y < 0 -> variation x y = 0) := by
+  unfold variation
+  repeat' constructor
+  · rintro ⟨hx, hy⟩; 
+    have  hxy : x * y ≥ 0 := by nlinarith
+    simp [hxy]
+  · rintro ⟨hx, hy⟩;
+    have hxy: ¬ (x * y >= 0) := by nlinarith
+    have hyltx: y <= x := by linarith 
+    simp [hxy, hyltx]
+  · rintro ⟨hx, hy⟩ 
+    have hxy: ¬ (x * y >= 0) := by nlinarith
+    have hygtx: x < y := by linarith
+    simp [hxy, hygtx]
+  · rintro ⟨hx, hy⟩
+    have hxy: x * y ≥ 0 := by nlinarith
+    simp [hxy]
+  
+lemma variation_mult_neg_1 (c x y: ℝ) (hc: c < 0): variation (c*x) y = variation x y + if y = 0 then 0 else sgn x := by
+  rcases lt_trichotomy x 0 with hxz | hxz | hxz <;> rcases lt_trichotomy y 0 with hyz | hyz | hyz
+  · have : c * x > 0 := by nlinarith
+    have hyy: y ≠ 0 := by linarith;
+    have hxx: ¬ 0 < x := by linarith
+    have hxnez: x ≠ 0 := by linarith
+    simp [variation_cases, sgn, *]
+  · simp_all [variation]
+  · have : c * x > 0 := by nlinarith
+    have hyy: y ≠ 0 := by linarith
+    have hxx: ¬ 0 < x := by linarith
+    have hxnez: x ≠ 0 := by linarith
+    simp [variation_cases, sgn, *]
+  · simp_all [variation, sgn]
+  · simp_all [variation,sgn]
+  · simp_all [variation, sgn]
+  · have : c * x < 0 := by nlinarith
+    have hyy: y ≠ 0 := by linarith  
+    simp [variation_cases, sgn, *]
+  ·  simp_all [variation, sgn]
+  · have : c * x < 0 := by nlinarith 
+    have hyy: y ≠ 0 := by linarith
+    simp [variation_cases, sgn, *]
+
+lemma variation_mult_neg_2 (c x y: ℝ) (hc: c < 0): variation x (c * y) = variation x y + if x = 0 then 0 else -sgn y := by
+  rcases lt_trichotomy x 0 with hxz | hxz | hxz <;> rcases lt_trichotomy y 0 with hyz | hyz | hyz
+  · have : c * y > 0 := by nlinarith
+    have hxnez: x ≠ 0 := by linarith
+    have hyn: ¬0 < y := by linarith
+    have hynz: y ≠ 0 := by linarith
+    simp [variation_cases, sgn, *]
+  · have hxx: x ≠ 0 := by linarith
+    have hxn: ¬ 0 < x := by linarith
+    simp_all [variation, sgn]
+  · have : c * y < 0 := by nlinarith
+    have hyy: y ≠ 0 := by linarith
+    have hxx: ¬ 0 < x := by linarith
+    have hxnez: x ≠ 0 := by linarith
+    simp [variation_cases, sgn, *]
+  · simp_all [variation, sgn]
+  · simp_all [variation,sgn]
+  · simp_all [variation, sgn]
+  · have : c * y > 0 := by nlinarith
+    have hyy: y ≠ 0 := by linarith  
+    have hxx: x ≠ 0 := by linarith  
+    have yn: ¬0 < y := by linarith
+    simp [variation_cases, sgn, *]  
+  ·  simp_all [variation, sgn]
+  · have : c * y < 0 := by nlinarith 
+    have hyy: y ≠ 0 := by linarith
+    have xn: x ≠ 0 := by linarith
+    simp [variation_cases, sgn, *]
+
+
 @[simp]
 theorem cindex_poly_z_1 (p q: Polynomial ℝ) (a b: ℝ) (hp: p = 0) : cauchyIndex p q a b  = 0 := by 
   unfold cauchyIndex jump_val
@@ -265,7 +341,10 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
             · rw [hp', eval_mul] at hpa_nroot; simp_all
             · rw [hp', eval_mul] at hpb_nroot; simp_all
             · rw [hp', eval_mul] at hpa_nroot; simp_all
-            · rw [hp', eval_mul] at hpb_nroot; simp_all
+            · rw [hp', eval_mul] at hpb_nroot; simp_all 
+          have hmaxrp' : eval maxr p' ≠ 0 := by exact (not_imp_not.mpr (dvd_iff_isRoot.mpr)) hmonon_nvdv
+          have hmulrz: rootMultiplicity maxr p > 0 := by exact ((rootMultiplicity_pos hpz).mpr (IsRoot.def.mpr hmaxr_root.1))
+          have hmulr : rootMultiplicity maxr p ≠ 0 := by exact (zero_lt_iff.mp hmulrz)
           let maxr_sign := if Odd (rootMultiplicity maxr p) then -1 else 1
           have hc_sum: cauchyIndex p 1 a b = (∑x∈ (rootsInInterval p' a b), jump_val p 1 x) + jump_val p 1 maxr := by
             unfold cauchyIndex
@@ -312,9 +391,157 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                  rw [IsRoot.def] at this
                  exact this
                exact pow_ne_zero (rootMultiplicity maxr p) this
-              sorry
-            sorry
-          sorry
+              have hx_multiplicity: rootMultiplicity x maxrp = 0 := by exact rootMultiplicity_eq_zero hx_nroot
+              have hjpz: jump_val maxrp 1 x = 0 := by exact jump_poly_not_root hx_nroot
+              have hxlmaxr: x < maxr := by
+                have : x <= maxr := by exact Finset.le_max' (rootsInInterval p a b) x hx_root 
+                exact lt_of_le_of_ne this hx_maxr
+              have hmaxr_sign : sgn (eval x maxrp) = maxr_sign := by
+                unfold sgn maxr_sign 
+                simp [hx_nroot]
+                unfold maxrp
+                have hevallt: (x - maxr) < 0 := by
+                  simp [hxlmaxr]  
+                split_ifs with h₁ h₂ h₃
+                · have hcontra: ¬ 0 < eval x ((X - C maxr) ^ rootMultiplicity maxr p) := by
+                    simp 
+                    exact (Odd.pow_nonpos_iff h₂).mpr (le_of_lt hevallt)
+                  exact hcontra h₁
+                · rfl
+                · rfl
+                · have h_contra : 0 < eval x ((X - C maxr) ^ rootMultiplicity maxr p) := by
+                    simp at h₃ ⊢
+                    exact (Even.pow_pos_iff h₃ hmulr).mpr (sub_ne_zero_of_ne hx_maxr)
+                  exact h₁ h_contra
+              rw [hp', jump_poly_1_mult (Or.inr hx_nroot), hmaxr_sign]  
+              simp [jump_poly_not_root hx_nroot]
+            have hsec: ∑ (x∈ rootsInInterval p' a b), maxr_sign * jump_val p' 1 x = maxr_sign * (∑ x∈ rootsInInterval p' a b, jump_val p' 1 x) := by exact Eq.symm (Finset.mul_sum (rootsInInterval p' a b) (jump_val p' 1) maxr_sign)
+            have hthird: maxr_sign * (∑ x∈ rootsInInterval p' a b, jump_val p' 1 x) = maxr_sign * cross p' a b:= by
+              if H': rootsInInterval p' a b = ∅ then
+                simp [H']
+                exact Or.inr (cross_no_root hab H')
+              else
+                have hmaxrp_deg: maxrp.natDegree ≠ 0 := by
+                  unfold maxrp
+                  simp [hmulr]
+                have hpp'_deg: p'.natDegree < p.natDegree := by
+                  rw [hp', natDegree_mul hp'z maxrpz];
+                  unfold maxrp
+                  simp [hmulrz, hp'z, maxrpz] 
+                have hcindex: cauchyIndex p' 1 a b = cross p' a b := by
+                  rw [<-hp] at ih
+                  exact ih p'.natDegree hpp'_deg hap' hbp' hp'z rfl 
+                have hf: cauchyIndex p' 1 a b = ∑ (x ∈ rootsInInterval p' a b), jump_val p' 1 x := by
+                  unfold cauchyIndex
+                  rfl
+                rw [<-hf, hcindex]
+            rw [hcr_sign, hsec, hthird]
+          have hcross_jp: maxr_sign * cross p' a b + jump_val p 1 maxr = cross p a b := by
+            if H': Odd (rootMultiplicity maxr p) then
+              have hamaxrpltz: eval a maxrp < 0 := by
+                unfold maxrp
+                simp
+                have : a - maxr < 0 := by linarith
+                exact Odd.pow_neg H' this
+              have hbmaxrpgtz: eval b maxrp > 0 := by
+                unfold maxrp
+                simp
+                have : b - maxr > 0 := by linarith
+                exact pow_pos this (rootMultiplicity maxr p)
+              have hr: cross p a b = cross p' a b + sgn (eval a p') := by
+                rw [hp', cross, eval_mul, eval_mul, cross, mul_comm]
+                rw [variation_mult_neg_1 (eval a maxrp) (eval a p') ((eval b p') * (eval b maxrp)) hamaxrpltz]
+                rw [mul_comm, variation_mult_pos2 (eval b maxrp) (eval a p') (eval b p') hbmaxrpgtz]
+                have : eval b maxrp * eval b p' ≠ 0 := by
+                  exact mul_ne_zero hbmaxrp hbp'
+                simp [this]
+              have hl: maxr_sign * cross p' a b + jump_val p 1 maxr = - cross p' a b + sgn (eval b p') := by
+                have hsrpos: (sign_r_pos maxr p') = (eval maxr p' > 0) := by
+                  rw [sign_r_pos_rec p' maxr hp'z]
+                  simp [hmaxrp'] 
+                have hn: (eval maxr p' > 0) = (eval b p' > 0) := by
+                  by_contra!
+                  have hprodz: (eval maxr p') * (eval b p') < 0 := by
+                      clear *- hmaxrp' this hbp'
+                      if H'': eval maxr p' > 0 then
+                        simp [H''] at this
+                        have haux: eval b p' < 0 := by exact lt_of_le_of_ne this hbp'
+                        nlinarith
+                      else
+                        simp [H''] at this
+                        have haux: eval maxr p' < 0 := by simp at H''; exact lt_of_le_of_ne H'' hmaxrp'
+                        nlinarith
+                  have ⟨r, hr, ⟨hrmaxr, hrp'⟩⟩ : ∃r:ℝ, (r > maxr) ∧ ( r < b) ∧ (eval r p' = 0):= by
+                    clear *- hprodz hmaxr_root
+                    have ⟨_, ⟨_, hmaxrb⟩⟩ := hmaxr_root
+                    have hmaxrb: maxr ≤ b := by exact le_of_lt hmaxrb
+                    exact exists_root_ioo_mul hmaxrb hprodz
+                  have hrint: r ∈ rootsInInterval p a b := by
+                    clear *- hp' hr hrmaxr hrp' hp'z hmaxr_root hpz
+                    have haux: r ∈ rootsInInterval p' a b := by
+                      have ⟨_, ⟨hamaxrb, hmaxrb⟩⟩ := hmaxr_root
+                      unfold rootsInInterval
+                      have : r ∈ p'.roots := by exact (mem_roots_iff_aeval_eq_zero hp'z).mpr hrp'
+                      have ha: a < r := by linarith
+                      simp_all
+                    rw [hp'] at hpz ⊢
+                    rw [rootsInInterval_mul a b hpz]
+                    simp_all
+                  clear *- hr hrmaxr hrp' hmaxr_root hrint
+                  have : ¬ r > maxr := by
+                    simp
+                    unfold maxr
+                    exact Finset.le_max' (rootsInInterval p a b) r hrint
+                  exact this hr
+                have hsrposmaxr: sign_r_pos maxr maxrp := by
+                  unfold maxrp
+                  exact sign_r_pos_power maxr (rootMultiplicity maxr p)
+                unfold maxr_sign jump_val sgn
+                have haux: rootMultiplicity maxr 1 = 0 := by simp
+                simp [H', haux, hpz]
+                rw [mul_one, hp', sign_r_pos_mult p' maxrp maxr hp'z maxrpz, hsrpos, hn]
+                simp [hbp', hsrposmaxr]
+              have hvar: variation (eval a p') (eval b p') + sgn (eval a p') = (-variation (eval a p') (eval b p')) + (sgn (eval b p')) := by
+                clear *- hap' hbp'
+                unfold sgn
+                rcases lt_trichotomy (eval b p') 0 with hxz | hxz | hxz <;> rcases lt_trichotomy (eval a p') 0 with hyz | hyz | hyz
+                · have ⟨hasgn, hbsgn⟩ :  (¬ 0 < eval a p') ∧ (¬ 0 < eval b p'):= by constructor <;> linarith
+                  simp [variation_cases, *]; 
+                · exfalso; exact hap' hyz 
+                · have hbsgn :(¬ 0 < eval b p') := by linarith
+                  simp [variation_cases, *]
+                · exfalso; exact hbp' hxz
+                · exfalso; exact hbp' hxz
+                · exfalso; exact hbp' hxz
+                · have : ¬ 0 < eval a p' := by linarith 
+                  simp [variation_cases, *]
+                · exfalso; exact hap' hyz
+                . simp [variation_cases, *]
+              rw [hr, hl]
+              unfold cross
+              exact (Eq.symm hvar)
+            else
+              simp at H'
+              have ⟨hapos, hbpos⟩ : eval a maxrp > 0 ∧ eval b maxrp > 0 := by
+                unfold maxrp
+                rw [eval_pow, eval_pow] 
+                constructor
+                · simp
+                  have : a - maxr ≠ 0 := by clear *-hmaxr_root; linarith
+                  exact Even.pow_pos H' this 
+                · simp
+                  have :  b - maxr ≠ 0 := by clear *-hmaxr_root; linarith
+                  exact Even.pow_pos H' this
+              have hr: cross p a b = cross p' a b := by
+                unfold cross
+                rw [hp', eval_mul, eval_mul]
+                rw [mul_comm, variation_mult_pos1 (eval a maxrp) (eval a p') (eval b p' * eval b maxrp) hapos,  mul_comm, variation_mult_pos2 (eval b maxrp) (eval a p') (eval b p') (hbpos)]
+              unfold maxr_sign jump_val
+              have h_aux: rootMultiplicity maxr 1 = 0 := by simp
+              have h_aux2: ¬ Odd (rootMultiplicity maxr p) := by simp [H']
+              simp [h_aux2, h_aux, hpz]
+              exact (Eq.symm hr)
+          rw [hc_sum, hcross, hcross_jp]
         else  
           have hlz : cauchyIndex p 1 a b = 0 := by 
             unfold cauchyIndex; aesop
