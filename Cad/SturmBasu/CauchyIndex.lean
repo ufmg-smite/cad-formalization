@@ -179,6 +179,9 @@ theorem variation_mult_pos2 (c x y : ℝ) (hc : c > 0) : variation x (c*y) = var
   rw [<- mul_assoc, this]
   aesop
 
+theorem variation_mult_pos (c d x y : ℝ) (hc : c > 0) (hd: d > 0): variation (c * x) (d*y) = variation x y := by
+  simp_all [variation_mult_pos1, variation_mult_pos2]
+
 lemma variation_cases (x y: ℝ):
       (x > 0 ∧ y > 0 -> variation x y = 0) ∧
       (x > 0 ∧ y < 0 -> variation x y = -1) ∧
@@ -657,8 +660,14 @@ theorem cindex_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
             exact isUnit_gcd_of_eq_mul_gcd hp' hq' h_gcd
           exact (gcd_isUnit_iff p' q').mp this
         exact cindex_poly_inverse_add a b this
-  have cauchyVar : cauchyIndex 1 (q' * p') a b
-      = variation (eval a (p' * q'))  (eval b (p'*q')) := by sorry -- cindex_poly_cross (long, but doesn't seem to use many lemmas from their formalization)
+  have cauchyVar : cauchyIndex (p' * q') 1 a b
+      = variation (eval a (p' * q'))  (eval b (p'*q')) := by   -- cindex_poly_cross (long, but doesn't seem to use many lemmas from their formalization)
+    have : cauchyIndex (p' * q') 1 a b = cross (p' * q') a b := by
+      have ha : eval a (p' * q') ≠ 0 := by simp_all
+      have hb : eval b (p' * q') ≠ 0 := by simp_all
+      exact cindex_poly_cross hab ha hb 
+    unfold cross at this
+    exact this
   have : variation (eval a (p' * q'))  (eval b (p'*q'))
       = variation (eval a (p * q)) (eval b (p*q)) := by
     have t1 : eval a (p * q) = eval a (g*g) * eval a (p' * q') := by
@@ -671,7 +680,6 @@ theorem cindex_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
       simp only [eval_mul]
       linarith
     rw[t2]
-
     simp at hapq
     obtain ⟨hap, haq⟩ := hapq
     have hag : eval a g ≠ 0 := by
@@ -689,23 +697,7 @@ theorem cindex_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
       simp at hbp
       obtain ⟨hbg, hbp'⟩ := hbp
       exact hbg abs
-
     have t3 : eval a (g*g) > 0 := by simp [hag]
     have t4 : eval b (g*g) > 0 := by simp [hbg]
-    have aux1 : variation (eval a (p' * q')) (eval b (p' * q'))
-        = variation (eval a (g * g) * eval a (p' * q')) (eval b (p' * q')) := by
-      have : variation (eval a (g * g) * eval a (p' * q')) (eval b (p' * q'))
-          = variation (eval a (p' * q')) (eval b (p' * q')) := by
-        apply variation_mult_pos1 (eval a (g * g))  (eval a (p' * q')) ((eval b (p' * q'))) t3
-      rw[this]
-
-    have aux2 : variation (eval a (p' * q')) (eval b (p' * q'))
-        = variation (eval a (p' * q')) (eval b (g * g) * eval b (p' * q')) := by
-      have : variation (eval a (p' * q')) (eval b (g * g) * eval b (p' * q'))
-          = variation (eval a (p' * q')) (eval b (p' * q')) := by
-        apply variation_mult_pos2 (eval b (g * g))  (eval a (p' * q')) ((eval b (p' * q'))) t4
-      rw[this]
-    have := Trans.trans aux1.symm aux2
-    admit
-  simp_all
-  sorry
+    rw [variation_mult_pos (eval a (g * g)) (eval b (g * g)) (eval a (p' * q')) (eval b (p' * q')) t3 t4]
+  rw [cauchyMuls, cauchy1, mul_comm, cauchyVar, <-this]
