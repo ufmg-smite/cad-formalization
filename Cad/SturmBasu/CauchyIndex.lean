@@ -42,6 +42,10 @@ lemma cross_no_root {a b: ℝ} {p: Polynomial ℝ} (hab: a < b) (hxnroot: rootsI
   unfold cross variation
   simp [this]
 
+@[simp]
+lemma cross_z_1 (a b: ℝ) : cross 0 a b = 0 := by
+  simp [cross, variation]
+
 lemma cauchyIndex_poly_mod (p q : Polynomial Real) (a b : Real) :
     cauchyIndex p q a b = cauchyIndex p (q % p) a b := by
   unfold cauchyIndex

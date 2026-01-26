@@ -314,3 +314,26 @@ lemma rootsInInterval_mul {p q: Polynomial ℝ} (a b: ℝ) (hpq: p * q ≠ 0): r
   unfold rootsInInterval
   rw [roots_mul hpq, Multiset.toFinset_add]
   exact Finset.filter_union (fun x => x ∈ Ioo a b) p.roots.toFinset q.roots.toFinset
+example (p: Polynomial ℝ): -1 * p = (C (-1: ℝ)) * p := by
+   simp
+
+lemma neg_neg_div (p q: Polynomial ℝ) : - (-p/q) = p/q := by 
+  have: -1 = (-1:ℝ)⁻¹ := by exact Eq.symm inv_neg_one
+  calc
+    -(-p/q) = -(-1 * p / q) := by simp
+    _ = -1 * (-1 * p / q)  := by simp
+    _ = -1 * (C (-1) * p / q) := by simp
+    _ = (C (-1:ℝ)) * (C (-1) * p / q) := by simp
+    _ = (C (-1:ℝ)⁻¹) * (C (-1) * p / q) := by rw [<-this]
+    _ = p/q := by
+      have hCz : C (-1:ℝ) ≠ 0 := by simp
+      rw [<- div_C_mul, mul_cancel' hCz]
+  
+  
+lemma mod_minus (p q: Polynomial ℝ) : -p%q = -(p%q) := by
+  rw [mod_eq_sub_div, mod_eq_sub_div] 
+  ring_nf
+  calc
+    -p - -p / q * q = -p + (- (-p/q * q)) := by ring
+    _ = -p + q * (-(-p/q)) := by ring
+    _ = -p + q * (p/q) := by rw[neg_neg_div p q]
