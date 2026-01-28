@@ -441,8 +441,10 @@ theorem B_2_58 (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.
         have h_congr_cindex := cindex_poly_congr p q a a' b b' haa' hbb' this
         rw[h_congr_cindex]
 
-        have t1 : eval a' (p * q) ≠ 0 := by sorry
-        have t2 : eval b' (p * q) ≠ 0 := by sorry
+        have t1 : eval a' (p * q) ≠ 0 := by
+          simp [Polynomial.eval_mul, hpa', hqa']
+        have t2 : eval b' (p * q) ≠ 0 := by
+          simp [Polynomial.eval_mul, hpb', hqb']
         have h_cindex := B_2_60 p q a' b' ha'b' t1 t2
         rw[h_cindex]
         have h_changes_itv := changes_itv_smods_rec ha'b' t1 t2
