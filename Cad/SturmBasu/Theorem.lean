@@ -245,7 +245,7 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hab: a < b) (hpq
      have ⟨ps, httl, htlmod⟩ : ∃ ps : List (Polynomial ℝ), sturmSeq p q = p :: q :: -p%q:: ps ∧ sturmSeq q (-p%q) = q :: (-p%q) :: ps := by
        unfold sturmSeq sturmSeq
        rw [sturmSeq]
-       simp [H]
+       simp_all
      let changes_diff := fun x => ((seqVar (seqEval x (p::q::(-p%q)::ps)): ℤ) - (seqVar (seqEval x (q::(-p%q)::ps))): ℤ)
      have hz1: ∀ x: ℝ, (eval x p) * (eval x q) < 0 → changes_diff x = 1 := by
        unfold changes_diff -- seqVar seqEval seqEval
