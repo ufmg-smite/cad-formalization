@@ -413,31 +413,41 @@ theorem B_2_58 (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.
           simp [haux1, haux2, h]
           exact (Eq.symm hhd)
         have ⟨hpa', hpb', hqa', hqb'⟩ : eval a' p ≠ 0 ∧ eval b' p ≠ 0 ∧  eval a' q ≠ 0 ∧ eval b' q ≠ 0 := by aesop
-        have : a' < b' := by linarith
+        have t0 : a' < b' := by linarith
         rw[htlps] at ih
-        have h_ind := ih q r a' b' hqa' hqb' this hpsqr
+        have h_ind := ih q r a' b' hqa' hqb' t0 hpsqr
         -- r = -p%q
-        have tt1 : eval a q ≠ 0 := by
-          -- usar o hn_root aqui
-          rcases hn_root q (by rw [hps]; simp) a with hneq
 
-          sorry
-        have tt2 : eval b q ≠ 0 := by sorry
-        have t1 : eval a (p * q) ≠ 0 := by sorry
-        have t2 : eval b (p * q) ≠ 0 := by sorry
-        have h_cindex := B_2_60 p q a b hab t1 t2
-        rw[h_cindex]
-        have h_changes_itv := changes_itv_smods_rec hab t1 t2
-        rw[h_changes_itv]
-        have : (∀ (x : ℝ), a < x ∧ x ≤ a' ∨ b' ≤ x ∧ x < b → eval x q ≠ 0) := by
+        have : (∀ p' ∈ sturmSeq p q, ∀ (x : ℝ), a' < x ∧ x ≤ a ∨ b ≤ x ∧ x < b' → eval x p ≠ 0) := by
+          intro p' hp' x hx
+          have : ¬∃ x : ℝ, (a' < x ∧ x ≤ a) ∨ (b ≤ x ∧ x < b') := by
+            intro hx
+            rcases hx with ⟨k, hk | hk⟩
+            · -- case a' < k ∧ k ≤ a
+              have : a' < a := lt_of_lt_of_le hk.1 hk.2
+              exact lt_irrefl _ (lt_trans haa' this)
+            · -- case b ≤ k ∧ k < b'
+              have : b < b' := lt_of_le_of_lt hk.1 hk.2
+              exact lt_irrefl _ (lt_trans this hbb')
+          --rcases hn_root p' (by rw [hps]; simp_all) x hx with hneq
+          exfalso; apply this; exact ⟨x, hx⟩
+        have h_congr_seqvar := changes_itv_smods_congr p q a' a b' b hpa' hpb' this
+        rw[←h_congr_seqvar]
+
+        have : (∀ (x : ℝ), a < x ∧ x ≤ a' ∨ b' ≤ x ∧ x < b → eval x p ≠ 0) := by
           intro x hx
-          rcases hn_root q (by rw [hps]; simp) x hx with hneq
+          rcases hn_root p (by rw [hps]; simp) x hx with hneq
           exact hneq
-        have h_congr_cindex := cindex_poly_congr q (-p % q) a a' b b' haa' hbb' this
+        have h_congr_cindex := cindex_poly_congr p q a a' b b' haa' hbb' this
         rw[h_congr_cindex]
-        have : (∀ p' ∈ sturmSeq q (-p % q), ∀ (x : ℝ), a < x ∧ x ≤ a' ∨ b' ≤ x ∧ x < b → eval x q ≠ 0) := by sorry
-        have h_congr_seqvar := changes_itv_smods_congr q (-p % q) a a' b b' tt1 tt2 this
-        rw[h_congr_seqvar, h_ind]
+
+        have t1 : eval a' (p * q) ≠ 0 := by sorry
+        have t2 : eval b' (p * q) ≠ 0 := by sorry
+        have h_cindex := B_2_60 p q a' b' ha'b' t1 t2
+        rw[h_cindex]
+        have h_changes_itv := changes_itv_smods_rec ha'b' t1 t2
+        rw[h_changes_itv]
+        rw[h_ind]
 
 def sigma (b : ℝ) (f : Polynomial ℝ) : ℤ :=
   sgn (eval b f)
