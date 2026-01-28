@@ -117,12 +117,12 @@ theorem seqVarSturm_ab_z_1 (p: Polynomial ℝ) (a b: ℝ) : seqVarSturm_ab 0 p a
 
  @[simp]
 theorem seqVarSturm_ab_z_2 (p: Polynomial ℝ) (a b: ℝ) : seqVarSturm_ab p 0 a b = 0 := by
-  unfold seqVarSturm_ab seqVar_ab seqVar seqEval 
+  unfold seqVarSturm_ab seqVar_ab seqVar seqEval
   if H: p = 0 then
     simp [H]
   else
     simp [H]
-  
+
 lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
     p ≠ 0 → p.eval x = 0 → jump_val p (derivative p * q) x = sgn (q.eval x) := by
   intros hp hev
@@ -201,8 +201,8 @@ lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) (hab : a < b)  :
     rw [jump_poly_sign p q x hp this]
 
 theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hab: a < b) (hpqa: eval a (p * q)≠ 0) (hpqb: eval b (p * q) ≠ 0) :
-        (seqVarSturm_ab p q a b) = cross (p * q) a b + seqVarSturm_ab (-p%q) q a b := by
-  if H: p = 0 ∨ q = 0 ∨ p % q = 0 then
+        (seqVarSturm_ab p q a b) = cross (p * q) a b + seqVarSturm_ab q (-p%q) a b := by
+    if H: p = 0 ∨ q = 0 ∨ p % q = 0 then
     rcases H with h | h | h
     · simp [h]
     · simp [h]
@@ -215,7 +215,7 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hab: a < b) (hpq
       have : ¬sturmSeq p q = [] := by simp [hpz, smod_nil_eq]
       unfold seqEval
       simp [variation_cases, hpz, hqz, haq, hbq]
-      split_ifs with h1 h2 h3 
+      split_ifs with h1 h2 h3
       · unfold seqVar;
         rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.2.2 ⟨h1, h2⟩];
         simp
@@ -230,7 +230,7 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hab: a < b) (hpq
         have : eval a p * eval a q > 0 := by
           rw [eval_mul] at hpqa
           rw [not_lt, <-ge_iff_le] at h1
-          exact lt_of_le_of_ne h1 (Ne.symm hpqa) 
+          exact lt_of_le_of_ne h1 (Ne.symm hpqa)
         rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.1 ⟨this, h3⟩];
         simp
       · unfold seqVar
@@ -239,7 +239,7 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hab: a < b) (hpq
           rw [not_lt, <-ge_iff_le] at h1 h3
           exact ⟨lt_of_le_of_ne h1 (Ne.symm hpqa), lt_of_le_of_ne h3 (Ne.symm hpqb)⟩
         rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).1 this];
-        simp 
+        simp
    else
      simp at H
      have ⟨ps, httl, htlmod⟩ : ∃ ps : List (Polynomial ℝ), sturmSeq p q = p :: q :: -p%q:: ps ∧ sturmSeq q (-p%q) = q :: (-p%q) :: ps := by
@@ -248,12 +248,17 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hab: a < b) (hpq
        simp [H]
      sorry
 
-set_option maxHeartbeats 500000 in 
-theorem B_2_58_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): ∃ (a' b': ℝ), a < a' ∧ a' < b' ∧ b' < b ∧ (∀p' ∈ sturmSeq p q, (∀ x: ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) -> eval x p' ≠ 0)) := by 
+lemma changes_itv_smods_congr (p q : Polynomial ℝ) (a a' b b' : ℝ) (hpa : eval a p ≠ 0) (hpb : eval b p ≠ 0)
+    (no_root : ∀ p' ∈ sturmSeq p q, ∀ x : ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) → eval x p ≠ 0) :
+    seqVarSturm_ab p q a b = seqVarSturm_ab p q a' b' := by
+    sorry
+
+set_option maxHeartbeats 500000 in
+theorem B_2_58_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): ∃ (a' b': ℝ), a < a' ∧ a' < b' ∧ b' < b ∧ (∀p' ∈ sturmSeq p q, (∀ x: ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) -> eval x p' ≠ 0)) := by
   induction h: (sturmSeq p q) generalizing p q with
     | nil =>
       let a' := 2/3 * a + 1/3 * b
-      let b' := 1/3 * a + 2/3 * b 
+      let b' := 1/3 * a + 2/3 * b
       have ⟨haa', ha'b', hbb'⟩ : a < a' ∧ a' < b' ∧ b' < b := by
         repeat' constructor
         · unfold a'; linarith
@@ -265,7 +270,7 @@ theorem B_2_58_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): ∃ (a' b': �
       let r := - (p % q)
       have hpz: p ≠ 0 := by aesop
       have htl: sturmSeq q r = tl := by
-        unfold sturmSeq at h; 
+        unfold sturmSeq at h;
         simp [hpz] at h
         unfold r
         rw [<-mod_minus]; exact h.2
@@ -296,10 +301,10 @@ theorem B_2_58_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): ∃ (a' b': �
         · have : b1 ≤ x ∧ x < b := by constructor <;> linarith
           exact ha1b1_nroot p' haux x (Or.inr this)
       have h_final: ∀ x: ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) -> eval x p ≠ 0 := by
-        unfold a' b'; intros x  
-        split_ifs <;> intros hx <;> simp only [le_inf_iff, sup_le_iff] at hx 
+        unfold a' b'; intros x
+        split_ifs <;> intros hx <;> simp only [le_inf_iff, sup_le_iff] at hx
         · rcases hx with hl | hr
-          · exact ha2_nroot x ⟨hl.1, hl.2.2.2⟩ 
+          · exact ha2_nroot x ⟨hl.1, hl.2.2.2⟩
           · exact hb2_nroot x ⟨hr.1.2.2, hr.2⟩
         · rcases hx with hl | hr
           · exact ha2_nroot x ⟨hl.1, hl.2.2.2⟩
@@ -313,46 +318,7 @@ theorem B_2_58_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): ∃ (a' b': �
       use a', b'
       rw [h_hd]
       simp [haa', ha'b', hbb', <-ne_eq]
-      exact ⟨h_final, h_rec⟩ 
--- cindex_poly_changes_itv_mods
--- Talvez usar reais extendidos para a e b seja a tradução mais imediata do enunciado.
--- Por enquanto, podemos seguir desconsiderando esse caso.
-theorem B_2_58 (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.eval b ≠ 0) (hab : a < b) :
-    seqVarSturm_ab p q a b = cauchyIndex p q a b := by
-  induction h: (sturmSeq p q) generalizing p q a b with
-  | nil =>
-    unfold seqVarSturm_ab
-    rw [h]
-    simp [seqVar_ab, seqVar, seqEval]
-    have := (smod_nil_eq p q).mp h
-    rw [this]
-    simp [cauchyIndex, rootsInInterval]
-   | cons hd tl ih => 
-      have : p ≠ 0 := eval_non_zero p a hpa
-      have ⟨a', b', haa', ha'b', hbb', hn_root⟩ := B_2_58_aux p q a b hab
-      if H: q = 0 then simp [H] 
-      else
-        let r := (-p % q)
-        have ⟨ps, hps, hpsqr, htlps⟩: ∃ps : List (Polynomial ℝ), sturmSeq p q = p :: q :: ps ∧ sturmSeq q r = q :: ps ∧ tl = q :: ps := by
-          have ⟨hhd, haux1⟩: p = hd ∧ sturmSeq q (-p % q) = tl := by
-            unfold sturmSeq at h
-            simp [this] at h
-            exact h
-          have haux2: q :: sturmSeq (-p % q) (-q % (-p % q)) = tl := by
-            unfold sturmSeq at haux1
-            simp [H] at haux1
-            exact haux1
-          let ps := sturmSeq (-p % q) (-q % (-p % q))
-          use ps
-          unfold ps r;
-          simp [haux1, haux2, h]
-          exact (Eq.symm hhd)
-        have ⟨hpa', hpb', hqa', hqb'⟩ : eval a' p ≠ 0 ∧ eval b' p ≠ 0 ∧  eval a' q ≠ 0 ∧ eval b' q ≠ 0 := by aesop
-        sorry
-
-        
-def sigma (b : ℝ) (f : Polynomial ℝ) : ℤ :=
-  sgn (eval b f)
+      exact ⟨h_final, h_rec⟩
 
 -- cindex_poly_rec
 -- para o else, precisamos usar ha e hb para mostrar que σ(a) * σ(b) != 0 (e pela definição de sgn, excluir todos outros inteiros).
@@ -379,6 +345,70 @@ lemma B_2_60 (p q : Polynomial ℝ) (a b: ℝ) (hab : a < b)
     rw [<- h2, h1]
   simp only [cross, variation] at *
   linarith
+
+
+lemma cindex_poly_congr (p q : Polynomial ℝ) (a a' b b' : ℝ) (haa' : a < a') (hb'b : b' < b)
+    (hpx : ∀ x : ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) → eval x p ≠ 0) :
+    cauchyIndex p q a b = cauchyIndex p q a' b' := sorry
+
+-- cindex_poly_changes_itv_mods
+-- Talvez usar reais extendidos para a e b seja a tradução mais imediata do enunciado.
+-- Por enquanto, podemos seguir desconsiderando esse caso.
+theorem B_2_58 (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.eval b ≠ 0) (hab : a < b) :
+    seqVarSturm_ab p q a b = cauchyIndex p q a b := by
+  induction h: (sturmSeq p q) generalizing p q a b with
+  | nil =>
+    unfold seqVarSturm_ab
+    rw [h]
+    simp [seqVar_ab, seqVar, seqEval]
+    have := (smod_nil_eq p q).mp h
+    rw [this]
+    simp [cauchyIndex, rootsInInterval]
+   | cons hd tl ih =>
+      have : p ≠ 0 := eval_non_zero p a hpa
+      have ⟨a', b', haa', ha'b', hbb', hn_root⟩ := B_2_58_aux p q a b hab
+      if H: q = 0 then simp [H]
+      else
+        let r := (-p % q)
+        have ⟨ps, hps, hpsqr, htlps⟩: ∃ps : List (Polynomial ℝ), sturmSeq p q = p :: q :: ps ∧ sturmSeq q r = q :: ps ∧ tl = q :: ps := by
+          have ⟨hhd, haux1⟩: p = hd ∧ sturmSeq q (-p % q) = tl := by
+            unfold sturmSeq at h
+            simp [this] at h
+            exact h
+          have haux2: q :: sturmSeq (-p % q) (-q % (-p % q)) = tl := by
+            unfold sturmSeq at haux1
+            simp [H] at haux1
+            exact haux1
+          let ps := sturmSeq (-p % q) (-q % (-p % q))
+          use ps
+          unfold ps r;
+          simp [haux1, haux2, h]
+          exact (Eq.symm hhd)
+        have ⟨hpa', hpb', hqa', hqb'⟩ : eval a' p ≠ 0 ∧ eval b' p ≠ 0 ∧  eval a' q ≠ 0 ∧ eval b' q ≠ 0 := by aesop
+        have : a' < b' := by linarith
+        rw[htlps] at ih
+        have h_ind := ih q r a' b' hqa' hqb' this hpsqr
+        -- r = -p%q
+        have tt1 : eval a q ≠ 0 := by
+          -- usar o hn_root aqui
+
+          sorry
+        have tt2 : eval b q ≠ 0 := by sorry
+        have t1 : eval a (p * q) ≠ 0 := by sorry
+        have t2 : eval b (p * q) ≠ 0 := by sorry
+        have h_cindex := B_2_60 p q a b hab t1 t2
+        rw[h_cindex]
+        have h_changes_itv := changes_itv_smods_rec hab t1 t2
+        rw[h_changes_itv]
+        have : (∀ (x : ℝ), a < x ∧ x ≤ a' ∨ b' ≤ x ∧ x < b → eval x q ≠ 0) := by sorry
+        have h_congr_cindex := cindex_poly_congr q (-p % q) a a' b b' haa' hbb' this
+        rw[h_congr_cindex]
+        have : (∀ p' ∈ sturmSeq q (-p % q), ∀ (x : ℝ), a < x ∧ x ≤ a' ∨ b' ≤ x ∧ x < b → eval x q ≠ 0) := by sorry
+        have h_congr_seqvar := changes_itv_smods_congr q (-p % q) a a' b b' tt1 tt2 this
+        rw[h_congr_seqvar, h_ind]
+
+def sigma (b : ℝ) (f : Polynomial ℝ) : ℤ :=
+  sgn (eval b f)
 
 lemma seqVar_sign_change {x y : ℝ} {xs : List ℝ} (hy : y ≠ 0) :
   seqVar (x :: (y :: xs)) = (if x * y < 0 then 1 else 0) + seqVar (y :: xs) := by
@@ -494,7 +524,7 @@ theorem L_2_59_1 (a b : ℝ) (p q : Polynomial ℝ) (hprod : sigma b (p*q) * sig
           have haqsgn : eval a p * eval a q > 0 := by
             rw[sigma_eq_def, sgn] at hsa_pos
             split_ifs at hsa_pos
-            assumption   
+            assumption
             linarith
           linarith
       linarith
