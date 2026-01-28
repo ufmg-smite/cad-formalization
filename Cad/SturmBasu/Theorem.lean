@@ -71,7 +71,7 @@ def seqEval (k : ℝ) : List (Polynomial ℝ) → List ℝ
 | a::as => (eval k a)::(seqEval k as)
 
 def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
-  (seqVar (seqEval a P) : Int) - seqVar (seqEval b P)
+  (seqVar (seqEval a P) : Int) -   seqVar (seqEval b P)
 
 def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
   seqVar_ab (sturmSeq p q) a b
@@ -201,7 +201,7 @@ lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) (hab : a < b)  :
     rw [jump_poly_sign p q x hp this]
 
 theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hab: a < b) (hpqa: eval a (p * q)≠ 0) (hpqb: eval b (p * q) ≠ 0) :
-        (seqVarSturm_ab p q a b) = cross (p * q) a b + seqVarSturm_ab (-p%q) q a b := by
+        (seqVarSturm_ab p q a b) = cross (p * q) a b + seqVarSturm_ab q (-p%q) a b := by
   if H: p = 0 ∨ q = 0 ∨ p % q = 0 then
     rcases H with h | h | h
     · simp [h]
@@ -241,12 +241,42 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hab: a < b) (hpq
         rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).1 this];
         simp 
    else
-     simp at H
+     simp only [not_or] at H
      have ⟨ps, httl, htlmod⟩ : ∃ ps : List (Polynomial ℝ), sturmSeq p q = p :: q :: -p%q:: ps ∧ sturmSeq q (-p%q) = q :: (-p%q) :: ps := by
        unfold sturmSeq sturmSeq
        rw [sturmSeq]
        simp [H]
-     sorry
+     let changes_diff := fun x => ((seqVar (seqEval x (p::q::(-p%q)::ps)): ℤ) - (seqVar (seqEval x (q::(-p%q)::ps))): ℤ)
+     have hz1: ∀ x: ℝ, (eval x p) * (eval x q) < 0 → changes_diff x = 1 := by
+       unfold changes_diff -- seqVar seqEval seqEval
+       intros x hx
+       rw [seqVar.eq_def, seqEval, seqEval]
+       have hxq : eval x q ≠ 0 := by aesop
+       simp [H.2.2, hxq, hx]
+     have hz2: ∀x, (eval x p) * (eval x q) > 0 → changes_diff x = 0 := by
+       unfold changes_diff
+       intros x hx
+       rw [seqVar.eq_def, seqEval, seqEval]
+       have hxq : eval x q ≠ 0 := by aesop
+       have  : ¬ eval x p * eval x q < 0 := by nlinarith
+       simp [hxq, this]
+     have hf: changes_diff a - changes_diff b = cross (p * q) a b := by
+       unfold cross
+       rcases lt_or_gt_of_ne hpqa with ha | ha <;> rcases lt_or_gt_of_ne hpqb with hb | hb
+       · rw [(variation_cases (eval a (p * q)) (eval b (p * q))).2.2.2 ⟨ha, hb⟩]
+         simp_all
+       · rw [(variation_cases (eval a (p * q)) (eval b (p * q))).2.2.1 ⟨ha, hb⟩] 
+         simp_all
+       · rw [(variation_cases (eval a (p * q)) (eval b (p * q))).2.1 ⟨ha, hb⟩]
+         simp_all
+       · rw [(variation_cases (eval a (p * q)) (eval b (p * q))).1 ⟨ha, hb⟩]
+         simp_all
+     unfold changes_diff at hf 
+     unfold seqVarSturm_ab 
+     rw [httl, htlmod, ← sub_eq_iff_eq_add]
+     unfold seqVar_ab
+     ring_nf at hf ⊢
+     rw [hf]
 
 set_option maxHeartbeats 500000 in 
 theorem B_2_58_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): ∃ (a' b': ℝ), a < a' ∧ a' < b' ∧ b' < b ∧ (∀p' ∈ sturmSeq p q, (∀ x: ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) -> eval x p' ≠ 0)) := by 
