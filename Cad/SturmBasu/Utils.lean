@@ -109,18 +109,36 @@ lemma last_non_root_interval (p : Polynomial Real) (ub : Real) (hp : p ≠ 0) :
 theorem exists_root_interval : ∀ p: Polynomial Real, ∀ (a b : ℝ), a <= b → eval a p <= 0 → 0 <= eval b p -> ∃ r: ℝ, r >= a ∧ r <= b ∧ eval r p = 0 := by
   intros p a b hab ha hb
   have p_continuous : ContinuousOn p.eval (Set.Icc a b) := p.continuousOn
-  have poly_mathlib_root : ∃ r: ℝ, r >= a ∧ r <= b ∧ p.IsRoot r := by
-    have intermediate_value_app := intermediate_value_Icc hab p_continuous
-    have zero_in_image : 0 ∈ p.eval '' Set.Icc a b := by
-      have zab : 0 ∈ Set.Icc (p.eval a) (p.eval b) := by
-        simp
-        aesop
-      exact Set.mem_of_mem_of_subset zab intermediate_value_app
-    obtain ⟨x, ⟨hxa, hxb⟩, hx_root⟩ := zero_in_image
-    exact Exists.intro x ⟨hxa, hxb, hx_root⟩
-  obtain ⟨r, hra, hrb, hr_root⟩ := poly_mathlib_root
-  use r
-  exact ⟨hra, hrb, hr_root⟩
+  have intermediate_value_app := intermediate_value_Icc hab p_continuous
+  have zero_in_image : 0 ∈ p.eval '' Set.Icc a b := by
+    aesop
+  obtain ⟨x, ⟨hxa, hxb⟩, hx_root⟩ := zero_in_image
+  use x
+
+theorem exists_root_ioo {p: Polynomial ℝ} {a b : ℝ} (hab: a <= b) (hap: eval a p < 0) (hbp: eval b p > 0): ∃ r: ℝ, r > a ∧ r < b ∧ eval r p = 0 := by
+  have p_continuous : ContinuousOn p.eval (Set.Icc a b) := by exact p.continuousOn
+  have intermediate_value_app := intermediate_value_Ioo hab p_continuous
+  have zero_in_image : 0 ∈ p.eval '' Set.Ioo a b := by
+    aesop
+  obtain ⟨x, ⟨hxa, hxb⟩, hx_root⟩ := zero_in_image
+  use x
+ 
+theorem exists_root_ioo' {p: Polynomial ℝ} {a b : ℝ} (hab: a <= b) (hap: eval a p > 0) (hbp: eval b p < 0): ∃ r: ℝ, r > a ∧ r < b ∧ eval r p = 0 := by
+  have p_continuous : ContinuousOn p.eval (Set.Icc a b) := by exact p.continuousOn
+  have intermediate_value_app := intermediate_value_Ioo' hab p_continuous
+  have zero_in_image : 0 ∈ p.eval '' Set.Ioo a b := by
+    aesop
+  obtain ⟨x, ⟨hxa, hxb⟩, hx_root⟩ := zero_in_image
+  use x
+
+theorem exists_root_ioo_mul {p: Polynomial ℝ} {a b: ℝ} (hab: a ≤ b) (hap: (eval a p) * (eval b p) < 0) : ∃ r: ℝ, r > a ∧ r < b ∧ eval r p = 0 := by
+  if H: eval a p > 0 then
+    have haux: eval b p < 0 := by nlinarith
+    exact exists_root_ioo' hab H haux
+  else
+    have haux1: eval b p > 0 := by nlinarith
+    have haux: eval a p < 0 := by nlinarith
+    exact exists_root_ioo hab haux haux1
 
 lemma not_eq_pos_or_neg_iff_1 (p : Polynomial Real) (lb ub : Real) :
     (∀ z ∈ Ioc lb ub, eval z p ≠ 0) ↔ ((∀ z ∈ Ioc lb ub, eval z p < 0) ∨ (∀ z ∈ Ioc lb ub, 0 < eval z p)) := by
@@ -290,5 +308,32 @@ theorem mod_mul (p q r: Polynomial ℝ) (hr: r ≠ 0) : (r * p) % (r * q) = r * 
 
 lemma X_sub_C_ne_one (r : ℝ) : X - C r ≠ 1 := by
   rw [sub_eq_neg_add, add_comm, <-C_neg]
-  exact X_add_C_ne_one (-r) 
+  exact X_add_C_ne_one (-r)
 
+lemma rootsInInterval_mul {p q: Polynomial ℝ} (a b: ℝ) (hpq: p * q ≠ 0): rootsInInterval (p * q) a b = rootsInInterval p a b ∪ rootsInInterval q a b := by
+  unfold rootsInInterval
+  rw [roots_mul hpq, Multiset.toFinset_add]
+  exact Finset.filter_union (fun x => x ∈ Ioo a b) p.roots.toFinset q.roots.toFinset
+example (p: Polynomial ℝ): -1 * p = (C (-1: ℝ)) * p := by
+   simp
+
+lemma neg_neg_div (p q: Polynomial ℝ) : - (-p/q) = p/q := by 
+  have: -1 = (-1:ℝ)⁻¹ := by exact Eq.symm inv_neg_one
+  calc
+    -(-p/q) = -(-1 * p / q) := by simp
+    _ = -1 * (-1 * p / q)  := by simp
+    _ = -1 * (C (-1) * p / q) := by simp
+    _ = (C (-1:ℝ)) * (C (-1) * p / q) := by simp
+    _ = (C (-1:ℝ)⁻¹) * (C (-1) * p / q) := by rw [<-this]
+    _ = p/q := by
+      have hCz : C (-1:ℝ) ≠ 0 := by simp
+      rw [<- div_C_mul, mul_cancel' hCz]
+  
+  
+lemma mod_minus (p q: Polynomial ℝ) : -p%q = -(p%q) := by
+  rw [mod_eq_sub_div, mod_eq_sub_div] 
+  ring_nf
+  calc
+    -p - -p / q * q = -p + (- (-p/q * q)) := by ring
+    _ = -p + q * (-(-p/q)) := by ring
+    _ = -p + q * (p/q) := by rw[neg_neg_div p q]
