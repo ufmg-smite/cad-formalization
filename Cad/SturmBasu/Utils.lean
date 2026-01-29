@@ -12,6 +12,34 @@ def sgn (k : ℝ) : ℤ  :=
   else if k = 0 then 0
   else -1
 
+def sgn_pos_inf (p : Polynomial ℝ) : ℤ :=
+  sgn p.leadingCoeff
+
+def sgn_neg_inf (p : Polynomial ℝ) : ℤ :=
+  if Even p.natDegree then sgn p.leadingCoeff else - sgn p.leadingCoeff
+
+lemma sgn_inf_comp (p : Polynomial ℝ) :
+    sgn_neg_inf p = sgn_pos_inf (p.comp (-Polynomial.X)) := by
+  cases Classical.em (Even p.natDegree)
+  next H =>
+    simp [sgn_neg_inf, sgn_pos_inf, H]
+  next H =>
+    simp [sgn_neg_inf, sgn_pos_inf, H]
+    simp_all only [Nat.not_even_iff_odd, Odd.neg_one_pow, neg_mul, one_mul]
+    unfold sgn
+    simp
+    split_ifs
+    · linarith
+    · simp_all only [natDegree_zero, Nat.not_odd_zero]
+    · rfl
+    · simp_all only [natDegree_zero, Nat.not_odd_zero]
+    · rfl
+    · rfl
+    · simp_all only [not_lt, neg_neg]
+      have : 0 = p.leadingCoeff := by linarith
+      have : p = 0 := leadingCoeff_eq_zero.mp (id (Eq.symm this))
+      contradiction
+
 lemma next_non_root_interval (p : Polynomial Real) (lb : Real) (hp : p ≠ 0) :
     ∃ ub : Real, lb < ub ∧ (∀ z ∈ Ioc lb ub, eval z p ≠ 0) := by
   cases Classical.em (∃ r : Real, eval r p = 0 ∧ r > lb)
@@ -328,8 +356,7 @@ lemma neg_neg_div (p q: Polynomial ℝ) : - (-p/q) = p/q := by
     _ = p/q := by
       have hCz : C (-1:ℝ) ≠ 0 := by simp
       rw [<- div_C_mul, mul_cancel' hCz]
-  
-  
+
 lemma mod_minus (p q: Polynomial ℝ) : -p%q = -(p%q) := by
   rw [mod_eq_sub_div, mod_eq_sub_div] 
   ring_nf
@@ -337,3 +364,210 @@ lemma mod_minus (p q: Polynomial ℝ) : -p%q = -(p%q) := by
     -p - -p / q * q = -p + (- (-p/q * q)) := by ring
     _ = -p + q * (-(-p/q)) := by ring
     _ = -p + q * (p/q) := by rw[neg_neg_div p q]
+
+lemma bound_sgn_pos_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ ub : ℝ, ∀ x, x ≥ ub → sgn (eval x p) = sgn_pos_inf p := by
+  have : p.degree = ((Polynomial.X : Polynomial ℝ) ^ p.natDegree).degree := by
+    simp_all only [ne_eq, degree_pow, degree_X, nsmul_eq_mul, mul_one]
+    exact degree_eq_natDegree hp
+  have := Polynomial.div_tendsto_leadingCoeff_div_of_degree_eq p (Polynomial.X ^ p.natDegree) this
+  simp only [eval_pow, eval_X, monic_X_pow, Monic.leadingCoeff, div_one] at this
+  have h_sign :
+      Filter.Tendsto (fun x => p.eval x / x ^ p.natDegree * p.leadingCoeff) Filter.atTop (nhds (p.leadingCoeff ^ 2)) := by
+    simpa only [sq] using this.mul tendsto_const_nhds
+  have lcoef_pos : p.leadingCoeff ≠ 0 := leadingCoeff_ne_zero.mpr hp
+  have : 0 < p.leadingCoeff ^ 2 := pow_two_pos_of_ne_zero lcoef_pos
+  have ev_pos : Filter.Eventually (fun x => p.eval x / x ^ p.natDegree * p.leadingCoeff > 0) Filter.atTop := by
+    apply h_sign.eventually
+    apply lt_mem_nhds
+    assumption
+  obtain ⟨ub, hub⟩ := Filter.eventually_atTop.mp ev_pos
+  simp [sgn_pos_inf]
+  have h_sign_eq : ∀ x, 0 < x → p.eval x * p.leadingCoeff > 0 → sgn (p.eval x) = sgn (p.leadingCoeff) := by
+    intros x hx h; unfold sgn; split_ifs <;> nlinarith;
+  have mul_pos : ∀ x, 0 < x → ub ≤ x → eval x p * p.leadingCoeff > 0 := by
+    intros x x_pos hx
+    have x_pow_pos : x ^ p.natDegree > 0 := pow_pos x_pos p.natDegree
+    have : eval x p / x ^ p.natDegree * p.leadingCoeff * x ^ p.natDegree > 0 := Left.mul_pos (hub x hx) x_pow_pos
+    have eq : (eval x p / x ^ p.natDegree * x ^ p.natDegree) * p.leadingCoeff > 0 := by linarith
+    have : (eval x p / x ^ p.natDegree) * x ^ p.natDegree = eval x p := div_mul_cancel₀ (eval x p) (Ne.symm (ne_of_lt x_pow_pos))
+    rw [this] at eq
+    exact eq
+  if ub_pos: 0 < ub then
+    use ub
+    intros x hx
+    exact h_sign_eq x (gt_of_ge_of_gt hx ub_pos) (mul_pos x (gt_of_ge_of_gt hx ub_pos) hx)
+  else
+    use 1
+    intros x hx
+    exact h_sign_eq x (by linarith) (mul_pos x (by linarith) (by linarith))
+
+lemma bound_sgn_neg_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ lb : ℝ, ∀ x, x ≤ lb → sgn (eval x p) = sgn_neg_inf p := by
+  obtain ⟨s, hs⟩ : ∃ s, p.eval s ≠ 0 := by
+    contrapose! hp
+    exact zero_of_eval_zero p hp
+  let p' := Polynomial.comp p (-Polynomial.X)
+  obtain ⟨s, hs⟩ : ∃ s, p'.eval s ≠ 0 := by
+    use -s
+    unfold p'
+    simp
+    assumption
+  have : p' ≠ 0 := by
+    intro abs
+    have ev_0 : eval s p' = 0 := by
+      rw [abs]
+      simp
+    exact hs ev_0
+  obtain ⟨ub, hub⟩  := bound_sgn_pos_inf (Polynomial.comp p (-Polynomial.X)) this
+  rw [sgn_inf_comp]
+  use -ub
+  intros x hx
+  have := hub (-x) (by linarith)
+  simp at this
+  exact this
+
+lemma root_ub (p : Polynomial ℝ) (hp : p ≠ 0) :
+    ∃ ub, (∀ x, eval x p = 0 → x < ub) ∧ (∀ x, x ≥ ub → sgn (eval x p) = sgn_pos_inf p) := by
+  obtain ⟨ub1, hub1⟩ : ∃ ub1, ∀ x, eval x p = 0 → x < ub1 := by
+    cases Classical.em (∃ r, eval r p = 0)
+    next H =>
+      let roots := p.roots.toFinset
+      obtain ⟨r, hr⟩ := H
+      have : r ∈ p.roots.toFinset := Multiset.mem_toFinset.mpr ((mem_roots_iff_aeval_eq_zero hp).mpr hr)
+      have : roots.Nonempty := by tauto
+      obtain ⟨max_r, hm⟩ := Finset.max_of_nonempty this
+      have : ∀ x, eval x p = 0 → x ≤ max_r := by
+        intros x hx
+        have := Multiset.mem_toFinset.mpr ((mem_roots_iff_aeval_eq_zero hp).mpr hx)
+        exact Finset.le_max_of_eq this hm
+      use max_r + 1
+      intros x hx
+      have := this x hx
+      linarith
+    next H =>
+      use 0
+      intros x hx
+      aesop
+  obtain ⟨ub2, hub2⟩ : ∃ ub2, ∀ x, x ≥ ub2 → sgn (eval x p) = sgn_pos_inf p := bound_sgn_pos_inf p hp
+  let ub := Max.max ub1 ub2
+  have : ub1 ≤ ub := le_max_left ub1 ub2
+  have : ub2 ≤ ub := le_max_right ub1 ub2
+  use ub
+  constructor
+  · intros x hx
+    have := hub1 x hx
+    linarith
+  · intros x hx
+    exact hub2 x (by linarith)
+
+lemma root_lb (p : Polynomial ℝ) (hp : p ≠ 0) :
+    ∃ lb, (∀ x, eval x p = 0 → x > lb) ∧ (∀ x, x ≤ lb → sgn (eval x p) = sgn_neg_inf p) := by
+  obtain ⟨lb1, hlb1⟩ : ∃ lb1, ∀ x, eval x p = 0 → x > lb1 := by
+    cases Classical.em (∃ r, eval r p = 0)
+    next H =>
+      let roots := p.roots.toFinset
+      obtain ⟨r, hr⟩ := H
+      have : r ∈ p.roots.toFinset := Multiset.mem_toFinset.mpr ((mem_roots_iff_aeval_eq_zero hp).mpr hr)
+      have : roots.Nonempty := by tauto
+      obtain ⟨min_r, hm⟩ := Finset.min_of_nonempty this
+      have : ∀ x, eval x p = 0 → x ≥ min_r := by
+        intros x hx
+        have := Multiset.mem_toFinset.mpr ((mem_roots_iff_aeval_eq_zero hp).mpr hx)
+        exact Finset.min_le_of_eq this hm
+      use min_r - 1
+      intros x hx
+      have := this x hx
+      linarith
+    next H =>
+      use 0
+      intros x hx
+      aesop
+  obtain ⟨lb2, hlb2⟩ : ∃ lb2, ∀ x, x ≤ lb2 → sgn (eval x p) = sgn_neg_inf p := bound_sgn_neg_inf p hp
+  let lb := Min.min lb1 lb2
+  have : lb ≤ lb1 := min_le_left lb1 lb2
+  have : lb ≤ lb2 := min_le_right lb1 lb2
+  use lb
+  constructor
+  · intros x hx
+    have := hlb1 x hx
+    linarith
+  · intros x hx
+    exact hlb2 x (by linarith)
+
+lemma root_list_ub (ps : List (Polynomial ℝ)) (a : ℝ) (h0 : 0 ∉ ps) :
+    ∃ ub : ℝ,
+      ((∀ p ∈ ps, ∀ x : ℝ, eval x p = 0 → x < ub) ∧
+       (a < ub) ∧
+       (∀ x : ℝ, x ≥ ub → ∀ p ∈ ps, sgn (eval x p) = sgn_pos_inf p)) := by
+  cases ps
+  next => simp; exact exists_gt a
+  next p ps =>
+    have p_not_zero : p ≠ 0 := Ne.symm (List.ne_of_not_mem_cons h0)
+    have not_zero : 0 ∉ ps := List.not_mem_of_not_mem_cons h0
+    obtain ⟨ub1, hub1, hub2, hub3⟩ := root_list_ub ps a not_zero
+    obtain ⟨ub2, hub21, hub22⟩ := root_ub p p_not_zero
+    let ub := Max.max ub1 ub2
+    have : ub1 ≤ ub := le_max_left ub1 ub2
+    have : ub2 ≤ ub := le_max_right ub1 ub2
+    use ub
+    constructor
+    · intros pp hpp x hx
+      have : pp = p ∨ pp ∈ ps := List.mem_cons.mp hpp
+      cases this
+      next hmem =>
+        rw [hmem] at hx
+        have := hub21 x hx
+        exact lt_sup_of_lt_right (hub21 x hx)
+      next hmem =>
+        have := hub1 pp hmem x hx
+        exact lt_sup_of_lt_left (hub1 pp hmem x hx)
+    · constructor
+      · linarith
+      · intros x hx pp hpp
+        have : pp = p ∨ pp ∈ ps := List.mem_cons.mp hpp
+        cases this
+        next hmem =>
+          rw [hmem]
+          exact hub22 x (by linarith)
+        next hmem =>
+          exact hub3 x (by linarith) pp hmem
+
+lemma root_list_lb (ps : List (Polynomial ℝ)) (b : ℝ) (h0 : 0 ∉ ps) :
+    ∃ lb : ℝ,
+      ((∀ p ∈ ps, ∀ x : ℝ, eval x p = 0 → lb < x) ∧
+       (lb < b) ∧
+       (∀ x : ℝ, x ≤ lb → ∀ p ∈ ps, sgn (eval x p) = sgn_neg_inf p)) := by
+  cases ps
+  next => simp; exact exists_lt b
+  next p ps =>
+    have p_not_zero : p ≠ 0 := Ne.symm (List.ne_of_not_mem_cons h0)
+    have not_zero : 0 ∉ ps := List.not_mem_of_not_mem_cons h0
+    obtain ⟨lb1, hlb1, hlb2, hlb3⟩ := root_list_lb ps b not_zero
+    obtain ⟨lb2, hlb21, hlb22⟩ := root_lb p p_not_zero
+    let lb := Min.min lb1 lb2
+    have : lb ≤ lb1 := min_le_left lb1 lb2
+    have : lb ≤ lb2 := min_le_right lb1 lb2
+    use lb
+    constructor
+    · intros pp hpp x hx
+      have : pp = p ∨ pp ∈ ps := List.mem_cons.mp hpp
+      cases this
+      next hmem =>
+        rw [hmem] at hx
+        have := hlb21 x hx
+        exact inf_lt_of_right_lt (hlb21 x hx)
+      next hmem =>
+        have := hlb1 pp hmem x hx
+        exact inf_lt_of_left_lt (hlb1 pp hmem x hx)
+    · constructor
+      · exact inf_lt_of_left_lt hlb2
+      · intros x hx pp hpp
+        have : pp = p ∨ pp ∈ ps := List.mem_cons.mp hpp
+        cases this
+        next hmem =>
+          rw [hmem]
+          apply hlb22
+          linarith
+        next hmem =>
+          apply hlb3
+          · linarith
+          · exact hmem

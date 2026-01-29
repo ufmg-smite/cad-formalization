@@ -1155,11 +1155,3 @@ theorem L_2_59 (a b : ℝ) (p q : Polynomial ℝ) (hq : q ≠ 0) (hp : p ≠ 0):
         simp_all
     exact L_2_59_1 a b p q hneg hq hp h
 
-/- theorem Tarski (f g : Polynomial ℝ) (hf : f ≠ C 0) (a b : ℝ) (h : a < b) : -/
-/-       seqVarSturm_ab f (derivative f * g) a b -/
-/-       = tarskiQuery f g a b -/
-/-       := by -/
-/-   rw [B_2_57 _ _ _ _ h] -/
-/-   rw [<- B_2_58 _ _ _ _ _ h] -/
-/-   simp [hf] -/
-/-   simp_all only [map_zero, ne_eq, not_false_eq_true] -/
