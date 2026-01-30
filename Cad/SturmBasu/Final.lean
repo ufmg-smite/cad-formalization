@@ -59,21 +59,15 @@ theorem sturm_tarski_above (a : ℝ) (p q : Polynomial ℝ) (hpa : eval a p ≠ 
     apply root_list_ub
     exact no_zero_in_sturmSeq p (derivative p * q)
   have taq_taq : tarskiQuery_above p q a = tarskiQuery p q a ub := by
-    unfold tarskiQuery_above
-    unfold tarskiQuery
+    simp only [tarskiQuery_above, tarskiQuery]
     congr
-    unfold rootsAbove
-    unfold rootsInInterval
+    simp only [rootsAbove, rootsInInterval]
     ext z
     simp only [gt_iff_lt, Finset.mem_filter, Multiset.mem_toFinset, mem_roots', ne_eq, IsRoot.def,
       Set.mem_Ioo, and_congr_right_iff, iff_self_and, and_imp]
     aesop
   have changes_changes : seqVarAboveSturm p (derivative p * q) a = seqVarSturm_ab p (derivative p * q) a ub := by
-    unfold seqVarSturm_ab
-    unfold seqVarAboveSturm
-    unfold seqVarAbove_a
-    unfold seqVar_ab
-    simp
+    simp [seqVarSturm_ab, seqVarAboveSturm, seqVarAbove_a, seqVar_ab]
     rw [seqVarSgn, <- ps_def, seq_sgn_pos_inf_seqEvalSgn ub ps hub3]
   rw [taq_taq, changes_changes]
   apply sturm_tarski_interval _ _ _ _ hub2 hpa
@@ -88,14 +82,10 @@ lemma seq_sgn_neg_inf_seqEvalSgn (lb : ℝ) (ps : List (Polynomial ℝ)) (key : 
     simp only [seq_sgn_neg_inf, seqEvalSgn, List.cons.injEq, Int.cast_inj]
     constructor
     · apply Eq.symm
-      apply key
-      · exact Preorder.le_refl lb
-      · exact List.mem_cons_self hd tl
+      exact key _ (Preorder.le_refl lb) _ (List.mem_cons_self hd tl)
     · apply seq_sgn_neg_inf_seqEvalSgn lb tl
       intros x hx pp hpp
-      apply key
-      · exact hx
-      · exact List.mem_cons_of_mem hd hpp
+      exact key _ hx _ (List.mem_cons_of_mem hd hpp)
 
 theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpa : eval b p ≠ 0) :
     tarskiQuery_below p q b = seqVarBelowSturm p (derivative p * q) b := by
@@ -113,21 +103,15 @@ theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpa : eval b p ≠ 
     apply root_list_lb
     exact no_zero_in_sturmSeq p (derivative p * q)
   have taq_taq : tarskiQuery_below p q b = tarskiQuery p q lb b := by
-    unfold tarskiQuery_below
-    unfold tarskiQuery
+    simp [tarskiQuery_below, tarskiQuery]
     congr
-    unfold rootsBelow
-    unfold rootsInInterval
+    simp [rootsBelow, rootsInInterval]
     ext z
     simp only [Finset.mem_filter, Multiset.mem_toFinset, mem_roots', ne_eq, IsRoot.def, Set.mem_Ioo,
       and_congr_right_iff, iff_and_self, and_imp]
     aesop
   have changes_changes : seqVarBelowSturm p (derivative p * q) b = seqVarSturm_ab p (derivative p * q) lb b := by
-    unfold seqVarSturm_ab
-    unfold seqVarBelowSturm
-    unfold seqVarBelow_b
-    unfold seqVar_ab
-    simp
+    simp [seqVarSturm_ab, seqVarBelowSturm, seqVarBelow_b, seqVar_ab]
     rw [seqVarSgn, <- ps_def, seq_sgn_neg_inf_seqEvalSgn lb ps hlb3]
   rw [taq_taq, changes_changes]
   apply sturm_tarski_interval _ _ _ _ hlb2 _ hpa
@@ -169,10 +153,7 @@ theorem sturm_tarski_R (p q : Polynomial ℝ) :
         Finset.mem_filter, iff_self_and, and_imp]
       aesop
     have changes_changes : seqVarRSturm p (derivative p * q) = seqVarSturm_ab p (derivative p * q) lb ub := by
-      unfold seqVarRSturm
-      unfold seqVarR
-      unfold seqVarSturm_ab
-      unfold seqVar_ab
+      simp [seqVarRSturm, seqVarR, seqVarSturm_ab, seqVar_ab]
       rw [ seqVarSgn
          , seqVarSgn
          , <- ps_def
