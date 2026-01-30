@@ -68,6 +68,108 @@ def seqEval (k : ℝ) : List (Polynomial ℝ) → List ℝ
 | [] => []
 | a::as => (eval k a)::(seqEval k as)
 
+def seqEvalSgn (k : ℝ) : List (Polynomial ℝ) → List ℝ
+| [] => []
+| a::as => (sgn (eval k a))::(seqEvalSgn k as)
+
+lemma sgn_sgn_neg : ∀ x : ℝ, sgn x < 0 ↔ x < 0 := by
+  intro x
+  unfold sgn
+  split_ifs
+  next h =>
+    simp only [Int.reduceLT, false_iff, not_lt]
+    exact le_of_lt h
+  next h1 h2 => simp [h1, h2]
+  next h1 h2 =>
+    simp only [Int.reduceNeg, Left.neg_neg_iff, zero_lt_one, true_iff]
+    push_neg at h1 h2
+    exact lt_of_le_of_ne h1 h2
+
+lemma sgn_sgn_zero : ∀ x : ℝ, sgn x = 0 ↔ x = 0 := by
+  intro x
+  unfold sgn
+  split_ifs
+  next h => simp only [one_ne_zero, false_iff]; exact ne_of_gt h
+  next h => simp [h]
+  next h1 h2 => simp [h2]
+
+lemma sgn_sgn_pos : ∀ x : ℝ, sgn x > 0 ↔ x > 0 := by
+  intro x
+  unfold sgn
+  split_ifs
+  next h => simp [h]
+  next h1 h2 => simp [h1, h2]
+  next h1 h2 => simp [h1, h2]
+
+lemma seqVarSgn : ∀ ps : List (Polynomial ℝ), ∀ (k : ℝ), seqVar (seqEval k ps) = seqVar (seqEvalSgn k ps)
+| [] => by intro k; simp [seqVar, seqEval, seqEvalSgn]
+| [p] => by intro k; simp [seqVar, seqEval, seqEvalSgn]
+| p1 :: p2 :: ps => by
+  intro k
+  simp [seqVar, seqEval, seqEvalSgn]
+  split_ifs with h1 h2 h3 h4 h5 h6 h7 h8
+  · exact seqVarSgn (p1 :: ps) k
+  · have := (sgn_sgn_zero (eval k p2)).mpr h1
+    exact False.elim (h2 this)
+  · rw [h1] at h2
+    simp only [sgn, gt_iff_lt, lt_self_iff_false, ↓reduceIte, not_true_eq_false] at h2
+  · unfold sgn at h5
+    split_ifs at h5
+    simp only [one_ne_zero] at h5
+  · simp only [add_right_inj]
+    exact seqVarSgn (p2 :: ps) k
+  · push_neg at h6
+    cases Classical.em (eval k p2 < 0)
+    next H =>
+      have : eval k p1 > 0 := (pos_iff_neg_of_mul_neg h4).mpr H
+      have s1 : 0 < sgn (eval k p1) := (sgn_sgn_pos (eval k p1)).mpr this
+      have s2 : 0 > sgn (eval k p2) := (sgn_sgn_neg (eval k p2)).mpr H
+      have : sgn (eval k p1) * sgn (eval k p2) < 0 := by exact Int.mul_neg_of_pos_of_neg s1 s2
+      norm_cast at h6
+      linarith
+    next H =>
+      push_neg at H
+      have : 0 < eval k p2 := lt_of_le_of_ne H fun a => h1 (id (Eq.symm a))
+      have s1 : 0 < sgn (eval k p2) := (sgn_sgn_pos (eval k p2)).mpr this
+      have : eval k p1 < 0 := neg_of_mul_neg_left h4 H
+      have s2 : sgn (eval k p1) < 0 := (sgn_sgn_neg (eval k p1)).mpr this
+      have : sgn (eval k p1) * sgn (eval k p2) < 0 := Int.mul_neg_of_neg_of_pos s2 s1
+      norm_cast at h6
+      linarith
+  · have := (sgn_sgn_zero (eval k p2)).mp h7
+    exact False.elim (h1 this)
+  · push_neg at h4
+    cases Classical.em (eval k p2 < 0)
+    next H =>
+      have : eval k p1 ≤ 0 := nonpos_of_mul_nonneg_left h4 H
+      cases Decidable.lt_or_eq_of_le this
+      next H1 =>
+        have s1 : sgn (eval k p2) < 0 := (sgn_sgn_neg (eval k p2)).mpr H
+        have s2 : sgn (eval k p1) < 0 := (sgn_sgn_neg (eval k p1)).mpr H1
+        have : sgn (eval k p1) * sgn (eval k p2) > 0 := Int.mul_pos_of_neg_of_neg s2 s1
+        norm_cast at h8
+        linarith
+      next H1 =>
+        have : sgn (eval k p1) = 0 := (sgn_sgn_zero (eval k p1)).mpr H1
+        rw [this] at h8
+        simp at h8
+    next H =>
+      push_neg at H
+      have H : 0 < eval k p2 := lt_of_le_of_ne H fun a => h1 (Eq.symm a)
+      have : 0 ≤ eval k p1 := (mul_nonneg_iff_of_pos_right H).mp h4
+      cases Decidable.lt_or_eq_of_le this
+      next H1 =>
+        have s1 : sgn (eval k p1) > 0 := (sgn_sgn_pos (eval k p1)).mpr H1
+        have s2 : sgn (eval k p2) > 0 := (sgn_sgn_pos (eval k p2)).mpr H
+        have : sgn (eval k p1) * sgn (eval k p2) > 0 := Int.mul_pos s1 s2
+        norm_cast at h8
+        linarith
+      next H1 =>
+        have : sgn (eval k p1) = 0 := (sgn_sgn_zero (eval k p1)).mpr H1.symm
+        rw [this] at h8
+        simp at h8
+  · exact seqVarSgn (p2 :: ps) k
+
 def seq_sgn_pos_inf : List (Polynomial ℝ) → List ℝ
 | [] => []
 | p::ps => sgn_pos_inf p :: seq_sgn_pos_inf ps
@@ -85,8 +187,20 @@ def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
 def seqVarAbove_a (P: List (Polynomial ℝ)) (a : ℝ) : ℤ :=
   (seqVar (seqEval a P) : Int) - seqVar (seq_sgn_pos_inf P)
 
+def seqVarBelow_b (P: List (Polynomial ℝ)) (b : ℝ) : ℤ :=
+  (seqVar (seq_sgn_neg_inf P) : Int) - seqVar (seqEval b P)
+
+def seqVarR (P : List (Polynomial ℝ)) : ℤ :=
+  (seqVar (seq_sgn_neg_inf P) : Int) - seqVar (seq_sgn_pos_inf P)
+
 def seqVarAboveSturm (p q : Polynomial ℝ) (a : ℝ) : ℤ :=
   seqVarAbove_a (sturmSeq p q) a
+
+def seqVarBelowSturm (p q : Polynomial ℝ) (b : ℝ) : ℤ :=
+  seqVarBelow_b (sturmSeq p q) b
+
+def seqVarRSturm (p q : Polynomial ℝ) : ℤ  :=
+  seqVarR (sturmSeq p q)
 
 def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
   ∑ x ∈ rootsInInterval f a b, sgn (g.eval x)
