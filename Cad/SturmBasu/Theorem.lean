@@ -9,21 +9,6 @@ open Polynomial Set Filter Classical
 
 noncomputable section
 
-def polyRemSeq (f g : Polynomial ℝ) (h : g.natDegree ≠ 0) : List (Polynomial ℝ) :=
-  go f g [f] h
-where
-  go (h₀ h₁ : Polynomial ℝ) (acc : List (Polynomial ℝ)) (j : h₁.natDegree ≠ 0): List (Polynomial ℝ) :=
-    if h₁ = 0 then acc
-    else
-      let r := - h₀ % h₁
-      if k : r.natDegree = 0 then acc ++ [h₁]
-      else
-        go h₁ r (acc ++ [h₁]) k
-  termination_by h₁.natDegree
-  decreasing_by
-    apply Polynomial.natDegree_mod_lt
-    exact j
-
 def sturmSeq (f g : Polynomial ℝ) : List (Polynomial ℝ) :=
   if f = 0 then
     []
@@ -54,6 +39,19 @@ def sturmSeq (f g : Polynomial ℝ) : List (Polynomial ℝ) :=
         exact this
       refine WithBot.add_lt_add_left ?_ this; simp_all
 
+lemma no_zero_in_sturmSeq (p q : Polynomial ℝ) : 0 ∉ sturmSeq p q := by
+  induction' H: sturmSeq p q generalizing p q
+  next => simp
+  next hd tl IH =>
+    unfold sturmSeq at H
+    have : p :: sturmSeq q (-p % q) = hd :: tl := by aesop
+    simp
+    constructor
+    · aesop
+    · have : sturmSeq q (-p % q) = tl := List.tail_eq_of_cons_eq this
+      apply IH q (-p % q)
+      exact this
+
 -- Considerando só os não nulos
 def seqVar : List ℝ → ℕ
 | [] => 0
@@ -70,18 +68,31 @@ def seqEval (k : ℝ) : List (Polynomial ℝ) → List ℝ
 | [] => []
 | a::as => (eval k a)::(seqEval k as)
 
+def seq_sgn_pos_inf : List (Polynomial ℝ) → List ℝ
+| [] => []
+| p::ps => sgn_pos_inf p :: seq_sgn_pos_inf ps
+
+def seq_sgn_neg_inf : List (Polynomial ℝ) → List ℝ
+| [] => []
+| p::ps => sgn_neg_inf p :: seq_sgn_neg_inf ps
+
 def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
-  (seqVar (seqEval a P) : Int) -   seqVar (seqEval b P)
+  (seqVar (seqEval a P) : Int) - seqVar (seqEval b P)
 
 def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
   seqVar_ab (sturmSeq p q) a b
+
+def seqVarAbove_a (P: List (Polynomial ℝ)) (a : ℝ) : ℤ :=
+  (seqVar (seqEval a P) : Int) - seqVar (seq_sgn_pos_inf P)
+
+def seqVarAboveSturm (p q : Polynomial ℝ) (a : ℝ) : ℤ :=
+  seqVarAbove_a (sturmSeq p q) a
 
 def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
   ∑ x ∈ rootsInInterval f a b, sgn (g.eval x)
 
 lemma rootsInIntervalZero (a b : ℝ) : rootsInInterval 0 a b = ∅ := by
   simp [rootsInInterval]
-
 
 lemma smod_nil_eq (p q : Polynomial Real) :
     sturmSeq p q = [] ↔ p = 0 := by

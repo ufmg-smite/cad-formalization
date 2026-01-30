@@ -571,3 +571,4 @@ lemma root_list_lb (ps : List (Polynomial ℝ)) (b : ℝ) (h0 : 0 ∉ ps) :
           apply hlb3
           · linarith
           · exact hmem
+
