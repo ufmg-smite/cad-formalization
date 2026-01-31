@@ -395,7 +395,7 @@ lemma sign_r_pos_add {x : ℝ} (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq
   by_cases (eval x (p + q) = 0)
   next => aesop
   next hf =>
-    have h_pq : p + q ≠ 0 := by exact eval_non_zero (p + q) x hf
+    have h_pq : p + q ≠ 0 := eval_non_zero (p + q) x hf
     have h: sign_r_pos x (p + q) = (eval x q > 0) := by
       have := sign_r_pos_rec (p + q) x h_pq
       simp [hf, hp_eval, hq_eval] at this; simp [this]
@@ -422,7 +422,7 @@ lemma sign_r_pos_smult (p: Polynomial ℝ) (x c: ℝ) : ¬(c = 0) -> ¬(p = 0) -
   next hf =>
     simp [hf]
     simp at hf hc
-    have hcltz : c < 0 := by exact lt_of_le_of_ne hf hc
+    have hcltz : c < 0 := lt_of_le_of_ne hf hc
     have hy : ∀y: ℝ, ((0 < eval y (C c * p)) = (0 < eval y (-p) )) := by
       simp_all
       intro y
@@ -443,11 +443,11 @@ lemma sign_r_pos_power (a: ℝ) (n: ℕ): sign_r_pos a ((X - C a)^n) := by
       rw [derivative_X_sub_C_pow]
       simp
     have hnz: ((X - C a)^ (n + 1)) ≠ 0 := by
-       have : X - C a ≠ 0 := by exact X_sub_C_ne_zero a
+       have : X - C a ≠ 0 := X_sub_C_ne_zero a
        exact pow_ne_zero (n + 1) this
     have hnz': ((X - C a)^ (n)) ≠ 0 := by
-       have : X - C a ≠ 0 := by exact X_sub_C_ne_zero a
-       exact pow_ne_zero (n) this 
+       have : X - C a ≠ 0 := X_sub_C_ne_zero a
+       exact pow_ne_zero (n) this
     have heval: eval a ((X - C a)^ (n + 1)) = 0 := by simp
     have hsrpos1: sign_r_pos  a ((X - C a)^ (n + 1)) = (sign_r_pos a ((C (n + 1: ℝ)) *  ((X - C a)^n))) := by
       rw [sign_r_pos_rec ((X - C a)^ (n + 1)) a hnz, hd]

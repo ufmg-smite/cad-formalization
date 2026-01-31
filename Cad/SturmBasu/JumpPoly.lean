@@ -59,7 +59,7 @@ lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
           exact ⟨this, hz.1⟩
         have h_eval_gz: ∀z:ℝ, x < z ∧ z < x + 1 -> eval z (p' * p') > 0 := by
           intros z hz; simp; exact h_eval_nz z hz
-        have h_trivial : x + 1 > x := by exact lt_add_one x
+        have h_trivial : x + 1 > x := lt_add_one x
         use x+1
     have h_bb : ∃b, b > x ∧ ∀z: ℝ, x < z ∧ z < b -> ((0 < eval z (p' * q * (p' * p))) = (0 < eval z (q * p))) := by
         use b; simp only [h_b, true_and];
@@ -74,11 +74,11 @@ lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
     exact this h_bb
   have h_odd : Odd (rootMultiplicity x (p' * p) - rootMultiplicity x (p' * q)) =
               Odd (rootMultiplicity x p - rootMultiplicity x q) := by
-    have hp'p : p' * p ≠ 0 := by exact (mul_ne_zero_iff_right hq).mpr hp'
-    have hp'q : p' * q ≠ 0 := by exact (mul_ne_zero_iff_right hp).mpr hp'
+    have hp'p : p' * p ≠ 0 := (mul_ne_zero_iff_right hq).mpr hp'
+    have hp'q : p' * q ≠ 0 := (mul_ne_zero_iff_right hp).mpr hp'
     simp [rootMultiplicity_mul hp'q, rootMultiplicity_mul hp'p]
     rw [Nat.add_sub_add_left]
-  have h_iff : p' * q ≠ 0 ↔ q ≠ 0 := by exact mul_ne_zero_iff_left hp'
+  have h_iff : p' * q ≠ 0 ↔ q ≠ 0 := mul_ne_zero_iff_left hp'
   unfold jump_val; simp_all
   rw [mul_comm, h_sign, mul_comm]
 
@@ -164,7 +164,7 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
       intros h_mod_z h_eval_z
       have : eval x q' ≠ 0 := by
         simp_all [<- IsRoot.def, rootMultiplicity_eq_zero_iff]
-      have : sign_r_pos x q' = sign_r_pos x (q' % p') := by exact Eq.symm (sign_r_pos_mod p' q' h_eval_z this)
+      have : sign_r_pos x q' = sign_r_pos x (q' % p') := Eq.symm (sign_r_pos_mod p' q' h_eval_z this)
       rw [sign_r_pos_mult _ _ _ h_mod_z hz'.2, sign_r_pos_mult _ _ _ hz'.1 hz'.2];
       simp at this ⊢; exact this;
     have h: q' % p' = 0 ∨ eval x p' ≠ 0 -> jump_val p' q' x = jump_val p' (q' % p') x := by
@@ -173,9 +173,9 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
       else
         have : ¬ Odd (rootMultiplicity x p' - rootMultiplicity x q') ∧
                ¬ Odd (rootMultiplicity x p' - rootMultiplicity x (q' % p')) := by
-          have h': eval x p' ≠ 0 := by exact Or.resolve_left h_or h_modz
+          have h': eval x p' ≠ 0 := Or.resolve_left h_or h_modz
           simp [*] at hcond;
-          have : rootMultiplicity x p' = 0 := by exact rootMultiplicity_eq_zero h'
+          have : rootMultiplicity x p' = 0 := rootMultiplicity_eq_zero h'
           have : ¬ Odd (rootMultiplicity x p' - rootMultiplicity x q') := by simp [this]
           simp [this] at hcond ⊢; exact hcond
         unfold jump_val; simp [*]
@@ -237,7 +237,7 @@ lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
 @[simp]
 lemma jump_poly_not_root {p q: Polynomial ℝ} {x: ℝ} (hp: eval x p ≠ 0) : jump_val p q x = 0 := by
   unfold jump_val
-  have hpz: p ≠ 0 := by exact eval_non_zero p x hp
+  have hpz: p ≠ 0 := eval_non_zero p x hp
   if hqz: q = 0 then
     simp [hqz, hpz]
   else
@@ -260,12 +260,12 @@ lemma jump_poly_coprime {p q: Polynomial ℝ} {x: ℝ} (hp: eval x p = 0) (hpq_c
     have hq_root : eval x q ≠ 0 := by aesop
     have hq_multiplicity : rootMultiplicity x q = 0 := by aesop
     have h: rootMultiplicity x p - rootMultiplicity x q = rootMultiplicity x (p * q) := by
-      have : p * q ≠ 0 := by exact mul_ne_zero_iff.mpr hpqz
+      have : p * q ≠ 0 := mul_ne_zero_iff.mpr hpqz
       have := rootMultiplicity_mul (x := x) this
       rw [hq_multiplicity] at this ⊢
       simp [this]
     unfold jump_val
-    have h_one: rootMultiplicity x 1 = 0 := by exact rootMultiplicity_C 1 x
+    have h_one: rootMultiplicity x 1 = 0 := rootMultiplicity_C 1 x
     simp [hqz, h_one, h]
     rw [mul_comm]
 
@@ -293,7 +293,7 @@ lemma jump_poly_1_mult {p q: Polynomial ℝ} {x: ℝ} (hnroot: eval x p ≠ 0 �
       have hpltz: eval x p < 0 -> simpl = sgn (eval x q) * jump_val p 1 x + sgn (eval x p) * jump_val q 1 x := by
         intros hp
         unfold simpl 
-        have haux : ¬ eval x p > 0 := by exact not_lt_of_gt hp
+        have haux : ¬ eval x p > 0 := not_lt_of_gt hp
         simp only [ne_eq, gt_iff_lt, Int.reduceNeg, h₁, not_false_eq_true, jump_poly_not_root, mul_zero, zero_add]
         unfold jump_val sgn
         simp [hqz, haux, h_util, h₁]
@@ -321,8 +321,8 @@ lemma jump_poly_1_mult {p q: Polynomial ℝ} {x: ℝ} (hnroot: eval x p ≠ 0 �
         simp [hqz, hq, h_util]
       have hpltz: eval x q < 0 -> simpl = sgn (eval x q) * jump_val p 1 x + sgn (eval x p) * jump_val q 1 x := by
         intros hq
-        unfold simpl 
-        have haux : ¬ eval x q > 0 := by exact not_lt_of_gt hq
+        unfold simpl
+        have haux : ¬ eval x q > 0 := not_lt_of_gt hq
         simp only [ne_eq, gt_iff_lt, Int.reduceNeg, h₂, not_false_eq_true, jump_poly_not_root, mul_zero, zero_add]
         unfold jump_val sgn
         simp [hqz, haux, h_util, h₂] 

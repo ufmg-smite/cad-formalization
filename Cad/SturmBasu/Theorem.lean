@@ -16,12 +16,11 @@ def sturmSeq (f g : Polynomial ℝ) : List (Polynomial ℝ) :=
     f::(sturmSeq g (-f%g))
   termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
   decreasing_by
-    simp_all
     if g1: g = 0 then
       simp_all
     else if h : g ∣ f then
       simp_all
-      have gnatdeg : g.degree ≥ 0 := by exact zero_le_degree_iff.mpr g1
+      have gnatdeg : g.degree ≥ 0 := zero_le_degree_iff.mpr g1
       refine lt_add_of_lt_of_nonneg ?_ gnatdeg; simp
     else
       simp_all
@@ -29,12 +28,11 @@ def sturmSeq (f g : Polynomial ℝ) : List (Polynomial ℝ) :=
         refine degree_lt_degree ?_; refine natDegree_mod_lt (-f) ?_
         have : g.natDegree = 0 → g ∣ f := by
           intro hg
-          have : ∃ c : ℝ, C c = g := by
-            exact natDegree_eq_zero.mp hg
+          have : ∃ c : ℝ, C c = g := natDegree_eq_zero.mp hg
           rcases this with ⟨c, rfl⟩; use C c⁻¹ * f
           have hds : c ≠ 0 := by
             intro abs; rw [abs] at hg; simp at g1; exact g1 abs
-          ext x; simp; field_simp
+          ext x; field_simp
         have : g.natDegree ≠ 0 := by intro abs; exact h (this abs)
         exact this
       refine WithBot.add_lt_add_left ?_ this; simp_all
@@ -124,7 +122,7 @@ lemma seqVarSgn : ∀ ps : List (Polynomial ℝ), ∀ (k : ℝ), seqVar (seqEval
       have : eval k p1 > 0 := (pos_iff_neg_of_mul_neg h4).mpr H
       have s1 : 0 < sgn (eval k p1) := (sgn_sgn_pos (eval k p1)).mpr this
       have s2 : 0 > sgn (eval k p2) := (sgn_sgn_neg (eval k p2)).mpr H
-      have : sgn (eval k p1) * sgn (eval k p2) < 0 := by exact Int.mul_neg_of_pos_of_neg s1 s2
+      have : sgn (eval k p1) * sgn (eval k p2) < 0 := Int.mul_neg_of_pos_of_neg s1 s2
       norm_cast at h6
       linarith
     next H =>
@@ -221,7 +219,7 @@ lemma smod_nil_eq (p q : Polynomial Real) :
 
 
 @[simp]
-lemma smods_s_0_1 (p: Polynomial ℝ) : sturmSeq 0 p = [] := by exact (smod_nil_eq 0 p).mpr rfl
+lemma smods_s_0_1 (p: Polynomial ℝ) : sturmSeq 0 p = [] := (smod_nil_eq 0 p).mpr rfl
 
 @[simp]
 lemma smods_s_0_2 (p: Polynomial ℝ) : sturmSeq p 0 = if p = 0 then [] else [p] := by
@@ -707,7 +705,7 @@ lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') 
           linarith
         have Ha'q : eval a' q > 0 := by
           by_contra!
-          have : eval a' q < 0 := by exact lt_of_le_of_ne this hqa'
+          have : eval a' q < 0 := lt_of_le_of_ne this hqa'
           have : eval a q * eval a' q < 0 := mul_neg_of_pos_of_neg Haq this
           linarith
         have : eval a' p * eval a' q < 0 := mul_neg_of_neg_of_pos Ha'p Ha'q

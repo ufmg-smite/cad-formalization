@@ -24,10 +24,8 @@ lemma sgn_inf_comp (p : Polynomial ℝ) :
   next H =>
     simp [sgn_neg_inf, sgn_pos_inf, H]
   next H =>
-    simp [sgn_neg_inf, sgn_pos_inf, H]
-    simp_all only [Nat.not_even_iff_odd, Odd.neg_one_pow, neg_mul, one_mul]
-    unfold sgn
-    simp
+    simp [sgn_neg_inf, sgn_pos_inf, H, sgn]
+    simp_all only [Nat.not_even_iff_odd, Odd.neg_one_pow, neg_mul, one_mul, Int.reduceNeg, Left.neg_pos_iff]
     split_ifs
     · linarith
     · simp_all only [natDegree_zero, Nat.not_odd_zero]
@@ -74,7 +72,7 @@ lemma next_non_root_interval (p : Polynomial Real) (lb : Real) (hp : p ≠ 0) :
         exact this abs
     else
       use lb + 1
-      simp
+      simp only [lt_add_iff_pos_right, zero_lt_one, mem_Ioc, ne_eq, and_imp, true_and, S]
       intros z hz1 hz2 abs
       have : z ∈ S := by simp [S, hp, abs, hz1]
       have : Finset.Nonempty S := by simp_all only [ne_eq, gt_iff_lt, Finset.not_nonempty_iff_eq_empty, Finset.not_mem_empty, S]
@@ -82,7 +80,7 @@ lemma next_non_root_interval (p : Polynomial Real) (lb : Real) (hp : p ≠ 0) :
   next hr =>
     push_neg at hr
     use lb + 1
-    simp
+    simp only [lt_add_iff_pos_right, zero_lt_one, mem_Ioc, ne_eq, and_imp, true_and]
     intros z hz1 hz2 abs
     have := hr z abs
     linarith
@@ -136,25 +134,20 @@ lemma last_non_root_interval (p : Polynomial Real) (ub : Real) (hp : p ≠ 0) :
 
 theorem exists_root_interval : ∀ p: Polynomial Real, ∀ (a b : ℝ), a <= b → eval a p <= 0 → 0 <= eval b p -> ∃ r: ℝ, r >= a ∧ r <= b ∧ eval r p = 0 := by
   intros p a b hab ha hb
-  have p_continuous : ContinuousOn p.eval (Set.Icc a b) := p.continuousOn
-  have intermediate_value_app := intermediate_value_Icc hab p_continuous
-  have zero_in_image : 0 ∈ p.eval '' Set.Icc a b := by
-    aesop
+  have intermediate_value_app := intermediate_value_Icc hab p.continuousOn
+  have zero_in_image : 0 ∈ p.eval '' Set.Icc a b := by aesop
   obtain ⟨x, ⟨hxa, hxb⟩, hx_root⟩ := zero_in_image
   use x
 
 theorem exists_root_ioo {p: Polynomial ℝ} {a b : ℝ} (hab: a <= b) (hap: eval a p < 0) (hbp: eval b p > 0): ∃ r: ℝ, r > a ∧ r < b ∧ eval r p = 0 := by
-  have p_continuous : ContinuousOn p.eval (Set.Icc a b) := by exact p.continuousOn
-  have intermediate_value_app := intermediate_value_Ioo hab p_continuous
-  have zero_in_image : 0 ∈ p.eval '' Set.Ioo a b := by
-    aesop
+  have intermediate_value_app := intermediate_value_Ioo hab p.continuousOn
+  have zero_in_image : 0 ∈ p.eval '' Set.Ioo a b := by aesop
   obtain ⟨x, ⟨hxa, hxb⟩, hx_root⟩ := zero_in_image
   use x
- 
+
 theorem exists_root_ioo' {p: Polynomial ℝ} {a b : ℝ} (hab: a <= b) (hap: eval a p > 0) (hbp: eval b p < 0): ∃ r: ℝ, r > a ∧ r < b ∧ eval r p = 0 := by
   have intermediate_value_app := intermediate_value_Ioo' hab p.continuousOn
-  have zero_in_image : 0 ∈ p.eval '' Set.Ioo a b := by
-    aesop
+  have zero_in_image : 0 ∈ p.eval '' Set.Ioo a b := by aesop
   obtain ⟨x, ⟨hxa, hxb⟩, hx_root⟩ := zero_in_image
   use x
 
@@ -243,7 +236,7 @@ lemma eval_mod (p q: Polynomial ℝ) (x: ℝ) (h: eval x q = 0) : eval x (p % q)
  have : eval x (p % q) = eval x (p / q * q) + eval x (p % q) := by simp; exact Or.inr h
  rw [<- eval_add, EuclideanDomain.div_add_mod'] at this; exact this
 
-lemma eval_non_zero(p: Polynomial ℝ) (x: ℝ) (h: eval x p ≠ 0) : p ≠ 0 := by aesop
+lemma eval_non_zero (p: Polynomial ℝ) (x: ℝ) (h: eval x p ≠ 0) : p ≠ 0 := by aesop
 
 lemma mul_C_eq_root_multiplicity (p: Polynomial ℝ) (c r: ℝ) (hc: ¬ c = 0):
                                         (rootMultiplicity r p = rootMultiplicity r (C c * p)) := by
@@ -253,11 +246,11 @@ lemma mul_C_eq_root_multiplicity (p: Polynomial ℝ) (c r: ℝ) (hc: ¬ c = 0):
 
 theorem div_rem_zero {b c r: Polynomial ℝ} (h_rem: r.degree < b.degree) : (c * b + r)/ b = c := by
   rw [mul_comm]
-  have h_b : b ≠ 0 := by exact ne_zero_of_degree_gt h_rem
+  have h_b : b ≠ 0 := ne_zero_of_degree_gt h_rem
   if H: r = 0 then
    simp[H, h_b];
   else
-    have h_pr : ¬(b ∣ r) := by exact not_dvd_of_degree_lt H h_rem
+    have h_pr : ¬(b ∣ r) := not_dvd_of_degree_lt H h_rem
     have h_stronger : (b * c + r)/b = c ∧ (b * c + r) % b = r := by
       by_contra!
       have h_div_mod: ((b * c + r)/b - c) * b = r - ((b * c + r)% b) := by
@@ -273,7 +266,7 @@ theorem div_rem_zero {b c r: Polynomial ℝ} (h_rem: r.degree < b.degree) : (c *
           simp [h_contra, h_b, sub_eq_iff_eq_add] at h_div_mod
           exact H' h_div_mod
       have h_b_dvd : ¬ (b ∣ (b * c + r)) := by
-        have h_trivial : b ∣ b * c := by exact dvd_mul_right b c
+        have h_trivial : b ∣ b * c := dvd_mul_right b c
         rw [dvd_add_right h_trivial]
         exact h_pr
       have h_mod_deg : degree ((b * c  + r) % b) < degree b := by
@@ -307,11 +300,11 @@ theorem mul_cancel' {p q r: Polynomial ℝ} (hr: r ≠ 0) : (r * p) / (r * q) = 
     have : p/ C x = p / (C x * 1) := by rw [mul_one]
     rw [this, div_C_mul]; simp_all 
   else
-    have hq : q ≠ 0 := by exact Ne.symm (ne_of_apply_ne natDegree fun a => H (id (Eq.symm a)))
-    have : p = (p/q) * q + p % q := by exact Eq.symm (EuclideanDomain.div_add_mod' p q)
+    have hq : q ≠ 0 := Ne.symm (ne_of_apply_ne natDegree fun a => H (id (Eq.symm a)))
+    have : p = (p/q) * q + p % q := Eq.symm (EuclideanDomain.div_add_mod' p q)
     rw[this]; ring_nf
     if H': p % q = 0 then
-      have h_ne_z : q * r ≠ 0 := by exact (mul_ne_zero_iff_right hr).mpr hq
+      have h_ne_z : q * r ≠ 0 := (mul_ne_zero_iff_right hr).mpr hq
       simp [H']
       rw [mul_assoc, mul_div_cancel_right₀ (hb := h_ne_z), mul_div_cancel_right₀ (hb := hq)]
     else
@@ -328,9 +321,9 @@ lemma mod_eq_sub_div {a b: Polynomial ℝ} : a % b = a - (a/b) * b := by
 
 theorem mod_mul (p q r: Polynomial ℝ) (hr: r ≠ 0) : (r * p) % (r * q) = r * (p % q) := by
   have : (r * p) % (r * q) = r * p - ((r * p)/(r * q)) * (r * q) := by
-    exact mod_eq_sub_div 
-  ring_nf at this; 
-  rw [mul_cancel' hr, mul_assoc, <-mul_sub, mul_comm q (p/q), <- mod_eq_sub_div (a := p) (b := q) ] at this
+    exact mod_eq_sub_div
+  ring_nf at this
+  rw [mul_cancel' hr, mul_assoc, <-mul_sub, mul_comm q (p/q), <- mod_eq_sub_div (a := p) (b := q)] at this
   exact this
 
 lemma X_sub_C_ne_one (r : ℝ) : X - C r ≠ 1 := by
@@ -341,11 +334,9 @@ lemma rootsInInterval_mul {p q: Polynomial ℝ} (a b: ℝ) (hpq: p * q ≠ 0): r
   unfold rootsInInterval
   rw [roots_mul hpq, Multiset.toFinset_add]
   exact Finset.filter_union (fun x => x ∈ Ioo a b) p.roots.toFinset q.roots.toFinset
-example (p: Polynomial ℝ): -1 * p = (C (-1: ℝ)) * p := by
-   simp
 
-lemma neg_neg_div (p q: Polynomial ℝ) : - (-p/q) = p/q := by 
-  have: -1 = (-1:ℝ)⁻¹ := by exact Eq.symm inv_neg_one
+lemma neg_neg_div (p q: Polynomial ℝ) : - (-p/q) = p/q := by
+  have: -1 = (-1:ℝ)⁻¹ := Eq.symm inv_neg_one
   calc
     -(-p/q) = -(-1 * p / q) := by simp
     _ = -1 * (-1 * p / q)  := by simp
@@ -570,4 +561,3 @@ lemma root_list_lb (ps : List (Polynomial ℝ)) (b : ℝ) (h0 : 0 ∉ ps) :
           apply hlb3
           · linarith
           · exact hmem
-

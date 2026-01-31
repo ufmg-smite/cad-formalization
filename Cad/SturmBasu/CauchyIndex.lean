@@ -309,9 +309,9 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
   | _ k ih  => 
     cases k with
     | zero =>
-      have hp_const : ∃ x: ℝ, C x = p := by exact natDegree_eq_zero.mp hp 
+      have hp_const : ∃ x: ℝ, C x = p := natDegree_eq_zero.mp hp 
       have ⟨x, hx⟩ := hp_const
-      have hlz: cauchyIndex p 1 a b = 0 := by exact cindex_poly_const p 1 a b x hx
+      have hlz: cauchyIndex p 1 a b = 0 := cindex_poly_const p 1 a b x hx
       have hrz: cross p a b = 0 := by
         unfold cross
         unfold variation
@@ -323,7 +323,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
         if H: (rootsInInterval p a b).Nonempty then
           let maxr : ℝ := Finset.max' (rootsInInterval p a b) H
           have hmaxr_root : eval maxr p = 0 ∧ maxr > a ∧  maxr < b := by
-            have : maxr ∈ rootsInInterval p a b := by exact Finset.max'_mem (rootsInInterval p a b) H
+            have : maxr ∈ rootsInInterval p a b := Finset.max'_mem (rootsInInterval p a b) H
             unfold rootsInInterval at this; aesop
           let maxrp := (X - C maxr)^ (rootMultiplicity maxr p)
           have ⟨p', hp'⟩ : ∃p': Polynomial ℝ, p = p' * maxrp := by
@@ -335,7 +335,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
             by_contra!
             have : (X - C maxr)^(rootMultiplicity maxr p + 1) ∣ p := by
               unfold maxrp at hp';
-              have ⟨p'', hp''⟩ : ∃ p'' : Polynomial ℝ, p' = p'' * (X - C maxr) := by exact exists_eq_mul_left_of_dvd this
+              have ⟨p'', hp''⟩ : ∃ p'' : Polynomial ℝ, p' = p'' * (X - C maxr) := exists_eq_mul_left_of_dvd this
               rw [hp'', mul_right_comm, mul_assoc, <-pow_succ] at hp';
               exact Dvd.intro_left p'' (id (Eq.symm hp'))
             have h_contra := (le_rootMultiplicity_iff hpz).mpr this
@@ -349,9 +349,9 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
             · rw [hp', eval_mul] at hpb_nroot; simp_all
             · rw [hp', eval_mul] at hpa_nroot; simp_all
             · rw [hp', eval_mul] at hpb_nroot; simp_all 
-          have hmaxrp' : eval maxr p' ≠ 0 := by exact (not_imp_not.mpr (dvd_iff_isRoot.mpr)) hmonon_nvdv
-          have hmulrz: rootMultiplicity maxr p > 0 := by exact ((rootMultiplicity_pos hpz).mpr (IsRoot.def.mpr hmaxr_root.1))
-          have hmulr : rootMultiplicity maxr p ≠ 0 := by exact (zero_lt_iff.mp hmulrz)
+          have hmaxrp' : eval maxr p' ≠ 0 := (not_imp_not.mpr (dvd_iff_isRoot.mpr)) hmonon_nvdv
+          have hmulrz: rootMultiplicity maxr p > 0 := ((rootMultiplicity_pos hpz).mpr (IsRoot.def.mpr hmaxr_root.1))
+          have hmulr : rootMultiplicity maxr p ≠ 0 := (zero_lt_iff.mp hmulrz)
           let maxr_sign := if Odd (rootMultiplicity maxr p) then -1 else 1
           have hc_sum: cauchyIndex p 1 a b = (∑x∈ (rootsInInterval p' a b), jump_val p 1 x) + jump_val p 1 maxr := by
             unfold cauchyIndex
@@ -368,7 +368,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                 by_contra!
                 unfold rootsInInterval at this;
                 have : maxr ∈ p'.roots := by simp_all
-                have : X - C maxr ∣ p' := by exact dvd_iff_isRoot.mpr (isRoot_of_mem_roots this)
+                have : X - C maxr ∣ p' := dvd_iff_isRoot.mpr (isRoot_of_mem_roots this)
                 exact hmonon_nvdv this 
               rw [hmaxrp_singleton]
               simp [this]
@@ -398,10 +398,10 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                  rw [IsRoot.def] at this
                  exact this
                exact pow_ne_zero (rootMultiplicity maxr p) this
-              have hx_multiplicity: rootMultiplicity x maxrp = 0 := by exact rootMultiplicity_eq_zero hx_nroot
-              have hjpz: jump_val maxrp 1 x = 0 := by exact jump_poly_not_root hx_nroot
+              have hx_multiplicity: rootMultiplicity x maxrp = 0 := rootMultiplicity_eq_zero hx_nroot
+              have hjpz: jump_val maxrp 1 x = 0 := jump_poly_not_root hx_nroot
               have hxlmaxr: x < maxr := by
-                have : x <= maxr := by exact Finset.le_max' (rootsInInterval p a b) x hx_root 
+                have : x <= maxr := Finset.le_max' (rootsInInterval p a b) x hx_root 
                 exact lt_of_le_of_ne this hx_maxr
               have hmaxr_sign : sgn (eval x maxrp) = maxr_sign := by
                 unfold sgn maxr_sign 
@@ -422,7 +422,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                   exact h₁ h_contra
               rw [hp', jump_poly_1_mult (Or.inr hx_nroot), hmaxr_sign]  
               simp [jump_poly_not_root hx_nroot]
-            have hsec: ∑ (x∈ rootsInInterval p' a b), maxr_sign * jump_val p' 1 x = maxr_sign * (∑ x∈ rootsInInterval p' a b, jump_val p' 1 x) := by exact Eq.symm (Finset.mul_sum (rootsInInterval p' a b) (jump_val p' 1) maxr_sign)
+            have hsec: ∑ (x∈ rootsInInterval p' a b), maxr_sign * jump_val p' 1 x = maxr_sign * (∑ x∈ rootsInInterval p' a b, jump_val p' 1 x) := Eq.symm (Finset.mul_sum (rootsInInterval p' a b) (jump_val p' 1) maxr_sign)
             have hthird: maxr_sign * (∑ x∈ rootsInInterval p' a b, jump_val p' 1 x) = maxr_sign * cross p' a b:= by
               if H': rootsInInterval p' a b = ∅ then
                 simp [H']
@@ -472,7 +472,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                       clear *- hmaxrp' this hbp'
                       if H'': eval maxr p' > 0 then
                         simp [H''] at this
-                        have haux: eval b p' < 0 := by exact lt_of_le_of_ne this hbp'
+                        have haux: eval b p' < 0 := lt_of_le_of_ne this hbp'
                         nlinarith
                       else
                         simp [H''] at this
@@ -481,14 +481,14 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                   have ⟨r, hr, ⟨hrmaxr, hrp'⟩⟩ : ∃r:ℝ, (r > maxr) ∧ ( r < b) ∧ (eval r p' = 0):= by
                     clear *- hprodz hmaxr_root
                     have ⟨_, ⟨_, hmaxrb⟩⟩ := hmaxr_root
-                    have hmaxrb: maxr ≤ b := by exact le_of_lt hmaxrb
+                    have hmaxrb: maxr ≤ b := le_of_lt hmaxrb
                     exact exists_root_ioo_mul hmaxrb hprodz
                   have hrint: r ∈ rootsInInterval p a b := by
                     clear *- hp' hr hrmaxr hrp' hp'z hmaxr_root hpz
                     have haux: r ∈ rootsInInterval p' a b := by
                       have ⟨_, ⟨hamaxrb, hmaxrb⟩⟩ := hmaxr_root
                       unfold rootsInInterval
-                      have : r ∈ p'.roots := by exact (mem_roots_iff_aeval_eq_zero hp'z).mpr hrp'
+                      have : r ∈ p'.roots := (mem_roots_iff_aeval_eq_zero hp'z).mpr hrp'
                       have ha: a < r := by linarith
                       simp_all
                     rw [hp'] at hpz ⊢
@@ -576,7 +576,7 @@ theorem cindex_poly_inverse_add {p q: Polynomial ℝ} (a b: ℝ) (hpq_coprime: I
        intros x hx
        unfold rootsInInterval at hx
        have : eval x q = 0 := by aesop
-       have hqp_coprime: IsCoprime q p := by exact id (IsCoprime.symm hpq_coprime)
+       have hqp_coprime: IsCoprime q p := id (IsCoprime.symm hpq_coprime)
        rw [mul_comm]
        exact jump_poly_coprime this hqp_coprime
       linarith
@@ -596,7 +596,7 @@ theorem cindex_poly_inverse_add {p q: Polynomial ℝ} (a b: ℝ) (hpq_coprime: I
           simp_all
         have h_monom: (X - C y) ∣ p ∧ (X - C y) ∣ q := by
             simp [dvd_iff_isRoot, h_eval]
-        have h_monon_dvd : (X - C y) ∣ gcd p q := by exact (dvd_gcd_iff (X - C y) p q).mpr h_monom
+        have h_monon_dvd : (X - C y) ∣ gcd p q := (dvd_gcd_iff (X - C y) p q).mpr h_monom
         have hf : ¬IsUnit (gcd p q)  := by
           by_contra!
           rw [isUnit_iff] at this; have ⟨r, hr⟩ := this
@@ -604,12 +604,12 @@ theorem cindex_poly_inverse_add {p q: Polynomial ℝ} (a b: ℝ) (hpq_coprime: I
             rw [<-hr.2]
             refine not_dvd_of_degree_lt ?_ ?_
             · aesop
-            · have hrz : r ≠ 0 := by exact isUnit_iff_ne_zero.mp hr.1
+            · have hrz : r ≠ 0 := isUnit_iff_ne_zero.mp hr.1
               rw [degree_C hrz];
               exact (Monic.degree_pos (monic_X_sub_C y)).mpr (X_sub_C_ne_one y)
           exact h_contra h_monon_dvd
         exact hf ((gcd_isUnit_iff p q).mpr hpq_coprime)
-    have hab_disjoint : (Disjoint A B) := by exact Finset.disjoint_iff_inter_eq_empty.mpr hab_disjoint'
+    have hab_disjoint : (Disjoint A B) := Finset.disjoint_iff_inter_eq_empty.mpr hab_disjoint'
     rw [hl]
     unfold cauchyIndex
     unfold A B at hab_disjoint hab_union
