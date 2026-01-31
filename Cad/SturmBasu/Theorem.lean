@@ -119,7 +119,7 @@ lemma seqVarSgn : ∀ ps : List (Polynomial ℝ), ∀ (k : ℝ), seqVar (seqEval
   · simp only [add_right_inj]
     exact seqVarSgn (p2 :: ps) k
   · push_neg at h6
-    cases Classical.em (eval k p2 < 0)
+    by_cases eval k p2 < 0
     next H =>
       have : eval k p1 > 0 := (pos_iff_neg_of_mul_neg h4).mpr H
       have s1 : 0 < sgn (eval k p1) := (sgn_sgn_pos (eval k p1)).mpr this
@@ -139,7 +139,7 @@ lemma seqVarSgn : ∀ ps : List (Polynomial ℝ), ∀ (k : ℝ), seqVar (seqEval
   · have := (sgn_sgn_zero (eval k p2)).mp h7
     exact False.elim (h1 this)
   · push_neg at h4
-    cases Classical.em (eval k p2 < 0)
+    by_cases eval k p2 < 0
     next H =>
       have : eval k p1 ≤ 0 := nonpos_of_mul_nonneg_left h4 H
       cases Decidable.lt_or_eq_of_le this
@@ -231,10 +231,12 @@ lemma smods_s_0_2 (p: Polynomial ℝ) : sturmSeq p 0 = if p = 0 then [] else [p]
 
 @[simp]
 lemma seqEval_empty (k: ℝ) : seqEval k [] = [] := by unfold seqEval; rfl
+
 @[simp]
 lemma seqVar_ab_singleton (p: Polynomial ℝ) (a b: ℝ): seqVar_ab [p] a b = 0 := by
   unfold seqVar_ab seqVar seqEval
   simp
+
 @[simp]
 theorem seqVarSturm_ab_z_1 (p: Polynomial ℝ) (a b: ℝ) : seqVarSturm_ab 0 p a b = 0 := by
   unfold seqVarSturm_ab seqVar_ab seqVar seqEval sturmSeq
@@ -281,7 +283,7 @@ lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
     have : jump_val p (derivative p * q) x = simpleL := by
       simp [jump_val, simpleL, hp, deriv_ne_0, hq, elim_p_order, elim_sgn_r_pos_p]
     rw [this]
-    cases Classical.em (eval x q = 0)
+    by_cases eval x q = 0
     next hevQ =>
       have : 0 < rootMultiplicity x q := (rootMultiplicity_pos hq).mpr hevQ
       have : 1 - rootMultiplicity x q = 0 := by omega
@@ -308,7 +310,7 @@ lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
       rw [h4]
       simp [sgn, hevQ]
 
-lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) (hab : a < b)  :
+lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) :
     tarskiQuery p q a b = cauchyIndex p (derivative p * q) a b := by
   if hp : p = 0 then
     rw [hp]
@@ -325,8 +327,8 @@ lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) (hab : a < b)  :
       exact hx.1.2
     rw [jump_poly_sign p q x hp this]
 
-theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hab: a < b) (hpqa: eval a (p * q)≠ 0) (hpqb: eval b (p * q) ≠ 0) :
-        (seqVarSturm_ab p q a b) = cross (p * q) a b + seqVarSturm_ab q (-p%q) a b := by
+theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p * q)≠ 0) (hpqb: eval b (p * q) ≠ 0) :
+    (seqVarSturm_ab p q a b) = cross (p * q) a b + seqVarSturm_ab q (-p%q) a b := by
   if H: p = 0 ∨ q = 0 ∨ p % q = 0 then
     rcases H with h | h | h
     · simp [h]
@@ -671,7 +673,7 @@ lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') 
     next h1 h2 =>
       push_neg at h2
       clear * - h1 h2 ev_pa' ev_qa' hq2 hpa hpa' hqa'
-      cases Classical.em (eval a p > 0)
+      by_cases eval a p > 0
       next h_evap =>
         have Ha'p : eval a' p > 0 := by
           by_contra!
@@ -713,7 +715,7 @@ lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') 
     next h1 h2 =>
       push_neg at h2
       clear * - h1 h2 ev_pa' ev_qa' hq2 hpa hpa' hqa'
-      cases Classical.em (eval a p > 0)
+      by_cases eval a p > 0
       next h_evap =>
         have Ha'p : eval a' p > 0 := by
           by_contra!
@@ -863,9 +865,8 @@ theorem B_2_58 (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.
           exact (Eq.symm hhd)
         have ⟨hpa', hpb', hqa', hqb'⟩ : eval a' p ≠ 0 ∧ eval b' p ≠ 0 ∧  eval a' q ≠ 0 ∧ eval b' q ≠ 0 := by aesop
         have t0 : a' < b' := by linarith
-        rw[htlps] at ih
+        rw [htlps] at ih
         have h_ind := ih q r a' b' hqa' hqb' t0 hpsqr
-        -- r = -p%q
 
         have : (∀ p' ∈ sturmSeq p q, ∀ (x : ℝ), a < x ∧ x ≤ a' ∨ b' ≤ x ∧ x < b → eval x p' ≠ 0) :=
           fun p' a_1 x a => hn_root p' a_1 x a
@@ -876,15 +877,10 @@ theorem B_2_58 (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.
           intro x hx
           rcases hn_root p (by rw [hps]; simp) x hx with hneq
           exact hneq
-        have h_congr_cindex := cindex_poly_congr p q a a' b b' haa' hbb' t0 this
-        rw[h_congr_cindex]
 
-        have t1 : eval a' (p * q) ≠ 0 := by
-          simp [Polynomial.eval_mul, hpa', hqa']
-        have t2 : eval b' (p * q) ≠ 0 := by
-          simp [Polynomial.eval_mul, hpb', hqb']
+        have h_congr_cindex := cindex_poly_congr p q a a' b b' haa' hbb' t0 this
+        have t1 : eval a' (p * q) ≠ 0 := by simp [Polynomial.eval_mul, hpa', hqa']
+        have t2 : eval b' (p * q) ≠ 0 := by simp [Polynomial.eval_mul, hpb', hqb']
         have h_cindex := B_2_60 p q a' b' ha'b' t1 t2
-        rw[h_cindex]
-        have h_changes_itv := changes_itv_smods_rec ha'b' t1 t2
-        rw[h_changes_itv]
-        rw[h_ind]
+        have h_changes_itv := changes_itv_smods_rec t1 t2
+        rw [h_congr_cindex, h_cindex, h_changes_itv, h_ind]

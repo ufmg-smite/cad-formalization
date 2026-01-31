@@ -10,7 +10,7 @@ theorem sturm_tarski_interval (a b : ℝ) (p q : Polynomial ℝ) (hab : a < b) (
     tarskiQuery p q a b = seqVarSturm_ab p (derivative p * q) a b := by
   have : p ≠ 0 := eval_non_zero p a hpa
   rw [B_2_58 p (derivative p * q) a b hpa hpb hab]
-  rw [B_2_57 p q a b hab]
+  rw [B_2_57 p q a b]
 
 def rootsAbove (f : Polynomial ℝ) (a : ℝ) : Finset ℝ :=
   f.roots.toFinset.filter (fun x => x > a)
@@ -144,8 +144,7 @@ theorem sturm_tarski_R (p q : Polynomial ℝ) :
       apply root_list_ub
       exact no_zero_in_sturmSeq p (derivative p * q)
     have taq_taq : tarskiQuery_R p q = tarskiQuery p q lb ub := by
-      unfold tarskiQuery_R
-      unfold tarskiQuery
+      simp [tarskiQuery_R, tarskiQuery]
       congr
       unfold rootsInInterval
       ext z

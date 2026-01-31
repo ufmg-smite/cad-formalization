@@ -20,7 +20,7 @@ def sgn_neg_inf (p : Polynomial ℝ) : ℤ :=
 
 lemma sgn_inf_comp (p : Polynomial ℝ) :
     sgn_neg_inf p = sgn_pos_inf (p.comp (-Polynomial.X)) := by
-  cases Classical.em (Even p.natDegree)
+  by_cases Even p.natDegree
   next H =>
     simp [sgn_neg_inf, sgn_pos_inf, H]
   next H =>
@@ -42,7 +42,7 @@ lemma sgn_inf_comp (p : Polynomial ℝ) :
 
 lemma next_non_root_interval (p : Polynomial Real) (lb : Real) (hp : p ≠ 0) :
     ∃ ub : Real, lb < ub ∧ (∀ z ∈ Ioc lb ub, eval z p ≠ 0) := by
-  cases Classical.em (∃ r : Real, eval r p = 0 ∧ r > lb)
+  by_cases ∃ r : Real, eval r p = 0 ∧ r > lb
   next hr =>
     obtain ⟨r, hr1, hr2⟩ := hr
     let S := p.roots.toFinset.filter (fun w => w > lb)
@@ -89,7 +89,7 @@ lemma next_non_root_interval (p : Polynomial Real) (lb : Real) (hp : p ≠ 0) :
 
 lemma last_non_root_interval (p : Polynomial Real) (ub : Real) (hp : p ≠ 0) :
     ∃ lb : Real, lb < ub ∧ (∀ z ∈ Ico lb ub, eval z p ≠ 0) := by
-  cases Classical.em (∃ r : Real, eval r p = 0 ∧ r < ub)
+  by_cases ∃ r : Real, eval r p = 0 ∧ r < ub
   next hr =>
     obtain ⟨r, hr1, hr2⟩ := hr
     let S := p.roots.toFinset.filter (fun w => w < ub)
@@ -152,8 +152,7 @@ theorem exists_root_ioo {p: Polynomial ℝ} {a b : ℝ} (hab: a <= b) (hap: eval
   use x
  
 theorem exists_root_ioo' {p: Polynomial ℝ} {a b : ℝ} (hab: a <= b) (hap: eval a p > 0) (hbp: eval b p < 0): ∃ r: ℝ, r > a ∧ r < b ∧ eval r p = 0 := by
-  have p_continuous : ContinuousOn p.eval (Set.Icc a b) := by exact p.continuousOn
-  have intermediate_value_app := intermediate_value_Ioo' hab p_continuous
+  have intermediate_value_app := intermediate_value_Ioo' hab p.continuousOn
   have zero_in_image : 0 ∈ p.eval '' Set.Ioo a b := by
     aesop
   obtain ⟨x, ⟨hxa, hxb⟩, hx_root⟩ := zero_in_image
@@ -183,7 +182,7 @@ lemma not_eq_pos_or_neg_iff_1 (p : Polynomial Real) (lb ub : Real) :
       rw [abs] at  hz₁'
       have : eval z₂ p = 0 := by linarith
       exact H₁ z₂ hz₂ this
-    cases Classical.em (z₁ < z₂)
+    by_cases z₁ < z₂
     next hle =>
       obtain ⟨r, hr₁, hr₂, hr₃⟩ := exists_root_interval (-p) z₁ z₂ (le_of_lt hle) (by simp; exact hz₁') (by simp; exact hz₂')
       simp at hr₃
@@ -428,7 +427,7 @@ lemma bound_sgn_neg_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ lb : ℝ, ∀ 
 lemma root_ub (p : Polynomial ℝ) (hp : p ≠ 0) :
     ∃ ub, (∀ x, eval x p = 0 → x < ub) ∧ (∀ x, x ≥ ub → sgn (eval x p) = sgn_pos_inf p) := by
   obtain ⟨ub1, hub1⟩ : ∃ ub1, ∀ x, eval x p = 0 → x < ub1 := by
-    cases Classical.em (∃ r, eval r p = 0)
+    by_cases ∃ r, eval r p = 0
     next H =>
       let roots := p.roots.toFinset
       obtain ⟨r, hr⟩ := H
@@ -462,7 +461,7 @@ lemma root_ub (p : Polynomial ℝ) (hp : p ≠ 0) :
 lemma root_lb (p : Polynomial ℝ) (hp : p ≠ 0) :
     ∃ lb, (∀ x, eval x p = 0 → x > lb) ∧ (∀ x, x ≤ lb → sgn (eval x p) = sgn_neg_inf p) := by
   obtain ⟨lb1, hlb1⟩ : ∃ lb1, ∀ x, eval x p = 0 → x > lb1 := by
-    cases Classical.em (∃ r, eval r p = 0)
+    by_cases ∃ r, eval r p = 0
     next H =>
       let roots := p.roots.toFinset
       obtain ⟨r, hr⟩ := H

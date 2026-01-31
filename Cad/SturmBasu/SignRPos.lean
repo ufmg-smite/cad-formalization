@@ -21,7 +21,7 @@ theorem eventually_at_right_equiv {x : Real} {P : Real -> Prop} : eventually_at_
     exact mem_nhdsGT_iff_exists_Ioo_subset.mpr h
 
 theorem eventually_at_right_def (x: ℝ) (P: ℝ -> Prop) : eventually_at_right x P = Filter.Eventually P (rightNear x) := by rfl
--- P(x + eps) > 0 for all sufficiently small eps
+/- -- P(x + eps) > 0 for all sufficiently small eps -/
 def sign_r_pos (x : ℝ) (p : Polynomial ℝ) : Prop :=
   Filter.Eventually (fun a => eval a p > 0) (rightNear x)
 
@@ -158,7 +158,7 @@ lemma sign_r_pos_rec (p : Polynomial Real) (x : Real) (hp : p ≠ 0) :
         obtain ⟨r, hr1, hr2, hr3⟩ :=
           exists_root_interval (-p) x ub (le_of_lt hub1) (by simp; exact le_of_lt H) (by simp; exact le_of_lt this)
         simp at hr3
-        cases Classical.em (x = r)
+        by_cases x = r
         next heq =>
           rw [<- heq] at hr3
           rw [hr3] at H
@@ -390,22 +390,21 @@ lemma sign_r_pos_deriv (p : Polynomial Real) (x : Real) (hp : p ≠ 0) (hev : ev
   · simp [hev]
   · exact hp
 
-
-lemma sign_r_pos_add (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq_eval: eval x q ≠ 0) :
+lemma sign_r_pos_add {x : ℝ} (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq_eval: eval x q ≠ 0) :
                      (sign_r_pos x (p + q) = sign_r_pos x q) := by
-  rcases Classical.em (eval x (p + q) = 0) with ht | hf
-  · aesop
-  · have h_pq : p + q ≠ 0 := by exact eval_non_zero (p + q) x hf
+  by_cases (eval x (p + q) = 0)
+  next => aesop
+  next hf =>
+    have h_pq : p + q ≠ 0 := by exact eval_non_zero (p + q) x hf
     have h: sign_r_pos x (p + q) = (eval x q > 0) := by
       have := sign_r_pos_rec (p + q) x h_pq
       simp [hf, hp_eval, hq_eval] at this; simp [this]
     have : sign_r_pos x q = (eval x q > 0) := by
       have := sign_r_pos_rec q x (eval_non_zero q x hq_eval)
       simp [hq_eval] at this; simp [this]
-    simp [this, h] 
+    simp [this, h]
 
-
-lemma sign_r_pos_mod (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq_eval: eval x q ≠ 0) :
+lemma sign_r_pos_mod {x : ℝ} (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq_eval: eval x q ≠ 0) :
                                          sign_r_pos x (q % p) = sign_r_pos x q := by
   have h : eval x (q / p * p) = 0 := by simp; exact Or.inr hp_eval
   have h' : eval x (q % p) ≠ 0 := by
@@ -418,9 +417,10 @@ lemma sign_r_pos_smult (p: Polynomial ℝ) (x c: ℝ) : ¬(c = 0) -> ¬(p = 0) -
   sign_r_pos x (Polynomial.C c * p) = if c > 0 then sign_r_pos x p else ¬ sign_r_pos x p := by
   intros hc hp
   simp only [<- ne_eq] at hc hp
-  rcases Classical.em (c > 0) with ht | hf
-  · simp [sign_r_pos, ht]
-  · simp [hf]
+  by_cases (c > 0)
+  next ht => simp [sign_r_pos, ht]
+  next hf =>
+    simp [hf]
     simp at hf hc
     have hcltz : c < 0 := by exact lt_of_le_of_ne hf hc
     have hy : ∀y: ℝ, ((0 < eval y (C c * p)) = (0 < eval y (-p) )) := by

@@ -21,7 +21,7 @@ def jump_val (p q : Polynomial ℝ) (x : ℝ) : ℤ :=
 
 lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
                     jump_val (p' * p) (p'* q) x = jump_val p q x := by
-  cases Classical.em (q = 0 ∨ p = 0)
+  by_cases (q = 0 ∨ p = 0)
   next H =>
     unfold jump_val; simp only;
     cases H <;> simp_all
@@ -83,9 +83,10 @@ lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
   rw [mul_comm, h_sign, mul_comm]
 
 lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p (q % p) x := by
-  rcases Classical.em (p = 0 ∨ q = 0) with ht | hf
-  · aesop
-  · simp [<- ne_eq] at hf
+  by_cases (p = 0 ∨ q = 0)
+  next => aesop
+  next hf =>
+    simp [<- ne_eq] at hf
     let n := min (rootMultiplicity x q) (rootMultiplicity x p)
     have ⟨q', hq'⟩ : ∃q', q = (X - C x)^n * q' := by
       have  : (X - C x)^n ∣ q := by
@@ -132,9 +133,10 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
         omega
     have hcond: q' ≠ 0 ∧ Odd (rootMultiplicity x p' - rootMultiplicity x q') =
                ((q' % p' ≠ 0) ∧ Odd (rootMultiplicity x p' - rootMultiplicity x (q' % p'))) := by
-        rcases Classical.em (rootMultiplicity x p' = 0) with htt | hff
-        · simp [htt, hz']
-        · rw [<-ne_eq] at hff
+        by_cases (rootMultiplicity x p' = 0)
+        next htt => simp [htt, hz']
+        next hff =>
+          rw [<-ne_eq] at hff
           rcases hrm with hok | hcontra
           · have hq_ndvd: ¬ ((X - C x)^1 ∣ q') := by
               apply (rootMultiplicity_le_iff hz'.1 x 0).mp
@@ -206,15 +208,15 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
 
 lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
                         jump_val p (Polynomial.C c * q) x = (sgn c) * jump_val p q x := by
-  rcases Classical.em (c = 0 ∨ q = 0)  with ht|hf
-  · unfold jump_val
-    simp [ht]
+  by_cases (c = 0 ∨ q = 0)
+  next ht =>
+    simp [jump_val, ht]
     split
     · have hc: c = 0 := by aesop
-      unfold sgn
-      simp [hc]
+      simp [sgn, hc]
     · rfl
-  · simp at hf
+  next hf =>
+    simp at hf
     unfold jump_val
     if hpz : p = 0 then
       simp [hpz]
@@ -243,15 +245,10 @@ lemma jump_poly_not_root {p q: Polynomial ℝ} {x: ℝ} (hp: eval x p ≠ 0) : j
     simp [hp, hpz, hqz, this]
 
 @[simp]
-lemma jump_poly_z1 (p: Polynomial ℝ) (x: ℝ) : jump_val p 0 x = 0 := by
-  unfold jump_val
-  simp 
+lemma jump_poly_z1 (p: Polynomial ℝ) (x: ℝ) : jump_val p 0 x = 0 := by simp [jump_val]
 
 @[simp]
-lemma jump_poly_z2 (q: Polynomial ℝ) (x: ℝ) : jump_val 0 q x = 0 := by
-  unfold jump_val
-  simp 
-
+lemma jump_poly_z2 (q: Polynomial ℝ) (x: ℝ) : jump_val 0 q x = 0 := by simp [jump_val]
 
 lemma jump_poly_coprime {p q: Polynomial ℝ} {x: ℝ} (hp: eval x p = 0) (hpq_coprime : IsCoprime p q) : jump_val p q x = jump_val (q*p) 1 x := by
   if hpqz: (p = 0 ∨ q  = 0) then
@@ -336,4 +333,4 @@ lemma jump_poly_1_mult {p q: Polynomial ℝ} {x: ℝ} (hnroot: eval x p ≠ 0 �
       have : eval x q < 0 := by
         rw [Mathlib.Tactic.PushNeg.not_gt_eq] at H
         exact lt_of_le_of_ne H h₂
-      exact hpltz this      
+      exact hpltz this
