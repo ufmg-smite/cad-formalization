@@ -88,9 +88,6 @@ theorem variation_mult_pos1 (c x y : ℝ) (hc : c > 0) : variation (c*x) y = var
     constructor
     · intro hxy
       ring_nf; simp_all
-      set k := x * y with hk
-      have hk_nonneg : 0 ≤ k := by simpa [hk] using hxy
-      have tk := mul_nonneg (le_of_lt hc) hxy
       have : c*x*y = c*(x*y):= by linarith
       simp_all
     · intro hcxy
@@ -135,9 +132,6 @@ theorem variation_mult_pos2 (c x y : ℝ) (hc : c > 0) : variation x (c*y) = var
     constructor
     · intro hxy
       ring_nf; simp_all
-      set k := x * y with hk
-      have hk_nonneg : 0 ≤ k := by simpa [hk] using hxy
-      have tk := mul_nonneg (le_of_lt hc) hxy
       have : c*x*y = c*(x*y):= by linarith
       simp_all
     · intro hcxy
@@ -159,7 +153,6 @@ theorem variation_mult_pos2 (c x y : ℝ) (hc : c > 0) : variation x (c*y) = var
           exact lt_trans hx0 hy0
         next hy =>
           have : 0 < x := (pos_iff_neg_of_mul_neg hxy).mpr hy
-          have : 0 < c * y := gt_trans hcxley this
           have : c * y < 0 := mul_neg_of_pos_of_neg hc hy
           linarith
       · intro hxley
@@ -240,27 +233,22 @@ lemma variation_mult_neg_2 (c x y: ℝ) (hc: c < 0): variation x (c * y) = varia
     have hynz: y ≠ 0 := by linarith
     simp [variation_cases, sgn, *]
   · have hxx: x ≠ 0 := by linarith
-    have hxn: ¬ 0 < x := by linarith
     simp_all [variation, sgn]
   · have : c * y < 0 := by nlinarith
-    have hyy: y ≠ 0 := by linarith
-    have hxx: ¬ 0 < x := by linarith
     have hxnez: x ≠ 0 := by linarith
     simp [variation_cases, sgn, *]
   · simp_all [variation, sgn]
   · simp_all [variation,sgn]
   · simp_all [variation, sgn]
   · have : c * y > 0 := by nlinarith
-    have hyy: y ≠ 0 := by linarith  
-    have hxx: x ≠ 0 := by linarith  
-    have yn: ¬0 < y := by linarith
-    simp [variation_cases, sgn, *]  
-  ·  simp_all [variation, sgn]
-  · have : c * y < 0 := by nlinarith 
     have hyy: y ≠ 0 := by linarith
+    have hxx: x ≠ 0 := by linarith
+    have yn: ¬0 < y := by linarith
+    simp [variation_cases, sgn, *]
+  ·  simp_all [variation, sgn]
+  · have : c * y < 0 := by nlinarith
     have xn: x ≠ 0 := by linarith
     simp [variation_cases, sgn, *]
-
 
 @[simp]
 theorem cindex_poly_z_1 (p q: Polynomial ℝ) (a b: ℝ) (hp: p = 0) : cauchyIndex p q a b  = 0 := by 
@@ -398,8 +386,6 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                  rw [IsRoot.def] at this
                  exact this
                exact pow_ne_zero (rootMultiplicity maxr p) this
-              have hx_multiplicity: rootMultiplicity x maxrp = 0 := rootMultiplicity_eq_zero hx_nroot
-              have hjpz: jump_val maxrp 1 x = 0 := jump_poly_not_root hx_nroot
               have hxlmaxr: x < maxr := by
                 have : x <= maxr := Finset.le_max' (rootsInInterval p a b) x hx_root 
                 exact lt_of_le_of_ne this hx_maxr
@@ -408,10 +394,10 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                 simp [hx_nroot]
                 unfold maxrp
                 have hevallt: (x - maxr) < 0 := by
-                  simp [hxlmaxr]  
+                  simp [hxlmaxr]
                 split_ifs with h₁ h₂ h₃
                 · have hcontra: ¬ 0 < eval x ((X - C maxr) ^ rootMultiplicity maxr p) := by
-                    simp 
+                    simp
                     exact (Odd.pow_nonpos_iff h₂).mpr (le_of_lt hevallt)
                   exact hcontra h₁
                 · rfl
@@ -428,9 +414,6 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                 simp [H']
                 exact Or.inr (cross_no_root hab H')
               else
-                have hmaxrp_deg: maxrp.natDegree ≠ 0 := by
-                  unfold maxrp
-                  simp [hmulr]
                 have hpp'_deg: p'.natDegree < p.natDegree := by
                   rw [hp', natDegree_mul hp'z maxrpz];
                   unfold maxrp
@@ -488,7 +471,6 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                     have haux: r ∈ rootsInInterval p' a b := by
                       have ⟨_, ⟨hamaxrb, hmaxrb⟩⟩ := hmaxr_root
                       unfold rootsInInterval
-                      have : r ∈ p'.roots := (mem_roots_iff_aeval_eq_zero hp'z).mpr hrp'
                       have ha: a < r := by linarith
                       simp_all
                     rw [hp'] at hpz ⊢
@@ -614,12 +596,11 @@ theorem cindex_poly_inverse_add {p q: Polynomial ℝ} (a b: ℝ) (hpq_coprime: I
     unfold cauchyIndex
     unfold A B at hab_disjoint hab_union
     rw [<-Finset.sum_union hab_disjoint, hab_union]
-    
+
 theorem cindex_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
     (hab : a < b) (hapq : eval a (p*q) ≠ 0) (hbpq : eval b (p*q) ≠ 0) :
     cauchyIndex p q a b + cauchyIndex q p a b = variation (eval a (p * q)) (eval b (p*q))
     := by
-
   have pneq0 : p ≠ 0 := by
     intro hfalse
     have : eval a (p * q) = 0 := by simp [hfalse]
@@ -633,27 +614,14 @@ theorem cindex_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
     unfold g; refine dvd_iff_exists_eq_mul_right.mp ?_; exact gcd_dvd_right p q
   have ⟨p', hp'⟩ : ∃p', p = g * p' := by
     unfold g; refine dvd_iff_exists_eq_mul_right.mp ?_; exact gcd_dvd_left p q
-  /- have coprimep'q': gcd p' q' = 1 := sorry -/
-  have p'neq0 : p' ≠ 0 := by
-    intro hfalse
-    have : p = 0 := by simp [hp', hfalse]
-    exact pneq0 this
-  have q'neq0 : q' ≠ 0 := by
-    intro hfalse
-    have : q = 0 := by simp [hq', hfalse]
-    exact qneq0 this
   have h_gcd : g ≠ 0 := by
     intro hfalse
     have : q = 0 := by simp [hq', hfalse]
     exact qneq0 this
   have cauchyMuls : cauchyIndex p q a b + cauchyIndex q p a b
       = cauchyIndex p' q' a b + cauchyIndex q' p' a b:= by -- cindex_poly_mult
-    --rw[cauchyIndex, cauchyIndex, cauchyIndex, cauchyIndex]
-    rw[hp',hq']
-    if h1p0 : p = 0 then
-      exfalso
-      have : ¬ p = 0 := by apply pneq0;
-      exact this h1p0
+    rw [hp',hq']
+    if h1p0 : p = 0 then exact False.elim (pneq0 h1p0)
     else
       rw [cindex_poly_mult h_gcd, cindex_poly_mult h_gcd]
   have cauchy1 : cauchyIndex p' q' a b + cauchyIndex q' p' a b
@@ -665,7 +633,7 @@ theorem cindex_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
           exact (gcd_isUnit_iff p' q').mp this
         exact cindex_poly_inverse_add a b this
   have cauchyVar : cauchyIndex (p' * q') 1 a b
-      = variation (eval a (p' * q'))  (eval b (p'*q')) := by   -- cindex_poly_cross (long, but doesn't seem to use many lemmas from their formalization)
+      = variation (eval a (p' * q'))  (eval b (p'*q')) := by
     have : cauchyIndex (p' * q') 1 a b = cross (p' * q') a b := by
       have ha : eval a (p' * q') ≠ 0 := by simp_all
       have hb : eval b (p' * q') ≠ 0 := by simp_all

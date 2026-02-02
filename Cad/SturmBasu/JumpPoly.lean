@@ -78,7 +78,6 @@ lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
     have hp'q : p' * q ≠ 0 := (mul_ne_zero_iff_right hp).mpr hp'
     simp [rootMultiplicity_mul hp'q, rootMultiplicity_mul hp'p]
     rw [Nat.add_sub_add_left]
-  have h_iff : p' * q ≠ 0 ↔ q ≠ 0 := mul_ne_zero_iff_left hp'
   unfold jump_val; simp_all
   rw [mul_comm, h_sign, mul_comm]
 
@@ -198,11 +197,8 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
     have h_mon_z :  (X - C x) ^ n ≠ 0:= by
       exact pow_ne_zero n (X_sub_C_ne_zero x)
     rw [hp', hq']
-    have h_p'_monic: Monic (p' * C p'.leadingCoeff⁻¹) := by
-      rw [Monic.def]; simp [*]
-    have h_p'_monic' : Monic ((X - C x)^n * p' * C p'.leadingCoeff⁻¹) := by rw [Monic.def]; simp [*]
-    have h_mod : ((X - C x)^n * q') % ((X - C x)^n * p') = (X - C x)^n * (q' % p') := by
-      exact mod_mul q' p' ((X - C x) ^ n) h_mon_z
+    have h_mod : ((X - C x)^n * q') % ((X - C x)^n * p') = (X - C x)^n * (q' % p') :=
+      mod_mul q' p' ((X - C x) ^ n) h_mon_z
     simp [h_mod, jump_poly_mult h_mon_z]
     exact h_ult
 
@@ -298,13 +294,12 @@ lemma jump_poly_1_mult {p q: Polynomial ℝ} {x: ℝ} (hnroot: eval x p ≠ 0 �
         unfold jump_val sgn
         simp [hqz, haux, h_util, h₁]
       rw [hl_simpl]
-      if H: eval x p > 0 then
-        exact hpgtz H
+      if H: eval x p > 0 then exact hpgtz H
       else
-      have : eval x p < 0 := by
-        rw [Mathlib.Tactic.PushNeg.not_gt_eq] at H
-        exact lt_of_le_of_ne H h₁
-      exact hpltz this
+        have : eval x p < 0 := by
+          rw [Mathlib.Tactic.PushNeg.not_gt_eq] at H
+          exact lt_of_le_of_ne H h₁
+        exact hpltz this
     · have hx_multiplicity : rootMultiplicity x q = 0 := by aesop
       let simpl := if p ≠ 0 ∧ Odd (rootMultiplicity x p) then if (eval x q > 0) ↔ sign_r_pos x p then 1 else -1 else 0
       have h_util: rootMultiplicity x 1 = 0 := by aesop

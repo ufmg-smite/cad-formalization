@@ -56,7 +56,6 @@ lemma sign_r_pos_rec (p : Polynomial Real) (x : Real) (hp : p ≠ 0) :
       obtain ⟨z', hz1', hz2', hz3'⟩ := exists_deriv_eq_slope_poly x z hz1 p
       have abs1 : eval z' (derivative p) ≤ 0 := by
         rw [hev] at hz3'
-        have foo : eval z p ≤ 0 := hz3
         simp at hz3'
         have : 0 < z - x := by linarith
         clear * - hz3' this hz3
@@ -275,14 +274,14 @@ lemma sign_r_pos_mult (p q : Polynomial Real) (x : Real) (hp : p ≠ 0) (hq : q 
       rintro x ⟨hx₁, hx₂⟩
       rw [eval_mul]
       exact Left.mul_pos hx₁ hx₂
-    aesop
+    simp_all only [ne_eq, mem_Ioo, and_self, implies_true, and_imp, true_or, eventually_and]
   have H2 : (∀ z ∈ Ioo x ub, 0 < eval z p) → (∀ z ∈ Ioo x ub', 0 > eval z q) → sign_r_pos x (p * q) = (sign_r_pos x p ↔ sign_r_pos x q) := by
     intros hzp hzq
     have sign_r_pos_p : sign_r_pos x p := by
       unfold sign_r_pos
       apply eventually_at_right_equiv.mpr
       use ub
-      aesop
+      exact And.symm ⟨hzp, hub1⟩
     have sign_r_pos_q : sign_r_pos x (-q) := by
       unfold sign_r_pos
       apply eventually_at_right_equiv.mpr
@@ -331,8 +330,6 @@ lemma sign_r_pos_mult (p q : Polynomial Real) (x : Real) (hp : p ≠ 0) (hq : q 
       apply Eventually.mono (p := fun z => 0 < eval z (-p) ∧ 0 < eval z q) (q := fun z => 0 < eval z (-p * q)) this
       rintro x ⟨hx₁, hx₂⟩
       rw [eval_mul]
-      have hp : eval x p < 0 := by simp at hx₁; exact hx₁
-      have hq : eval x (-q) < 0 := by simp; exact hx₂
       exact Left.mul_pos hx₁ hx₂
     have : ¬ sign_r_pos x (p * q) := by
       have eq : p * q = - (-p * q) := by
@@ -406,12 +403,11 @@ lemma sign_r_pos_add {x : ℝ} (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq
 
 lemma sign_r_pos_mod {x : ℝ} (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq_eval: eval x q ≠ 0) :
                                          sign_r_pos x (q % p) = sign_r_pos x q := by
-  have h : eval x (q / p * p) = 0 := by simp; exact Or.inr hp_eval
-  have h' : eval x (q % p) ≠ 0 := by
-    rw [eval_mod q p x hp_eval]; exact hq_eval
-  nth_rw 2 [<-EuclideanDomain.div_add_mod q p]; rw[sign_r_pos_add]
-  simp; exact Or.inl hp_eval
-  exact h'
+  have h' : eval x (q % p) ≠ 0 := by rw [eval_mod q p x hp_eval]; exact hq_eval
+  nth_rw 2 [<-EuclideanDomain.div_add_mod q p]
+  rw [sign_r_pos_add]
+  · simp only [eval_mul, mul_eq_zero]; exact Or.inl hp_eval
+  · exact h'
 
 lemma sign_r_pos_smult (p: Polynomial ℝ) (x c: ℝ) : ¬(c = 0) -> ¬(p = 0) ->
   sign_r_pos x (Polynomial.C c * p) = if c > 0 then sign_r_pos x p else ¬ sign_r_pos x p := by
@@ -453,7 +449,7 @@ lemma sign_r_pos_power (a: ℝ) (n: ℕ): sign_r_pos a ((X - C a)^n) := by
       rw [sign_r_pos_rec ((X - C a)^ (n + 1)) a hnz, hd]
       simp [heval]
     have hsrpos2: sign_r_pos  a ((X - C a)^ (n + 1)) = sign_r_pos  a ((X - C a)^ n) := by
-      have haux: ¬ (n + 1: ℝ)= 0 := by linarith
+      have haux : (n + 1: ℝ) ≠ 0 := by linarith
       have haux': (n + 1: ℝ) > 0 := by linarith
       rw [ne_eq] at hnz
       rw [hsrpos1, sign_r_pos_smult ((X - C a) ^ n) a (n + 1: ℝ) haux hnz']

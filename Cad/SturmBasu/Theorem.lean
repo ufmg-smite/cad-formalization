@@ -337,7 +337,6 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
       have ⟨hbp, hbq⟩: eval b p ≠ 0 ∧ eval b q ≠ 0:= by aesop
       have hpz: p ≠ 0 := by aesop
       have hqz: q ≠ 0 := by aesop
-      have : ¬sturmSeq p q = [] := by simp [hpz, smod_nil_eq]
       unfold seqEval
       simp [variation_cases, hpz, hqz, haq, hbq]
       split_ifs with h1 h2 h3
@@ -480,10 +479,6 @@ lemma B_2_60 (p q : Polynomial ℝ) (a b: ℝ) (hab : a < b)
     (ha : (p * q).eval a ≠ 0) (hb : (p * q).eval b ≠ 0) :
     cauchyIndex p q a b = cross (p * q) a b + cauchyIndex q (- p % q) a b
     := by
-  have : q ≠ 0 := by
-    intro abs
-    rw [abs] at ha
-    simp at ha
   have H := cindex_poly_inverse_add_cross p q a b hab ha hb
   have : - cauchyIndex q p a b = cauchyIndex q (- p % q) a b := by
     have h1 := cauchyIndex_poly_mod q (-p) a b
@@ -759,7 +754,6 @@ lemma changes_itv_smods_congr (p q : Polynomial ℝ) (a a' b b' : ℝ) (hpa : ev
     (haa' : a < a') (hb'b : b' < b)
     (no_root : ∀ p' ∈ sturmSeq p q, ∀ x : ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) → eval x p' ≠ 0) :
     seqVarSturm_ab p q a b = seqVarSturm_ab p q a' b' := by
-  have p_neq_0 : p ≠ 0 := eval_non_zero p a hpa
   have h1 : seqVar (seqEval a (sturmSeq p q)) = seqVar (seqEval a' (sturmSeq p q)) := by
     apply changes_smods_congr p q a a'
     · exact ne_of_lt haa'
@@ -828,9 +822,6 @@ lemma cindex_poly_congr (p q : Polynomial ℝ) (a a' b b' : ℝ) (haa' : a < a')
     simp
   rw [this]
 
--- cindex_poly_changes_itv_mods
--- Talvez usar reais extendidos para a e b seja a tradução mais imediata do enunciado.
--- Por enquanto, podemos seguir desconsiderando esse caso.
 theorem B_2_58 (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.eval b ≠ 0) (hab : a < b) :
     seqVarSturm_ab p q a b = cauchyIndex p q a b := by
   induction h: (sturmSeq p q) generalizing p q a b with
@@ -858,7 +849,7 @@ theorem B_2_58 (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.
             exact haux1
           let ps := sturmSeq (-p % q) (-q % (-p % q))
           use ps
-          unfold ps r;
+          unfold ps r
           simp [haux1, haux2, h]
           exact (Eq.symm hhd)
         have ⟨hpa', hpb', hqa', hqb'⟩ : eval a' p ≠ 0 ∧ eval b' p ≠ 0 ∧  eval a' q ≠ 0 ∧ eval b' q ≠ 0 := by aesop
@@ -882,3 +873,4 @@ theorem B_2_58 (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.
         have h_cindex := B_2_60 p q a' b' ha'b' t1 t2
         have h_changes_itv := changes_itv_smods_rec t1 t2
         rw [h_congr_cindex, h_cindex, h_changes_itv, h_ind]
+

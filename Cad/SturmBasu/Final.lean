@@ -8,7 +8,6 @@ open Polynomial
 
 theorem sturm_tarski_interval (a b : ℝ) (p q : Polynomial ℝ) (hab : a < b) (hpa : eval a p ≠ 0) (hpb : eval b p ≠ 0) :
     tarskiQuery p q a b = seqVarSturm_ab p (derivative p * q) a b := by
-  have : p ≠ 0 := eval_non_zero p a hpa
   rw [B_2_58 p (derivative p * q) a b hpa hpb hab]
   rw [B_2_57 p q a b]
 
@@ -49,8 +48,7 @@ theorem sturm_tarski_above (a : ℝ) (p q : Polynomial ℝ) (hpa : eval a p ≠ 
   have ps_def : ps = sturmSeq p (derivative p * q) := rfl
   have : p ≠ 0 := eval_non_zero p a hpa
   have : p ∈ ps := by
-    unfold ps
-    unfold sturmSeq
+    unfold ps sturmSeq
     simp [this]
   obtain ⟨ub, hub1, hub2, hub3⟩ : ∃ ub,
       (∀ pp ∈ ps, (∀ x, eval x pp = 0 → x < ub)) ∧
@@ -93,8 +91,7 @@ theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpa : eval b p ≠ 
   have ps_def : ps = sturmSeq p (derivative p * q) := rfl
   have : p ≠ 0 := eval_non_zero p b hpa
   have : p ∈ ps := by
-    unfold ps
-    unfold sturmSeq
+    unfold ps sturmSeq
     simp [this]
   obtain ⟨lb, hlb1, hlb2, hlb3⟩ : ∃ lb,
       (∀ pp ∈ ps, (∀ x, eval x pp = 0 → x > lb)) ∧
@@ -128,8 +125,7 @@ theorem sturm_tarski_R (p q : Polynomial ℝ) :
     let ps := sturmSeq p (derivative p * q)
     have ps_def : ps = sturmSeq p (derivative p * q) := rfl
     have : p ∈ ps := by
-      unfold ps
-      unfold sturmSeq
+      unfold ps sturmSeq
       simp [hp]
     obtain ⟨lb, hlb1, hlb2, hlb3⟩ : ∃ lb,
         (∀ pp ∈ ps, (∀ x, eval x pp = 0 → x > lb)) ∧
@@ -194,5 +190,3 @@ theorem sturm_R (p : Polynomial ℝ) :
   have := sturm_tarski_R p 1
   simp [tarskiQuery_R, sgn] at this
   exact this
-
-#print axioms sturm_R

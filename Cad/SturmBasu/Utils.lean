@@ -35,7 +35,7 @@ lemma sgn_inf_comp (p : Polynomial ℝ) :
     · rfl
     · simp_all only [not_lt, neg_neg]
       have : 0 = p.leadingCoeff := by linarith
-      have : p = 0 := leadingCoeff_eq_zero.mp (id (Eq.symm this))
+      have : p = 0 := leadingCoeff_eq_zero.mp (Eq.symm this)
       contradiction
 
 lemma next_non_root_interval (p : Polynomial Real) (lb : Real) (hp : p ≠ 0) :
@@ -48,7 +48,6 @@ lemma next_non_root_interval (p : Polynomial Real) (lb : Real) (hp : p ≠ 0) :
       obtain ⟨lr, hlr⟩ := Finset.min_of_nonempty hS
       have : lr ∈ S := Finset.mem_of_min hlr
       simp [S] at this
-      have H1 : lb < lr := by linarith
       have H2 : ∀ z ∈ Ioo lb lr, eval z p ≠ 0 := by
         intros z hz
         simp at hz
@@ -95,7 +94,6 @@ lemma last_non_root_interval (p : Polynomial Real) (ub : Real) (hp : p ≠ 0) :
       obtain ⟨mr, hmr⟩ := Finset.max_of_nonempty hS
       have : mr ∈ S := Finset.mem_of_max hmr
       simp [S] at this
-      have H1 : mr < ub := by linarith
       have H2 : ∀ z ∈ Ioo mr ub, eval z p ≠ 0 := by
         intros z hz
         simp at hz
@@ -167,14 +165,8 @@ lemma not_eq_pos_or_neg_iff_1 (p : Polynomial Real) (lb ub : Real) :
   next H =>
     obtain ⟨H₁, ⟨z₁, hz₁, hz₁'⟩, ⟨z₂, hz₂, hz₂'⟩⟩ := H
     have z1Neq0 : eval z₁ p ≠ 0 := by aesop
-    have z2Neq0 : eval z₂ p ≠ 0 := by aesop
     have z1Pos : 0 < eval z₁ p := lt_of_le_of_ne hz₁' (id (Ne.symm z1Neq0))
     have z2Neg : eval z₂ p < 0 := lt_of_le_of_ne hz₂' (H₁ z₂ hz₂)
-    have : z₁ ≠ z₂ := by
-      intro abs
-      rw [abs] at  hz₁'
-      have : eval z₂ p = 0 := by linarith
-      exact H₁ z₂ hz₂ this
     by_cases z₁ < z₂
     next hle =>
       obtain ⟨r, hr₁, hr₂, hr₃⟩ := exists_root_interval (-p) z₁ z₂ (le_of_lt hle) (by simp; exact hz₁') (by simp; exact hz₂')
@@ -250,7 +242,6 @@ theorem div_rem_zero {b c r: Polynomial ℝ} (h_rem: r.degree < b.degree) : (c *
   if H: r = 0 then
    simp[H, h_b];
   else
-    have h_pr : ¬(b ∣ r) := not_dvd_of_degree_lt H h_rem
     have h_stronger : (b * c + r)/b = c ∧ (b * c + r) % b = r := by
       by_contra!
       have h_div_mod: ((b * c + r)/b - c) * b = r - ((b * c + r)% b) := by
@@ -265,10 +256,6 @@ theorem div_rem_zero {b c r: Polynomial ℝ} (h_rem: r.degree < b.degree) : (c *
         · intro h_contra
           simp [h_contra, h_b, sub_eq_iff_eq_add] at h_div_mod
           exact H' h_div_mod
-      have h_b_dvd : ¬ (b ∣ (b * c + r)) := by
-        have h_trivial : b ∣ b * c := dvd_mul_right b c
-        rw [dvd_add_right h_trivial]
-        exact h_pr
       have h_mod_deg : degree ((b * c  + r) % b) < degree b := by
         refine degree_lt_degree ?_
         refine natDegree_mod_lt (b * c + r) ?_
@@ -505,11 +492,8 @@ lemma root_list_ub (ps : List (Polynomial ℝ)) (a : ℝ) (h0 : 0 ∉ ps) :
       cases this
       next hmem =>
         rw [hmem] at hx
-        have := hub21 x hx
         exact lt_sup_of_lt_right (hub21 x hx)
-      next hmem =>
-        have := hub1 pp hmem x hx
-        exact lt_sup_of_lt_left (hub1 pp hmem x hx)
+      next hmem => exact lt_sup_of_lt_left (hub1 pp hmem x hx)
     · constructor
       · linarith
       · intros x hx pp hpp
@@ -543,11 +527,8 @@ lemma root_list_lb (ps : List (Polynomial ℝ)) (b : ℝ) (h0 : 0 ∉ ps) :
       cases this
       next hmem =>
         rw [hmem] at hx
-        have := hlb21 x hx
         exact inf_lt_of_right_lt (hlb21 x hx)
-      next hmem =>
-        have := hlb1 pp hmem x hx
-        exact inf_lt_of_left_lt (hlb1 pp hmem x hx)
+      next hmem => exact inf_lt_of_left_lt (hlb1 pp hmem x hx)
     · constructor
       · exact inf_lt_of_left_lt hlb2
       · intros x hx pp hpp
