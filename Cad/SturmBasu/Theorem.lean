@@ -50,7 +50,6 @@ lemma no_zero_in_sturmSeq (p q : Polynomial ℝ) : 0 ∉ sturmSeq p q := by
       apply IH q (-p % q)
       exact this
 
--- Considerando só os não nulos
 def seqVar : List ℝ → ℕ
 | [] => 0
 | _::[] => 0
@@ -203,8 +202,7 @@ def seqVarRSturm (p q : Polynomial ℝ) : ℤ  :=
 def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
   ∑ x ∈ rootsInInterval f a b, sgn (g.eval x)
 
-lemma rootsInIntervalZero (a b : ℝ) : rootsInInterval 0 a b = ∅ := by
-  simp [rootsInInterval]
+lemma rootsInIntervalZero (a b : ℝ) : rootsInInterval 0 a b = ∅ := by simp [rootsInInterval]
 
 lemma smod_nil_eq (p q : Polynomial Real) :
     sturmSeq p q = [] ↔ p = 0 := by
@@ -217,7 +215,6 @@ lemma smod_nil_eq (p q : Polynomial Real) :
   · intro hp
     simp [hp, sturmSeq]
 
-
 @[simp]
 lemma smods_s_0_1 (p: Polynomial ℝ) : sturmSeq 0 p = [] := (smod_nil_eq 0 p).mpr rfl
 
@@ -228,25 +225,17 @@ lemma smods_s_0_2 (p: Polynomial ℝ) : sturmSeq p 0 = if p = 0 then [] else [p]
   · unfold sturmSeq; simp [H]
 
 @[simp]
-lemma seqEval_empty (k: ℝ) : seqEval k [] = [] := by unfold seqEval; rfl
-
-@[simp]
-lemma seqVar_ab_singleton (p: Polynomial ℝ) (a b: ℝ): seqVar_ab [p] a b = 0 := by
-  unfold seqVar_ab seqVar seqEval
-  simp
-
-@[simp]
 theorem seqVarSturm_ab_z_1 (p: Polynomial ℝ) (a b: ℝ) : seqVarSturm_ab 0 p a b = 0 := by
   unfold seqVarSturm_ab seqVar_ab seqVar seqEval sturmSeq
   simp
 
- @[simp]
+@[simp]
 theorem seqVarSturm_ab_z_2 (p: Polynomial ℝ) (a b: ℝ) : seqVarSturm_ab p 0 a b = 0 := by
   unfold seqVarSturm_ab seqVar_ab seqVar seqEval
   if H: p = 0 then
-    simp [H]
+    simp [seqEval, H]
   else
-    simp [H]
+    simp [seqEval, H]
 
 lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
     p ≠ 0 → p.eval x = 0 → jump_val p (derivative p * q) x = sgn (q.eval x) := by
@@ -340,24 +329,24 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
       unfold seqEval
       simp [variation_cases, hpz, hqz, haq, hbq]
       split_ifs with h1 h2 h3
-      · unfold seqVar;
+      · unfold seqVar seqEval
         rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.2.2 ⟨h1, h2⟩];
         simp
-      · unfold seqVar
+      · unfold seqVar seqEval
         have : eval b p * eval b q > 0 := by
           rw [eval_mul] at hpqb
           rw [not_lt, <-ge_iff_le] at h2
           exact lt_of_le_of_ne h2 (Ne.symm hpqb)
         rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.2.1 ⟨h1, this⟩];
         simp
-      · unfold seqVar
+      · unfold seqVar seqEval
         have : eval a p * eval a q > 0 := by
           rw [eval_mul] at hpqa
           rw [not_lt, <-ge_iff_le] at h1
           exact lt_of_le_of_ne h1 (Ne.symm hpqa)
         rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.1 ⟨this, h3⟩];
         simp
-      · unfold seqVar
+      · unfold seqVar seqEval
         have : eval a p * eval a q > 0 ∧ eval b p * eval b q > 0 := by
           rw [eval_mul] at hpqa hpqb
           rw [not_lt, <-ge_iff_le] at h1 h3
@@ -402,7 +391,6 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
      ring_nf at hf ⊢
      rw [hf]
 
-set_option maxHeartbeats 500000 in
 theorem B_2_58_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): ∃ (a' b': ℝ), a < a' ∧ a' < b' ∧ b' < b ∧ (∀p' ∈ sturmSeq p q, (∀ x: ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) -> eval x p' ≠ 0)) := by
   induction h: (sturmSeq p q) generalizing p q with
     | nil =>
@@ -417,7 +405,11 @@ theorem B_2_58_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): ∃ (a' b': �
       use a', b'
     | cons hd tl ih =>
       let r := - (p % q)
-      have hpz: p ≠ 0 := by aesop
+      have hpz: p ≠ 0 := by
+        simp_all only [ne_eq, exists_and_left]
+        intro a_1
+        subst a_1
+        simp_all only [smods_s_0_1, List.nil_eq, reduceCtorEq]
       have htl: sturmSeq q r = tl := by
         unfold sturmSeq at h;
         simp [hpz] at h
@@ -425,16 +417,18 @@ theorem B_2_58_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): ∃ (a' b': �
         rw [<-mod_minus]; exact h.2
       have h_concat: sturmSeq p q = p :: tl := by
         unfold sturmSeq at h ⊢; simp [hpz] at h; simp [h.2, hpz]
-      have h_hd: hd = p := by aesop
+      have h_hd: hd = p := by
+        subst htl
+        simp_all only [ne_eq, exists_and_left, List.cons.injEq, and_true, r]
       have ⟨a1, b1, haa1, ha1b1, hbb1, ha1b1_nroot⟩: ∃ (a1 b1: ℝ), a < a1 ∧ a1 < b1 ∧ b1 < b ∧
            (∀p' ∈ tl, (∀ x: ℝ, ((a < x ∧ x ≤ a1) ∨ (b1 ≤ x ∧ x < b)) -> eval x p' ≠ 0)) := by
         exact ih q r htl
       have ⟨a2, b2, haa2, ha2_nroot, hbb2, hb2_nroot⟩ : ∃ (a2 b2: ℝ), a < a2 ∧ (∀x: ℝ, (a < x ∧ x ≤ a2) -> eval x p ≠ 0) ∧
                                                          (b2 < b) ∧ (∀x: ℝ, (b2 ≤ x ∧ x < b) -> eval x p ≠ 0) := by
-       have ⟨a2, haa2, ha2_nroot⟩ := next_non_root_interval p a hpz
-       have ⟨b2, hbb2, hb2_nroot⟩ := last_non_root_interval p b hpz
-       use a2, b2
-       simp_all
+        have ⟨a2, haa2, ha2_nroot⟩ := next_non_root_interval p a hpz
+        have ⟨b2, hbb2, hb2_nroot⟩ := last_non_root_interval p b hpz
+        use a2, b2
+        simp_all
       let a' := if b2 > a then min a1 (min b2 a2) else min a1 a2
       let b' := if a2 < b then max b1 (max a2 b2) else max b1 b2
       have ⟨haa', ha'b', hbb'⟩ : a < a' ∧ a' < b' ∧ b' < b := by
@@ -469,12 +463,6 @@ theorem B_2_58_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): ∃ (a' b': �
       simp [haa', ha'b', hbb', <-ne_eq]
       exact ⟨h_final, h_rec⟩
 
-def sigma (b : ℝ) (f : Polynomial ℝ) : ℤ :=
-  sgn (eval b f)
-
--- cindex_poly_rec
--- para o else, precisamos usar ha e hb para mostrar que σ(a) * σ(b) != 0 (e pela definição de sgn, excluir todos outros inteiros).
--- Talvez seja possível expressar isso de alguma forma melhor.
 lemma B_2_60 (p q : Polynomial ℝ) (a b: ℝ) (hab : a < b)
     (ha : (p * q).eval a ≠ 0) (hb : (p * q).eval b ≠ 0) :
     cauchyIndex p q a b = cross (p * q) a b + cauchyIndex q (- p % q) a b

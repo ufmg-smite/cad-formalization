@@ -63,7 +63,11 @@ theorem sturm_tarski_above (a : ℝ) (p q : Polynomial ℝ) (hpa : eval a p ≠ 
     ext z
     simp only [gt_iff_lt, Finset.mem_filter, Multiset.mem_toFinset, mem_roots', ne_eq, IsRoot.def,
       Set.mem_Ioo, and_congr_right_iff, iff_self_and, and_imp]
-    aesop
+    intro a_1 a_2 a_3
+    simp_all only [ne_eq, not_false_eq_true, ge_iff_le, ps]
+    apply hub1
+    on_goal 2 => { exact a_2 }
+    · simp_all only
   have changes_changes : seqVarAboveSturm p (derivative p * q) a = seqVarSturm_ab p (derivative p * q) a ub := by
     simp [seqVarSturm_ab, seqVarAboveSturm, seqVarAbove_a, seqVar_ab]
     rw [seqVarSgn, <- ps_def, seq_sgn_pos_inf_seqEvalSgn ub ps hub3]
@@ -106,7 +110,11 @@ theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpa : eval b p ≠ 
     ext z
     simp only [Finset.mem_filter, Multiset.mem_toFinset, mem_roots', ne_eq, IsRoot.def, Set.mem_Ioo,
       and_congr_right_iff, iff_and_self, and_imp]
-    aesop
+    intro a a_1 a_2
+    simp_all only [ne_eq, not_false_eq_true, gt_iff_lt, ps]
+    apply hlb1
+    on_goal 2 => { exact a_1 }
+    simp_all only
   have changes_changes : seqVarBelowSturm p (derivative p * q) b = seqVarSturm_ab p (derivative p * q) lb b := by
     simp [seqVarSturm_ab, seqVarBelowSturm, seqVarBelow_b, seqVar_ab]
     rw [seqVarSgn, <- ps_def, seq_sgn_neg_inf_seqEvalSgn lb ps hlb3]
@@ -146,7 +154,15 @@ theorem sturm_tarski_R (p q : Polynomial ℝ) :
       ext z
       simp only [Multiset.mem_toFinset, mem_roots', ne_eq, IsRoot.def, Set.mem_Ioo,
         Finset.mem_filter, iff_self_and, and_imp]
-      aesop
+      intro a a_1
+      simp_all only [not_false_eq_true, gt_iff_lt, ge_iff_le, ps]
+      apply And.intro
+      · apply hlb1
+        on_goal 2 => { exact a_1 }
+        · simp_all only
+      · apply hub1
+        · exact this
+        · simp_all only
     have changes_changes : seqVarRSturm p (derivative p * q) = seqVarSturm_ab p (derivative p * q) lb ub := by
       simp [seqVarRSturm, seqVarR, seqVarSturm_ab, seqVar_ab]
       rw [ seqVarSgn

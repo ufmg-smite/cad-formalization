@@ -21,9 +21,8 @@ theorem eventually_at_right_equiv {x : Real} {P : Real -> Prop} : eventually_at_
     exact mem_nhdsGT_iff_exists_Ioo_subset.mpr h
 
 theorem eventually_at_right_def (x: ℝ) (P: ℝ -> Prop) : eventually_at_right x P = Filter.Eventually P (rightNear x) := by rfl
-/- -- P(x + eps) > 0 for all sufficiently small eps -/
-def sign_r_pos (x : ℝ) (p : Polynomial ℝ) : Prop :=
-  Filter.Eventually (fun a => eval a p > 0) (rightNear x)
+
+def sign_r_pos (x : ℝ) (p : Polynomial ℝ) : Prop := eventually_at_right x (fun x => eval x p > 0)
 
 -- We should define sign_r_pos in terms of eventually_at_right
 theorem eventually_at_right_equiv' {x : Real} {p : Polynomial Real} : sign_r_pos x p ↔ (∃ b : Real, (b > x) ∧ (∀ y : Real, x < y ∧ y < b → 0 < eval y p)) := by
@@ -35,13 +34,13 @@ theorem eventually_at_right_equiv' {x : Real} {p : Polynomial Real} : sign_r_pos
     exact mem_nhdsGT_iff_exists_Ioo_subset.mpr h
 
 theorem eventually_subst (P Q: ℝ → Prop) (F: Filter ℝ) (h: Filter.Eventually (fun a => P a  = Q a) F) :
-                         (Filter.Eventually P F = Filter.Eventually Q F) := by
-    simp only [eq_iff_iff] at h ⊢
-    constructor
-    · intro hev
-      exact (eventually_congr h).mp hev
-    · intro hev'
-      exact (eventually_congr h).mpr hev'
+    (Filter.Eventually P F = Filter.Eventually Q F) := by
+  simp only [eq_iff_iff] at h ⊢
+  constructor
+  · intro hev
+    exact (eventually_congr h).mp hev
+  · intro hev'
+    exact (eventually_congr h).mpr hev'
 
 lemma sign_r_pos_rec (p : Polynomial Real) (x : Real) (hp : p ≠ 0) :
     sign_r_pos x p = if eval x p = 0 then sign_r_pos x (derivative p) else eval x p > 0 := by
@@ -218,7 +217,6 @@ lemma sign_r_pos_minus (x : ℝ) (p : Polynomial ℝ) : p ≠ 0 → (sign_r_pos 
     linarith
   aesop
 
-set_option maxHeartbeats 500000 in
 lemma sign_r_pos_mult (p q : Polynomial Real) (x : Real) (hp : p ≠ 0) (hq : q ≠ 0) :
     sign_r_pos x (p * q) = (sign_r_pos x p ↔ sign_r_pos x q) := by
   obtain ⟨ub, hub1, hub2⟩ : ∃ ub : ℝ , x < ub ∧ ((∀ z ∈ Ioo x ub, 0 < eval z p) ∨ (∀ z ∈ Ioo x ub, eval z p < 0)) := by
@@ -261,12 +259,12 @@ lemma sign_r_pos_mult (p q : Polynomial Real) (x : Real) (hp : p ≠ 0) (hq : q 
       unfold sign_r_pos
       apply eventually_at_right_equiv.mpr
       use ub
-      aesop
+      exact And.symm ⟨hzp, hub1⟩
     have sign_r_pos_q : sign_r_pos x q := by
       unfold sign_r_pos
       apply eventually_at_right_equiv.mpr
       use ub'
-      aesop
+      exact And.symm ⟨hzq, hub1'⟩
     have : Filter.Eventually (fun z => 0 < eval z p ∧ 0 < eval z q) (rightNear x) := Eventually.and sign_r_pos_p sign_r_pos_q
     have : sign_r_pos x (p * q) := by
       unfold sign_r_pos
@@ -286,7 +284,8 @@ lemma sign_r_pos_mult (p q : Polynomial Real) (x : Real) (hp : p ≠ 0) (hq : q 
       unfold sign_r_pos
       apply eventually_at_right_equiv.mpr
       use ub'
-      aesop
+      simp_all only [ne_eq, mem_Ioo, and_self, implies_true, and_imp, true_or, or_true, true_iff, eq_iff_iff,
+        forall_const, gt_iff_lt, eval_neg, Left.neg_pos_iff]
     have : Filter.Eventually (fun z => 0 < eval z p ∧ 0 < eval z (-q)) (rightNear x) := Eventually.and sign_r_pos_p sign_r_pos_q
     have : sign_r_pos x (- p * q) := by
       unfold sign_r_pos
@@ -309,21 +308,22 @@ lemma sign_r_pos_mult (p q : Polynomial Real) (x : Real) (hp : p ≠ 0) (hq : q 
     have sign_r_pos_q' : ¬ sign_r_pos x q := by
       clear * -  sign_r_pos_q hq
       have := sign_r_pos_minus x q hq
-      aesop
+      exact (not_congr (id (Iff.symm this))).mp fun a => a sign_r_pos_q
     clear * - this sign_r_pos_p sign_r_pos_q'
-    aesop
+    simp_all only [iff_false, not_true_eq_false]
   have H3 : (∀ z ∈ Ioo x ub, 0 > eval z p) → (∀ z ∈ Ioo x ub', 0 < eval z q) → sign_r_pos x (p * q) = (sign_r_pos x p ↔ sign_r_pos x q) := by
     intros hzp hzq
     have sign_r_pos_p : sign_r_pos x (-p) := by
       unfold sign_r_pos
       apply eventually_at_right_equiv.mpr
       use ub
-      aesop
+      simp_all only [ne_eq, mem_Ioo, and_imp, and_self, implies_true, or_true, true_or, eq_iff_iff, forall_const,
+        gt_iff_lt, eval_neg, Left.neg_pos_iff]
     have sign_r_pos_q : sign_r_pos x q := by
       unfold sign_r_pos
       apply eventually_at_right_equiv.mpr
       use ub'
-      aesop
+      exact And.symm ⟨hzq, hub1'⟩
     have : Filter.Eventually (fun z => 0 < eval z (-p) ∧ 0 < eval z q) (rightNear x) := Eventually.and sign_r_pos_p sign_r_pos_q
     have : sign_r_pos x (- p * q) := by
       unfold sign_r_pos
@@ -342,23 +342,24 @@ lemma sign_r_pos_mult (p q : Polynomial Real) (x : Real) (hp : p ≠ 0) (hq : q 
         simp_all only [ne_eq, mul_eq_zero, not_or, neg_mul, neg_eq_zero, or_self, not_false_eq_true]
       exact (sign_r_pos_minus x (-p * q) neq0').mp this
     have sign_r_pos_p' : ¬ sign_r_pos x p := by
-      clear * -  sign_r_pos_p hp
       have := sign_r_pos_minus x p hp
-      aesop
+      exact (not_congr (id (Iff.symm this))).mp fun a => a sign_r_pos_p
     clear * - this sign_r_pos_p' sign_r_pos_q
-    aesop
+    simp_all only [iff_true]
   have H4 : (∀ z ∈ Ioo x ub, 0 > eval z p) → (∀ z ∈ Ioo x ub', 0 > eval z q) → sign_r_pos x (p * q) = (sign_r_pos x p ↔ sign_r_pos x q) := by
     intros hzp hzq
     have sign_r_pos_p : sign_r_pos x (-p) := by
       unfold sign_r_pos
       apply eventually_at_right_equiv.mpr
       use ub
-      aesop
+      simp_all only [ne_eq, mem_Ioo, and_imp, and_self, implies_true, or_true, gt_iff_lt, eq_iff_iff, forall_const,
+        eval_neg, Left.neg_pos_iff]
     have sign_r_pos_q : sign_r_pos x (-q) := by
       unfold sign_r_pos
       apply eventually_at_right_equiv.mpr
       use ub'
-      aesop
+      simp_all only [ne_eq, mem_Ioo, and_imp, and_self, implies_true, or_true, gt_iff_lt, eq_iff_iff, forall_const,
+        eval_neg, Left.neg_pos_iff]
     have : Filter.Eventually (fun z => 0 < eval z (-p) ∧ 0 < eval z (-q)) (rightNear x) := Eventually.and sign_r_pos_p sign_r_pos_q
     have : sign_r_pos x (p * q) := by
       unfold sign_r_pos
@@ -371,12 +372,21 @@ lemma sign_r_pos_mult (p q : Polynomial Real) (x : Real) (hp : p ≠ 0) (hq : q 
     clear * - this sign_r_pos_p sign_r_pos_q hp hq
     have : ¬ sign_r_pos x p := by
       have := sign_r_pos_minus x p hp
-      aesop
+      exact (not_congr (Iff.symm this)).mp fun a => a sign_r_pos_p
     have : ¬ sign_r_pos x q := by
       have := sign_r_pos_minus x q hq
-      aesop
-    aesop
-  aesop
+      exact (not_congr (Iff.symm this)).mp fun a => a sign_r_pos_q
+    simp_all only [ne_eq]
+  simp_all only [ne_eq, mem_Ioo, and_imp, implies_true, eq_iff_iff, gt_iff_lt]
+  cases hub2 with
+  | inl h =>
+    cases hub2' with
+    | inl h_1 => simp_all only [implies_true, forall_const, imp_self]
+    | inr h_2 => simp_all only [implies_true, imp_self, forall_const]
+  | inr h_1 =>
+    cases hub2' with
+    | inl h => simp_all only [implies_true, imp_self, forall_const]
+    | inr h_2 => simp_all only [implies_true, imp_self, forall_const]
 
 lemma sign_r_pos_deriv (p : Polynomial Real) (x : Real) (hp : p ≠ 0) (hev : eval x p = 0) : sign_r_pos x (derivative p * p) := by
   have deriv_ne_0 : derivative p ≠ 0 := derivative_ne_0 p x hev hp
@@ -388,7 +398,7 @@ lemma sign_r_pos_deriv (p : Polynomial Real) (x : Real) (hp : p ≠ 0) (hev : ev
   · exact hp
 
 lemma sign_r_pos_add {x : ℝ} (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq_eval: eval x q ≠ 0) :
-                     (sign_r_pos x (p + q) = sign_r_pos x q) := by
+    (sign_r_pos x (p + q) = sign_r_pos x q) := by
   by_cases (eval x (p + q) = 0)
   next => aesop
   next hf =>
@@ -402,7 +412,7 @@ lemma sign_r_pos_add {x : ℝ} (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq
     simp [this, h]
 
 lemma sign_r_pos_mod {x : ℝ} (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq_eval: eval x q ≠ 0) :
-                                         sign_r_pos x (q % p) = sign_r_pos x q := by
+    sign_r_pos x (q % p) = sign_r_pos x q := by
   have h' : eval x (q % p) ≠ 0 := by rw [eval_mod q p x hp_eval]; exact hq_eval
   nth_rw 2 [<-EuclideanDomain.div_add_mod q p]
   rw [sign_r_pos_add]
