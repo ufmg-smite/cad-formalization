@@ -173,7 +173,8 @@ lemma sign_r_pos_rec (p : Polynomial Real) (x : Real) (hp : p ≠ 0) :
         rintro y ⟨hy1, hy2⟩
         simp at H1
         exact H1 y hy1 (le_of_lt hy2)
-    aesop
+    simp_all only [ne_eq]
+    apply Iff.intro <;> intro a <;> simp_all only [imp_self, forall_const]
 
 lemma sign_r_pos_minus (x : ℝ) (p : Polynomial ℝ) : p ≠ 0 → (sign_r_pos x p ↔ (¬ sign_r_pos x (-p))) := by
   intro hp
@@ -208,9 +209,9 @@ lemma sign_r_pos_minus (x : ℝ) (p : Polynomial ℝ) : p ≠ 0 → (sign_r_pos 
     have xy : x < y := left_lt_add_div_two.mpr xs
     have ys : y < s := add_div_two_lt_right.mpr xs
     have sb : s ≤ b := min_le_left b c
-    have yb : y < b := gt_of_ge_of_gt sb ys
+    have yb : y < b := Std.lt_of_lt_of_le ys sb
     have sc : s ≤ c := min_le_right b c
-    have yc : y < c := gt_of_ge_of_gt sc ys
+    have yc : y < c := Std.lt_of_lt_of_le ys sc
     have h1 := hb2 y ⟨xy, yb⟩
     have h2 := hc2 y ⟨xy, yc⟩
     simp at h2
@@ -378,15 +379,7 @@ lemma sign_r_pos_mult (p q : Polynomial Real) (x : Real) (hp : p ≠ 0) (hq : q 
       exact (not_congr (Iff.symm this)).mp fun a => a sign_r_pos_q
     simp_all only [ne_eq]
   simp_all only [ne_eq, mem_Ioo, and_imp, implies_true, eq_iff_iff, gt_iff_lt]
-  cases hub2 with
-  | inl h =>
-    cases hub2' with
-    | inl h_1 => simp_all only [implies_true, forall_const, imp_self]
-    | inr h_2 => simp_all only [implies_true, imp_self, forall_const]
-  | inr h_1 =>
-    cases hub2' with
-    | inl h => simp_all only [implies_true, imp_self, forall_const]
-    | inr h_2 => simp_all only [implies_true, imp_self, forall_const]
+  cases hub2 <;> cases hub2' <;> simp_all only [implies_true, forall_const]
 
 lemma sign_r_pos_deriv (p : Polynomial Real) (x : Real) (hp : p ≠ 0) (hev : eval x p = 0) : sign_r_pos x (derivative p * p) := by
   have deriv_ne_0 : derivative p ≠ 0 := derivative_ne_0 p x hev hp
@@ -405,7 +398,7 @@ lemma sign_r_pos_add {x : ℝ} (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq
     have h_pq : p + q ≠ 0 := eval_non_zero (p + q) x hf
     have h: sign_r_pos x (p + q) = (eval x q > 0) := by
       have := sign_r_pos_rec (p + q) x h_pq
-      simp [hf, hp_eval, hq_eval] at this; simp [this]
+      simp [hp_eval, hq_eval] at this; simp [this]
     have : sign_r_pos x q = (eval x q > 0) := by
       have := sign_r_pos_rec q x (eval_non_zero q x hq_eval)
       simp [hq_eval] at this; simp [this]
@@ -436,7 +429,7 @@ lemma sign_r_pos_smult (p: Polynomial ℝ) (x c: ℝ) : ¬(c = 0) -> ¬(p = 0) -
       · exact fun a => neg_of_mul_pos_right a hf
       · exact fun a => mul_pos_of_neg_of_neg hcltz a
     have heq : sign_r_pos x (C c * p) = sign_r_pos x (-p) := by
-      simp [sign_r_pos, hc]
+      simp [sign_r_pos]
       aesop
     have : sign_r_pos x p = (¬ sign_r_pos x (-p)) := by simp only [sign_r_pos_minus x p hp]
     aesop

@@ -53,7 +53,7 @@ lemma next_non_root_interval (p : Polynomial Real) (lb : Real) (hp : p ≠ 0) :
         simp at hz
         obtain ⟨hz1, hz2⟩ := hz
         intro abs
-        have : z ∉ S := Finset.not_mem_of_lt_min hz2 hlr
+        have : z ∉ S := Finset.notMem_of_lt_min hz2 hlr
         simp [S] at this
         have := this hp abs
         linarith
@@ -71,10 +71,11 @@ lemma next_non_root_interval (p : Polynomial Real) (lb : Real) (hp : p ≠ 0) :
         exact this abs
     else
       use lb + 1
-      simp only [lt_add_iff_pos_right, zero_lt_one, mem_Ioc, ne_eq, and_imp, true_and, S]
+      simp only [lt_add_iff_pos_right, zero_lt_one, mem_Ioc, ne_eq, and_imp, true_and]
       intros z hz1 hz2 abs
       have : z ∈ S := by simp [S, hp, abs, hz1]
-      have : Finset.Nonempty S := by simp_all only [ne_eq, gt_iff_lt, Finset.not_nonempty_iff_eq_empty, Finset.not_mem_empty, S]
+      have : Finset.Nonempty S := by simp_all only [ne_eq, gt_iff_lt,
+        Finset.not_nonempty_iff_eq_empty, Finset.notMem_empty]
       exact hS this
   next hr =>
     push_neg at hr
@@ -99,7 +100,7 @@ lemma last_non_root_interval (p : Polynomial Real) (ub : Real) (hp : p ≠ 0) :
         simp at hz
         obtain ⟨hz1, hz2⟩ := hz
         intro abs
-        have : z ∉ S := Finset.not_mem_of_max_lt hz1 hmr
+        have : z ∉ S := Finset.notMem_of_max_lt hz1 hmr
         simp [S] at this
         have := this hp abs
         linarith
@@ -120,7 +121,8 @@ lemma last_non_root_interval (p : Polynomial Real) (ub : Real) (hp : p ≠ 0) :
       simp
       intros z hz1 hz2 abs
       have : z ∈ S := by simp [S, abs, hz2, hp]
-      have : Finset.Nonempty S := by simp_all only [ne_eq, Finset.not_nonempty_iff_eq_empty, Finset.not_mem_empty, S]
+      have : Finset.Nonempty S := by simp_all only [ne_eq, Finset.not_nonempty_iff_eq_empty,
+        Finset.notMem_empty]
       exact hS this
   next hr =>
     push_neg at hr
@@ -173,9 +175,7 @@ lemma not_eq_pos_or_neg_iff_1 (p : Polynomial Real) (lb ub : Real) :
       simp at hr₃
       have : r ∈ Set.Ioc lb ub := by
         simp at hz₁ hz₂ ⊢
-        constructor
-        · linarith
-        · linarith
+        constructor <;> linarith
       exact H₁ r this hr₃
     next hge =>
       push_neg at hge
@@ -210,8 +210,7 @@ lemma derivative_ne_0 (p : Polynomial Real) (x : Real) (hev : eval x p = 0) (hp 
   exact this hev
 
 lemma exists_deriv_eq_slope_poly (a b : Real) (hab : a < b) (p : Polynomial Real) :
-    ∃ c : Real, c > a ∧ c < b ∧
-                eval b p - eval a p = (b - a) * eval c (derivative p) := by
+    ∃ c : Real, c > a ∧ c < b ∧ eval b p - eval a p = (b - a) * eval c (derivative p) := by
   obtain ⟨c, hc1, hc2⟩ :=
     exists_deriv_eq_slope (a := a) (b := b) (fun x => eval x p) hab
       (Polynomial.continuousOn_aeval p) (Polynomial.differentiableOn_aeval p)
@@ -231,7 +230,7 @@ lemma eval_mod (p q: Polynomial ℝ) (x: ℝ) (h: eval x q = 0) : eval x (p % q)
 lemma eval_non_zero (p: Polynomial ℝ) (x: ℝ) (h: eval x p ≠ 0) : p ≠ 0 := by aesop
 
 lemma mul_C_eq_root_multiplicity (p: Polynomial ℝ) (c r: ℝ) (hc: ¬ c = 0):
-                                        (rootMultiplicity r p = rootMultiplicity r (C c * p)) := by
+    (rootMultiplicity r p = rootMultiplicity r (C c * p)) := by
   simp only [<-count_roots]
   rw [roots_C_mul]
   exact hc
@@ -240,7 +239,7 @@ theorem div_rem_zero {b c r: Polynomial ℝ} (h_rem: r.degree < b.degree) : (c *
   rw [mul_comm]
   have h_b : b ≠ 0 := ne_zero_of_degree_gt h_rem
   if H: r = 0 then
-   simp[H, h_b];
+   simp [H, h_b]
   else
     have h_stronger : (b * c + r)/b = c ∧ (b * c + r) % b = r := by
       by_contra!
@@ -274,7 +273,7 @@ theorem div_rem_zero {b c r: Polynomial ℝ} (h_rem: r.degree < b.degree) : (c *
       have h_final : b.degree ≤ degree (r - (b * c + r) % b) := by
         exact le_of_le_of_eq h_lt_deg h_deg_plus
       have h_contra: degree (r - (b * c + r) % b) < degree (r - (b * c + r) % b) := by
-        exact gt_of_ge_of_gt h_final h_r
+        exact Std.lt_of_lt_of_le h_r h_final
       exact (lt_self_iff_false (r - (b * c + r) % b).degree).mp h_contra
     exact h_stronger.1
 
@@ -285,7 +284,7 @@ theorem mul_cancel' {p q r: Polynomial ℝ} (hr: r ≠ 0) : (r * p) / (r * q) = 
     rw [<-h_x]
     rw [div_C_mul, mul_div_cancel_right₀ (hb := hr)]
     have : p/ C x = p / (C x * 1) := by rw [mul_one]
-    rw [this, div_C_mul]; simp_all 
+    rw [this, div_C_mul]; norm_num
   else
     have hq : q ≠ 0 := Ne.symm (ne_of_apply_ne natDegree fun a => H (id (Eq.symm a)))
     have : p = (p/q) * q + p % q := Eq.symm (EuclideanDomain.div_add_mod' p q)
@@ -372,7 +371,7 @@ lemma bound_sgn_pos_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ ub : ℝ, ∀ 
   if ub_pos: 0 < ub then
     use ub
     intros x hx
-    exact h_sign_eq x (gt_of_ge_of_gt hx ub_pos) (mul_pos x (gt_of_ge_of_gt hx ub_pos) hx)
+    exact h_sign_eq x (Std.lt_of_lt_of_le ub_pos hx) (mul_pos x (Std.lt_of_lt_of_le ub_pos hx) hx)
   else
     use 1
     intros x hx

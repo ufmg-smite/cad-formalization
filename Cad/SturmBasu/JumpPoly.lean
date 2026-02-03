@@ -2,7 +2,6 @@ import Mathlib
 
 import Cad.SturmBasu.Utils
 import Cad.SturmBasu.SignRPos
-/- import Cad.SturmBasu.Theorem -/
 
 open Polynomial Set Filter Classical
 
@@ -35,20 +34,20 @@ lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
           unfold IsRoot at this; exact Finite.sep this fun a => a > x
         let roots_x : Finset ℝ := Finite.toFinset roots_fin
         have : roots_x.Nonempty := by
-          unfold roots_x; simp [roots_fin]; exact Set.nonempty_of_mem hz
+          unfold roots_x; simp; exact Set.nonempty_of_mem hz
         let lr := Finset.min' (roots_x) this
         have h_eval_nz: (∀z: ℝ, x < z ∧ z < lr -> eval z p' ≠ 0) ∧ lr > x := by
           have : lr > x := by
             unfold lr; unfold roots_x;
-            simp [roots_fin]
+            simp
           simp only [this, and_true]
           intros z hz; unfold lr roots_x at hz
           have hz_n : z ∉ roots_x := by
             by_contra!
-            simp [roots_x, roots_fin] at this hz
+            simp [roots_x] at this hz
             simp [this] at hz; have h_contra := hz z this.1 this.2
             exact (lt_self_iff_false z).mp h_contra
-          simp [roots_x, roots_fin, hz] at hz_n; exact hz_n
+          simp [roots_x, hz] at hz_n; exact hz_n
         have h_eval_gz : ∀z: ℝ, x < z ∧ z < lr ->  eval z (p' * p') > 0 := by
           intros z hz; simp; exact h_eval_nz.1 z hz
         use lr; exact ⟨h_eval_nz.2, h_eval_gz⟩
@@ -150,7 +149,7 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
             have : rootMultiplicity x (q' % p') = 0 ∧ q' % p' ≠ 0 := by
               simp at hq_mod_ndvd hq_ndvd
               have : q' % p' ≠ 0 := by
-                simp [EuclideanDomain.mod_zero]
+                simp
                 by_contra!
                 have := dvd_trans hp_dvd this; exact hq_ndvd this
               constructor
@@ -189,9 +188,9 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
             rw [mul_comm, this, mul_comm];
           next H =>
             simp only [Lean.Grind.not_and] at H;
-            rcases H with ha | hb | hc <;> simp_all [<-Nat.not_odd_iff_even]
+            rcases H with ha | hb | hc <;> simp_all
        else
-         simp only [Lean.Grind.not_and, ne_eq, not_not, <-ne_eq] at h'
+         simp only [Lean.Grind.not_and, not_not, <-ne_eq] at h'
          exact h h'
     clear *- h_ult hq' hp' hf hz'
     have h_mon_z :  (X - C x) ^ n ≠ 0:= by
@@ -203,19 +202,17 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
     exact h_ult
 
 lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
-                        jump_val p (Polynomial.C c * q) x = (sgn c) * jump_val p q x := by
-  by_cases (c = 0 ∨ q = 0)
-  next ht =>
-    simp [jump_val, ht]
+    jump_val p (Polynomial.C c * q) x = (sgn c) * jump_val p q x := by
+  rcases Classical.em (c = 0 ∨ q = 0)  with ht|hf
+  · simp [jump_val, ht]
+    intros h1 h2 h3
+    have hc: c = 0 := by aesop
     split
-    · have hc: c = 0 := by aesop
-      simp [sgn, hc]
-    · rfl
-  next hf =>
-    simp at hf
+    · simp [sgn, hc]
+    · simp [hc, sgn]
+  · simp at hf
     unfold jump_val
-    if hpz : p = 0 then
-      simp [hpz]
+    if hpz : p = 0 then simp [hpz]
     else
       have h := sign_r_pos_smult (p * q) x c hf.1
       simp [hf, hpz] at h
@@ -238,7 +235,7 @@ lemma jump_poly_not_root {p q: Polynomial ℝ} {x: ℝ} (hp: eval x p ≠ 0) : j
     simp [hqz, hpz]
   else
     have : rootMultiplicity x p = 0 := by simp [hp] 
-    simp [hp, hpz, hqz, this]
+    simp [hpz, hqz, this]
 
 @[simp]
 lemma jump_poly_z1 (p: Polynomial ℝ) (x: ℝ) : jump_val p 0 x = 0 := by simp [jump_val]
@@ -250,9 +247,9 @@ lemma jump_poly_coprime {p q: Polynomial ℝ} {x: ℝ} (hp: eval x p = 0) (hpq_c
   if hpqz: (p = 0 ∨ q  = 0) then
     rcases hpqz with h | h <;> simp[h]
   else
-    rw [Mathlib.Tactic.PushNeg.not_or_eq] at hpqz; have ⟨hpz, hqz⟩ := hpqz
-    have hroot : eval x p ≠ 0 ∨ eval x q ≠ 0 := by
-      exact aeval_ne_zero_of_isCoprime hpq_coprime x
+    push_neg at hpqz
+    have ⟨hpz, hqz⟩ := hpqz
+    have hroot : eval x p ≠ 0 ∨ eval x q ≠ 0 := aeval_ne_zero_of_isCoprime hpq_coprime x
     have hq_root : eval x q ≠ 0 := by aesop
     have hq_multiplicity : rootMultiplicity x q = 0 := by aesop
     have h: rootMultiplicity x p - rootMultiplicity x q = rootMultiplicity x (p * q) := by
@@ -277,7 +274,7 @@ lemma jump_poly_1_mult {p q: Polynomial ℝ} {x: ℝ} (hnroot: eval x p ≠ 0 �
       have h_util: rootMultiplicity x 1 = 0 := by aesop
       have hl_simpl : jump_val (p * q) 1 x = simpl := by
         unfold simpl jump_val
-        simp [hpqz, rootMultiplicity_mul, rootMultiplicity_C 1 x, h_util, sign_r_pos_mult, hpz, hqz, hx_multiplicity]
+        simp [hpqz, rootMultiplicity_mul, h_util, sign_r_pos_mult, hpz, hqz, hx_multiplicity]
         rw [sign_r_pos_rec p x hpz]
         aesop
       have hpgtz: eval x p > 0 -> simpl = sgn (eval x q) * jump_val p 1 x + sgn (eval x p) * jump_val q 1 x := by
@@ -297,7 +294,7 @@ lemma jump_poly_1_mult {p q: Polynomial ℝ} {x: ℝ} (hnroot: eval x p ≠ 0 �
       if H: eval x p > 0 then exact hpgtz H
       else
         have : eval x p < 0 := by
-          rw [Mathlib.Tactic.PushNeg.not_gt_eq] at H
+          push_neg at H
           exact lt_of_le_of_ne H h₁
         exact hpltz this
     · have hx_multiplicity : rootMultiplicity x q = 0 := by aesop
@@ -305,27 +302,27 @@ lemma jump_poly_1_mult {p q: Polynomial ℝ} {x: ℝ} (hnroot: eval x p ≠ 0 �
       have h_util: rootMultiplicity x 1 = 0 := by aesop
       have hl_simpl : jump_val (p * q) 1 x = simpl := by
         unfold simpl jump_val
-        simp [hpqz, rootMultiplicity_mul, rootMultiplicity_C 1 x, h_util, sign_r_pos_mult, hpz, hqz, hx_multiplicity]
+        simp [hpqz, rootMultiplicity_mul, h_util, sign_r_pos_mult, hpz, hqz, hx_multiplicity]
         rw [sign_r_pos_rec q x hqz]
         aesop
       have hpgtz: eval x q > 0 -> simpl = sgn (eval x q) * jump_val p 1 x + sgn (eval x p) * jump_val q 1 x := by
         intros hq
         unfold simpl
-        simp only [ne_eq, gt_iff_lt, Int.reduceNeg, h₂, not_false_eq_true, jump_poly_not_root, mul_zero, zero_add]
+        simp only [ne_eq, gt_iff_lt, Int.reduceNeg, h₂, not_false_eq_true, jump_poly_not_root, mul_zero]
         unfold jump_val sgn
-        simp [hqz, hq, h_util]
+        simp [hq, h_util]
       have hpltz: eval x q < 0 -> simpl = sgn (eval x q) * jump_val p 1 x + sgn (eval x p) * jump_val q 1 x := by
         intros hq
         unfold simpl
         have haux : ¬ eval x q > 0 := not_lt_of_gt hq
-        simp only [ne_eq, gt_iff_lt, Int.reduceNeg, h₂, not_false_eq_true, jump_poly_not_root, mul_zero, zero_add]
+        simp only [ne_eq, gt_iff_lt, Int.reduceNeg, h₂, not_false_eq_true, jump_poly_not_root, mul_zero]
         unfold jump_val sgn
-        simp [hqz, haux, h_util, h₂] 
+        simp [haux, h_util, h₂]
       rw [hl_simpl]
       if H: eval x q > 0 then
         exact hpgtz H
       else
       have : eval x q < 0 := by
-        rw [Mathlib.Tactic.PushNeg.not_gt_eq] at H
+        push_neg at H
         exact lt_of_le_of_ne H h₂
       exact hpltz this

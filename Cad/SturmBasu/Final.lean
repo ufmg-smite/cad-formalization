@@ -35,7 +35,7 @@ lemma seq_sgn_pos_inf_seqEvalSgn (ub : ℝ) (ps : List (Polynomial ℝ)) (key : 
     · apply Eq.symm
       apply key
       · exact Preorder.le_refl ub
-      · exact List.mem_cons_self hd tl
+      · exact List.mem_cons_self
     · apply seq_sgn_pos_inf_seqEvalSgn ub tl
       intros x hx pp hpp
       apply key
@@ -84,7 +84,7 @@ lemma seq_sgn_neg_inf_seqEvalSgn (lb : ℝ) (ps : List (Polynomial ℝ)) (key : 
     simp only [seq_sgn_neg_inf, seqEvalSgn, List.cons.injEq, Int.cast_inj]
     constructor
     · apply Eq.symm
-      exact key _ (Preorder.le_refl lb) _ (List.mem_cons_self hd tl)
+      exact key _ (Preorder.le_refl lb) _ List.mem_cons_self
     · apply seq_sgn_neg_inf_seqEvalSgn lb tl
       intros x hx pp hpp
       exact key _ hx _ (List.mem_cons_of_mem hd hpp)
@@ -108,7 +108,7 @@ theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpa : eval b p ≠ 
     congr
     simp [rootsBelow, rootsInInterval]
     ext z
-    simp only [Finset.mem_filter, Multiset.mem_toFinset, mem_roots', ne_eq, IsRoot.def, Set.mem_Ioo,
+    simp only [Finset.mem_filter, Multiset.mem_toFinset, mem_roots', ne_eq, IsRoot.def,
       and_congr_right_iff, iff_and_self, and_imp]
     intro a a_1 a_2
     simp_all only [ne_eq, not_false_eq_true, gt_iff_lt, ps]
