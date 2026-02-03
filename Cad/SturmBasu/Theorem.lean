@@ -6,6 +6,8 @@ noncomputable section
 
 open Polynomial
 
+namespace Theorem
+
 theorem sturm_tarski_interval (a b : ℝ) (p q : Polynomial ℝ) (hab : a < b) (hpa : eval a p ≠ 0) (hpb : eval b p ≠ 0) :
     tarskiQuery p q a b = seqVarSturm_ab p (derivative p * q) a b := by
   rw [B_2_58 p (derivative p * q) a b hpa hpb hab]
@@ -26,7 +28,8 @@ def tarskiQuery_below (p q : Polynomial ℝ) (b : ℝ) : ℤ :=
 def tarskiQuery_R (p q : Polynomial ℝ) : ℤ :=
   ∑ x ∈ p.roots.toFinset, sgn (q.eval x)
 
-lemma seq_sgn_pos_inf_seqEvalSgn (ub : ℝ) (ps : List (Polynomial ℝ)) (key : ∀ x ≥ ub, ∀ pp ∈ ps, sgn (eval x pp) = sgn_pos_inf pp) : seq_sgn_pos_inf ps = seqEvalSgn ub ps := by
+lemma seq_sgn_pos_inf_seqEvalSgn (ub : ℝ) (ps : List (Polynomial ℝ)) (key : ∀ x ≥ ub, ∀ pp ∈ ps, sgn (eval x pp) = sgn_pos_inf pp) :
+    seq_sgn_pos_inf ps = seqEvalSgn ub ps := by
   cases ps
   next => simp only [seq_sgn_pos_inf, seqEvalSgn]
   next hd tl =>
@@ -77,7 +80,8 @@ theorem sturm_tarski_above (a : ℝ) (p q : Polynomial ℝ) (hpa : eval a p ≠ 
   have := hub1 p this ub abs
   simp at this
 
-lemma seq_sgn_neg_inf_seqEvalSgn (lb : ℝ) (ps : List (Polynomial ℝ)) (key : ∀ x ≤ lb, ∀ pp ∈ ps, sgn (eval x pp) = sgn_neg_inf pp) : seq_sgn_neg_inf ps = seqEvalSgn lb ps := by
+lemma seq_sgn_neg_inf_seqEvalSgn (lb : ℝ) (ps : List (Polynomial ℝ)) (key : ∀ x ≤ lb, ∀ pp ∈ ps, sgn (eval x pp) = sgn_neg_inf pp) :
+    seq_sgn_neg_inf ps = seqEvalSgn lb ps := by
   cases ps
   next => simp only [seq_sgn_neg_inf, seqEvalSgn]
   next hd tl =>
@@ -206,3 +210,5 @@ theorem sturm_R (p : Polynomial ℝ) :
   have := sturm_tarski_R p 1
   simp [tarskiQuery_R, sgn] at this
   exact this
+
+end Theorem

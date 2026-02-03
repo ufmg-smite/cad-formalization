@@ -4,6 +4,12 @@ open Polynomial Set Filter Classical
 
 noncomputable section
 
+lemma or_neg_of_mul_neg (a b : ℝ) : a * b < 0 → a < 0 ∨ b < 0 := by
+  intro h
+  apply or_iff_not_imp_left.mpr
+  intro ha
+  nlinarith
+
 def rootsInInterval (f : Polynomial ℝ) (a b : ℝ) : Finset ℝ :=
   f.roots.toFinset.filter (fun x => x ∈ Ioo a b)
 
@@ -283,7 +289,12 @@ lemma eval_mod (p q: Polynomial ℝ) (x: ℝ) (h: eval x q = 0) : eval x (p % q)
  have : eval x (p % q) = eval x (p / q * q) + eval x (p % q) := by simp; exact Or.inr h
  rw [<- eval_add, EuclideanDomain.div_add_mod'] at this; exact this
 
-lemma eval_non_zero (p: Polynomial ℝ) (x: ℝ) (h: eval x p ≠ 0) : p ≠ 0 := by aesop
+lemma eval_non_zero (p: Polynomial ℝ) (x: ℝ) (h: eval x p ≠ 0) : p ≠ 0 := by
+  simp_all only [ne_eq]
+  apply Aesop.BuiltinRules.not_intro
+  intro a
+  subst a
+  simp_all only [eval_zero, not_true_eq_false]
 
 lemma mul_C_eq_root_multiplicity (p: Polynomial ℝ) (c r: ℝ) (hc: ¬ c = 0):
     (rootMultiplicity r p = rootMultiplicity r (C c * p)) := by

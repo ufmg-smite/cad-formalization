@@ -236,7 +236,7 @@ lemma jump_poly_not_root {p q: Polynomial ℝ} {x: ℝ} (hp: eval x p ≠ 0) : j
   if hqz: q = 0 then
     simp [hqz, hpz]
   else
-    have : rootMultiplicity x p = 0 := by simp [hp] 
+    have : rootMultiplicity x p = 0 := by simp [hp]
     simp [hpz, hqz, this]
 
 @[simp]

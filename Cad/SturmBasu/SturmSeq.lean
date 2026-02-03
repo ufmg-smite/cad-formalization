@@ -221,8 +221,8 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
     (seqVarSturm_ab p q a b) = cross (p * q) a b + seqVarSturm_ab q (-p%q) a b := by
   if H: p = 0 ∨ q = 0 ∨ p % q = 0 then
     rcases H with h | h | h
-    · simp [h]
-    · simp [h]
+    · simp [cross, variation, h]
+    · simp [cross, variation, h]
     · unfold seqVarSturm_ab seqVar_ab seqEval cross seqVar sturmSeq
       rw [mod_minus, h]
       have ⟨hap, haq⟩: eval a p ≠ 0 ∧ eval a q ≠ 0 := by simp_all only [eval_mul, ne_eq, mul_eq_zero, not_or,
