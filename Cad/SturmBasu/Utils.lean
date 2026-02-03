@@ -12,11 +12,67 @@ def sgn (k : ℝ) : ℤ  :=
   else if k = 0 then 0
   else -1
 
+lemma sgn_sgn_neg : ∀ x : ℝ, sgn x < 0 ↔ x < 0 := by
+  intro x
+  unfold sgn
+  split_ifs
+  next h =>
+    simp only [Int.reduceLT, false_iff, not_lt]
+    exact le_of_lt h
+  next h1 h2 => simp [h2]
+  next h1 h2 =>
+    simp only [Int.reduceNeg, Left.neg_neg_iff, zero_lt_one, true_iff]
+    push_neg at h1 h2
+    exact lt_of_le_of_ne h1 h2
+
+lemma sgn_sgn_zero : ∀ x : ℝ, sgn x = 0 ↔ x = 0 := by
+  intro x
+  unfold sgn
+  split_ifs
+  next h => simp only [one_ne_zero, false_iff]; exact ne_of_gt h
+  next h => simp [h]
+  next h1 h2 => simp [h2]
+
+lemma sgn_sgn_pos : ∀ x : ℝ, sgn x > 0 ↔ x > 0 := by
+  intro x
+  unfold sgn
+  split_ifs
+  next h => simp [h]
+  next h1 h2 => simp [h2]
+  next h1 h2 => simp [h1]
+
 def sgn_pos_inf (p : Polynomial ℝ) : ℤ :=
   sgn p.leadingCoeff
 
 def sgn_neg_inf (p : Polynomial ℝ) : ℤ :=
   if Even p.natDegree then sgn p.leadingCoeff else - sgn p.leadingCoeff
+
+-- TODO (Tomaz): Add simp annotations to all these and fix everything that breaks
+-- NOTE (Tomaz): I think only `sturmSeq` cannot be annotated with simp
+def seq_sgn_pos_inf : List (Polynomial ℝ) → List ℝ
+| [] => []
+| p::ps => sgn_pos_inf p :: seq_sgn_pos_inf ps
+
+def seq_sgn_neg_inf : List (Polynomial ℝ) → List ℝ
+| [] => []
+| p::ps => sgn_neg_inf p :: seq_sgn_neg_inf ps
+
+def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
+  ∑ x ∈ rootsInInterval f a b, sgn (g.eval x)
+
+lemma rootsInIntervalZero (a b : ℝ) : rootsInInterval 0 a b = ∅ := by simp [rootsInInterval]
+
+@[simp]
+def rootsInSet (p : Polynomial ℝ) (S : Set ℝ) : Finset ℝ :=
+  p.roots.toFinset.filter (fun x => x ∈ S)
+
+lemma rootsInSet_interval (p : Polynomial ℝ) (a b : ℝ) :
+    rootsInInterval p a b = rootsInSet p (Set.Ioo a b) := by simp [rootsInInterval]
+
+lemma rootsInSet_cup (p : Polynomial ℝ) (S T : Set ℝ) :
+    rootsInSet p S ∪ rootsInSet p T = rootsInSet p (S ∪ T) := by
+  simp only [rootsInSet, mem_union]
+  exact Finset.filter_union_right (fun x => x ∈ S) (fun x => x ∈ T) p.roots.toFinset
 
 lemma sgn_inf_comp (p : Polynomial ℝ) :
     sgn_neg_inf p = sgn_pos_inf (p.comp (-Polynomial.X)) := by

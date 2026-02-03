@@ -694,3 +694,35 @@ theorem cindex_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
     have t4 : eval b (g*g) > 0 := by simp [hbg]
     rw [variation_mult_pos (eval a (g * g)) (eval b (g * g)) (eval a (p' * q')) (eval b (p' * q')) t3 t4]
   rw [cauchyMuls, cauchy1, mul_comm, cauchyVar, <-this]
+
+lemma cindex_poly_congr (p q : Polynomial ℝ) (a a' b b' : ℝ) (haa' : a < a') (hb'b : b' < b) (ha'b' : a' < b')
+    (hpx : ∀ x : ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) → eval x p ≠ 0) :
+    cauchyIndex p q a b = cauchyIndex p q a' b' := by
+  unfold cauchyIndex
+  have : rootsInInterval p a b = rootsInInterval p a' b' := by
+    rw [rootsInSet_interval]
+    rw [rootsInSet_interval]
+    have : Set.Ioo a b = Set.Ioc a a' ∪ Set.Ioo a' b' ∪ Set.Ico b' b := by
+      rw [Set.Ioc_union_Ioo_eq_Ioo (le_of_lt haa') ha'b']
+      rw [Set.Ioo_union_Ico_eq_Ioo (gt_trans ha'b' haa') (le_of_lt hb'b)]
+    rw [this, <- rootsInSet_cup, <- rootsInSet_cup]
+    have : rootsInSet p (Set.Ioc a a') = ∅ := by
+      by_contra!
+      simp at this
+      obtain ⟨x, hx⟩ : ∃ x : ℝ, x ∈ {x ∈ p.roots.toFinset | a < x ∧ x ≤ a'} := Finset.nonempty_def.mp this
+      simp at hx
+      obtain ⟨⟨hx11, hx12⟩, hx2, hx3⟩ := hx
+      have := hpx x (Or.inl (And.intro hx2 hx3))
+      exact this hx12
+    rw [this]
+    have : rootsInSet p (Set.Ico b' b) = ∅ := by
+      by_contra!
+      simp at this
+      obtain ⟨x, hx⟩ : ∃ x : ℝ, x ∈ {x ∈ p.roots.toFinset | b' ≤ x ∧ x < b} := Finset.nonempty_def.mp this
+      simp at hx
+      obtain ⟨⟨hx11, hx12⟩, hx2, hx3⟩ := hx
+      have := hpx x (Or.inr (And.intro hx2 hx3))
+      exact this hx12
+    rw [this]
+    simp
+  rw [this]
