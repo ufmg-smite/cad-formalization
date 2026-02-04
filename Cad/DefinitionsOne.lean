@@ -3,11 +3,24 @@ namespace Definitions
 -- Esse arquivo contém as definições necessárias para
 -- resolver o problema de uma forma computável
 
-structure MyMonomial  where
+structure MyMonomial where
   coef : ℚ
   exp : Nat
 
-abbrev MyPolynomial := List MyMonomial
+instance : ToString MyMonomial where
+  toString m :=
+    let pref := if m.coef = 1 then "" else toString m.coef ++ " * "
+    let suff := if m.exp = 1 then "" else " ^ " ++ (toString m.exp)
+    pref ++ "x" ++ suff
+
+def MyPolynomial := List MyMonomial
+
+instance : ToString MyPolynomial where
+  toString ms :=
+    let ms' := ms.map toString
+    if ms'.isEmpty then ""
+    else
+      String.intercalate " + " ms'
 
 -- Definições úteis
 /- def zero : List MyMonomial := [{coef := 0, vars := []}] -/
@@ -166,6 +179,7 @@ def evalPoly : (p : MyPolynomial) → ℝ → ℝ := fun p r =>
 def M : MyMonomial := { coef := 2, exp := 1 }
 def r : Real := 3
 def P : MyPolynomial := [M]
+
 example : evalMonom M 3 > 0 := by simp [M, r]
 example : evalPoly P r > 0 := by simp [P, M, r]
 example : evalPoly P r = 6 := by simp [P, M, r]; linarith
