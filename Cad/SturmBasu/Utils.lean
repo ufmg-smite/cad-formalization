@@ -1,4 +1,11 @@
-import Mathlib
+import Mathlib.Algebra.Lie.OfAssociative
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Calculus.Deriv.MeanValue
+import Mathlib.Analysis.Calculus.Deriv.Polynomial
+import Mathlib.Analysis.Polynomial.Basic
+import Mathlib.Data.Int.Star
+import Mathlib.Data.Real.StarOrdered
+import Mathlib.Topology.Algebra.Polynomial
 
 open Polynomial Set Filter Classical
 

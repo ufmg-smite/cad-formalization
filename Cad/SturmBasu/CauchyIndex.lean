@@ -1,7 +1,5 @@
-import Mathlib
-
-import Cad.SturmBasu.Utils
 import Cad.SturmBasu.JumpPoly
+import Mathlib.RingTheory.Polynomial.Content
 
 noncomputable section
 
@@ -138,18 +136,7 @@ theorem variation_mult_pos2 (c x y : ℝ) (hc : c > 0) : variation x (c*y) = var
           linarith
         next hy0 => nlinarith
     rw[this]
-
-  have : (if 0 ≤ x * c * y then 0 else if x < c * y then 1 else -1)
-     = (if 0 ≤ c * x * y then 0 else if x < y then 1 else -1) := by
-     have : x * c * y = c * x * y := by linarith
-     rw [this]
-     by_cases h: 0 ≤ c * x * y
-     · simp [h]
-     · simp [h]
-       simp at h
-       exact if_ctx_congr (hneg h) (congrFun rfl) (congrFun rfl)
-  rw [<- mul_assoc, this]
-  simp_all only [gt_iff_lt, eq_iff_iff, Int.reduceNeg, ge_iff_le]
+  grind
 
 theorem variation_mult_pos (c d x y : ℝ) (hc : c > 0) (hd: d > 0): variation (c * x) (d*y) = variation x y := by
   simp_all [variation_mult_pos1, variation_mult_pos2]
@@ -267,8 +254,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
       have ⟨x, hx⟩ := hp_const
       have hlz: cauchyIndex p 1 a b = 0 := cindex_poly_const p 1 a b x hx
       have hrz: cross p a b = 0 := by
-        unfold cross
-        unfold variation
+        unfold cross variation
         have h_eq : eval a p = eval b p := by
           subst hx
           simp_all only [not_lt_zero', ne_eq, cindex_poly_z_1, not_isEmpty_of_nonempty, IsEmpty.forall_iff,
@@ -623,7 +609,6 @@ theorem cindex_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
       simp at hap
       obtain ⟨hag, hap'⟩ := hap
       exact hag abs
-
     simp at hbpq
     obtain ⟨hbp, hbq⟩ := hbpq
     have hbg : eval b g ≠ 0 := by
@@ -668,4 +653,3 @@ lemma cindex_poly_congr (p q : Polynomial ℝ) (a a' b b' : ℝ) (haa' : a < a')
     rw [this]
     simp
   rw [this]
-

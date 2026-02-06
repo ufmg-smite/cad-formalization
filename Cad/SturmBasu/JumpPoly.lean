@@ -1,6 +1,3 @@
-import Mathlib
-
-import Cad.SturmBasu.Utils
 import Cad.SturmBasu.SignRPos
 
 open Polynomial Set Filter Classical

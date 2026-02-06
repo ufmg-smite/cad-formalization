@@ -1,5 +1,3 @@
-import Mathlib
-
 import Cad.SturmBasu.Utils
 
 open Polynomial Set Filter Classical
@@ -412,10 +410,9 @@ lemma sign_r_pos_mod {x : ℝ} (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq
   · simp only [eval_mul, mul_eq_zero]; exact Or.inl hp_eval
   · exact h'
 
-lemma sign_r_pos_smult (p: Polynomial ℝ) (x c: ℝ) : ¬(c = 0) -> ¬(p = 0) ->
+lemma sign_r_pos_smult (p: Polynomial ℝ) (x c: ℝ) : (c ≠ 0) -> (p ≠ 0) ->
   sign_r_pos x (Polynomial.C c * p) = if c > 0 then sign_r_pos x p else ¬ sign_r_pos x p := by
   intros hc hp
-  simp only [<- ne_eq] at hc hp
   by_cases (c > 0)
   next ht => simp [sign_r_pos, ht]
   next hf =>
@@ -459,3 +456,4 @@ lemma sign_r_pos_power (a: ℝ) (n: ℕ): sign_r_pos a ((X - C a)^n) := by
       simp [haux']
     rw [<- hsrpos2] at ih
     exact ih
+
