@@ -62,21 +62,37 @@ def Case2NumbersString (s : String) : String×String :=
   let k := (aux[1]!.drop 2).toString
   (k,lastnumstr[0]!.trim)
 
+def RemoveParentheses (s : String) : String :=
+  if s.startsWith "(" && s.endsWith ")" then
+    (s.drop 1 |>.dropRight 1).toString
+  else
+    s
+
 def GetPolyAux : List String → MyPolynomial
 | [] => []
 | p::ps =>
-  let k := p.splitOn "x"
+  let k : List String := p.splitOn "x"
   if k.length == 1 then
-    MyMonomial.mk (MatchStrWithRat p) 0::GetPolyAux ps
+    MyMonomial.mk (MatchStrWithRat (RemoveParentheses p.trim)) 0::GetPolyAux ps
   else
-    let coef := if k[0]!.contains "*" then MatchStrWithRat (k[0]!.splitOn "*")[0]! else 1
-    let exp := if k[1]!.contains "^" then (k[1]!.splitOn "^")[0]!.toNat! else 1
+    let coef := if k[0]!.contains "*" then MatchStrWithRat (RemoveParentheses (k[0]!.splitOn "*")[0]!.trim) else 1
+    let exp := if k[1]!.contains "^" then (k[1]!.splitOn "^")[1]!.trim.toNat! else 1
     MyMonomial.mk coef exp::GetPolyAux ps
 
+def case2_1 : String := "sat
+  (
+  (define-fun x () Real (_ real_algebraic_number <1*x^2 + (-2), (5/4, 3/2)>))
+  )"
+
+def aaa := case2_1.splitOn "real_algebraic_number"
+#eval aaa[1]!
+#eval (aaa[1]!.splitOn ",")[0]!.drop 2
+#eval ((aaa[1]!.splitOn ",")[0]!.drop 2).toString.splitOn "+" -- ["1*x^2 ", " (-2)"]
+#eval "2".toNat!
 #eval ("pr".splitOn "p")--.length
 
 def GetPolyFromStr (s : String) : MyPolynomial :=
-  let k := ((s.splitOn ",")[0]!.drop 1).toString
+  let k := ((s.splitOn ",")[0]!.trim.drop 1).toString
   GetPolyAux (k.splitOn "+")
 
 def GetIntervalAndPoly (s : String) : ℚ × ℚ × MyPolynomial :=
@@ -119,11 +135,6 @@ def case1_4 := "sat
 #eval GetIntervalAndPoly case1_2 -- 1/720 (ok)
 #eval GetIntervalAndPoly case1_3 -- -1/2 (ok)
 #eval GetIntervalAndPoly case1_4 -- -3.0 (ok)
-
-def case2_1 : String := "sat
-  (
-  (define-fun x () Real (_ real_algebraic_number <1*x^2 + (-2), (5/4, 3/2)>))
-  )"
 
 def case2_2 : String := "sat
   (
