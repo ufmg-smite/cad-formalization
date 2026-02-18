@@ -2,8 +2,7 @@ import Mathlib
 import Lean.Elab.Tactic.Basic
 import Qq
 
-open Qq
-open Lean Elab Tactic
+open Qq Lean Elab Tactic ToExpr
 
 @[simp]
 def decomp' (l : List ℝ) (sl : l.SortedLT) (first : Bool) : List (Set ℝ) :=
@@ -31,7 +30,8 @@ lemma decomp'_covers (hd : ℝ) (tl : List ℝ) (sl : (hd :: tl).SortedLT) :
     decomp'_merge (hd :: tl) sl = fun x => x ≥ hd := by
   cases tl
   next =>
-    simp
+    simp only [decomp'_merge, decomp', Bool.false_eq_true, ↓reduceIte, gt_iff_lt, List.foldr_cons,
+      List.foldr_nil, Set.union_empty, ge_iff_le]
     ext z
     constructor
     · intro h
@@ -46,7 +46,7 @@ lemma decomp'_covers (hd : ℝ) (tl : List ℝ) (sl : (hd :: tl).SortedLT) :
         have : hd < z := gt_iff_lt.mp h
         bound
     · intro h
-      simp
+      simp only [Set.mem_union]
       have : hd < z ∨ hd = z := Decidable.lt_or_eq_of_le h
       cases this
       next =>
@@ -56,11 +56,12 @@ lemma decomp'_covers (hd : ℝ) (tl : List ℝ) (sl : (hd :: tl).SortedLT) :
         left
         tauto
   next hd' tl' =>
-    simp
+    simp only [decomp'_merge, decomp', Bool.false_eq_true, ↓reduceIte, gt_iff_lt, List.foldr_cons,
+      ge_iff_le]
     ext z
     constructor
     · intro H
-      simp at H
+      simp only [Set.mem_union] at H
       cases H
       next H1 =>
         have : z = hd := Real.ext_cauchy (congrArg Real.cauchy H1)
@@ -79,7 +80,7 @@ lemma decomp'_covers (hd : ℝ) (tl : List ℝ) (sl : (hd :: tl).SortedLT) :
           suffices hd ≤ z by finiteness
           linarith
     · intro H
-      simp
+      simp only [Set.mem_union]
       have : hd ≤ z := by finiteness
       have : hd < z ∨ hd = z := Decidable.lt_or_eq_of_le H
       cases this
@@ -115,13 +116,7 @@ lemma decomp_covers (l : List ℝ) (sl : l.SortedLT) (hl : l ≠ []) :
         finiteness
       next h =>
         right
-        cases h
-        next h1 =>
-          left
-          finiteness
-        next h1 =>
-          right
-          finiteness
+        finiteness
   | x :: y :: t => by
     simp
     ext z
@@ -170,32 +165,106 @@ lemma L (x : ℝ) (l : List ℝ) (sl : l.SortedLT) (hl : l ≠ []) :
   have := l1 x (decomp l sl) h
   simp_all only [ne_eq, decomp, Set.mem_univ, not_true_eq_false]
 
-theorem t (P : ℝ → Prop) (l : List ℝ) (sl : l.SortedLT) (hl : l ≠ []) :
+theorem t {P : ℝ → Prop} (l : List ℝ) (sl : l.SortedLT) (hl : l ≠ []) :
     (∃ x, P x) → (∃ p ∈ decomp l sl, (∃ x ∈ p, P x)) := by
   rintro ⟨x, hx⟩
   obtain ⟨p, hp⟩  := L x l sl hl
   tauto
 
-syntax (name := foo) "foo" : tactic
+syntax (name := univ_cad) "univ_cad" term "," ("[" term,* "]")? : tactic
 
-@[tactic foo] def evalFoo : Tactic := fun _ => do
-  let mv ← Tactic.getMainGoal
-  mv.withContext fun _ => do
-    let lctx ← getLCtx
-    for ldecl in lctx do
-      if ldecl.isImplementationDetail then
-        continue
-      let t := ldecl.type
-      if let some ty ← checkTypeQ (u := levelOne) ldecl.type q(Prop) then
-        match ty with
-        | ~q(LT.lt (α := Real) $lhs $rhs) =>
-          logInfo "is lt"
-          logInfo m!"lhs = {lhs}"
-          logInfo m!"rhs = {rhs}"
-          logInfo m!"-----------------------------------"
-        | _ => logInfo m!"isnt lt: {repr t}¬----------------------------------"
+def getNatLit? : Expr → Option Nat
+| .app (.app _ (.lit (.natVal x))) _ => some x
+| _ => none
 
-example (x : Real) : x > 0 → x < 0 → False := by
-  intros h1 h2
-  foo
-  admit
+@[grind, simp]
+def f (x : Nat) : Real := x
+
+def stxToNat (h : Term) : TacticM Nat := do
+  let expr ← elabTerm h.raw none
+  match getNatLit? expr with
+  | some i => pure i
+  | none   => throwError "getNatLit? failed"
+
+-- Nat for now because its easier, later we have to instrument lean-smt to parse algebraic numbers to real numbers
+def parseUnivCad : Syntax → TacticM (List Nat)
+  | `(tactic| univ_cad $_, [ $[$hs],* ]) => hs.toList.mapM stxToNat >>= λ li => return li
+  | _ => throwError "[univ_cad]: wrong usage"
+
+def runGrind (mv : MVarId) : MetaM Unit := do
+  let params ← Meta.Grind.mkDefaultParams {}
+  let _ ← Meta.Grind.main mv params
+
+-- given the list of roots and a proof that `exists (x : ℝ), P x` produces a proof
+-- that `∃ p ∈ decomp roots, ∃ x ∈ p, P x`, where `decomp roots` is the decomposition
+-- of the real line into intervals separated at the roots.
+def getDecompPf (roots : Q(List Real)) (h : Expr) : MetaM Expr := do
+  let t ← Meta.mkAppM `List.SortedLT #[roots]
+  let roots_sorted_pf ← Meta.mkFreshExprMVar t
+  runGrind roots_sorted_pf.mvarId!
+  let roots_not_empty : Q(Prop) := q($roots ≠ [])
+  let roots_not_empty_pf ← Meta.mkFreshExprMVar roots_not_empty
+  runGrind roots_not_empty_pf.mvarId!
+  Meta.mkAppM ``t #[roots, roots_sorted_pf, roots_not_empty_pf, h]
+
+def collectDisjuncts (e: Expr) : List Expr :=
+  match e with
+  | .app (.app (.const `Or ..) lhs) rhs =>
+    lhs :: collectDisjuncts rhs
+  | _ => [e]
+
+def go (imps: List Expr) (or_pf: Expr) : MetaM Expr :=
+  match imps with
+  | [] => throwError ""
+  | [e] => return e
+  | [e1, e2] => Meta.mkAppM `Or.elim #[or_pf, e1, e2]
+  | e :: t => do
+    let or_ty ← Meta.inferType or_pf
+    match or_ty with
+    | .app (.app (.const `Or ..) _) B =>
+      Meta.withLocalDeclD .anonymous B fun h => do
+        let rhs ← go t h
+        let rhs_lam ← Meta.mkLambdaFVars #[h] rhs
+        Meta.mkAppM `Or.elim #[or_pf, e, rhs_lam]
+    | _ => throwError ""
+
+-- Solves one of the intervals for univ_cad. Returns `some mv` if it is not supported yet
+def solveCase (mv : MVarId) : Option MVarId := some mv
+
+@[tactic univ_cad] def evalUnivCad : Tactic := fun stx => withMainContext do
+  let h ← elabTerm stx[1] none -- exists x, F x
+  let roots ← parseUnivCad stx
+  let e_roots' := toExpr roots
+  let e_roots : Q(List Real) ← Meta.mkAppM ``List.map #[Expr.const `f [], e_roots']
+  let decompPf ← getDecompPf e_roots h
+  let decompType ← Meta.inferType decompPf
+  let mainMv ← Tactic.getMainGoal
+  let (fv_decomp, mainMv) ← MVarId.intro1P $ ← mainMv.assert .anonymous decompType decompPf
+  let ctx ← Meta.Simp.Context.mkDefault
+  -- simp on the decomp hypothesis so it becomes a finite disjunction instead of an existential
+  let (some (fv_decomp, mainMv), _) ← Lean.Meta.simpLocalDecl mainMv fv_decomp ctx | throwError "impossible"
+  mainMv.withContext do
+    let t ← fv_decomp.getType
+    let disjuncts := collectDisjuncts t
+    let disjunctsToFalse ← disjuncts.mapM (mkArrow · (.const `False []))
+    let disjunctsToFalseMvs ← disjunctsToFalse.mapM (fun e => Meta.mkFreshExprMVar e)
+    let answer ← go disjunctsToFalseMvs (.fvar fv_decomp)
+    mainMv.assign answer
+
+    let unsolvedMvs := disjunctsToFalseMvs.map (fun e => solveCase e.mvarId!)
+    let unsolvedMvs := unsolvedMvs.foldr (fun o acc => match o with | some x => x :: acc | _ => acc) []
+    replaceMainGoal unsolvedMvs
+
+example (h : ∃ (x : ℝ), x + 3 < 0 ∧ (1/2) * x ^ 2 - 1 < 0) : False := by
+  univ_cad h, [1]
+  · admit
+  · admit
+  · admit
+
+/- syntax (name := cmdElabTerm) "#elab " term : command -/
+/- open Lean.Elab Lean.Elab.Command in -/
+/- @[command_elab cmdElabTerm] def evalCmdElabTerm : CommandElab -/
+/-   | `(#elab $term) => withoutModifyingEnv $ runTermElabM fun _ => do -/
+/-     let e ← Term.elabTerm term none -/
+/-     logInfo m!"{e} ::: {repr e}" -/
+/-   | _ => throwUnsupportedSyntax -/
