@@ -26,6 +26,20 @@ def decomp'_merge (l : List ℝ) (sl : l.SortedLT) : Set ℝ := (decomp' l sl fa
 @[simp]
 def decomp_merge (l : List ℝ) (sl : l.SortedLT) : Set ℝ := (decomp l sl).foldr (fun s acc => s ∪ acc) ∅
 
+def gen_intervals' (roots : List Real) (first : Bool) : List (Sum Real (Option Real × Option Real)) :=
+  match roots with
+  | [] => []
+  | [x] =>
+    if first then [.inr (none, some x), .inl x, .inr (some x, none)]
+    else [.inl x,  .inr (some x, none)]
+  | x :: y :: t =>
+    if first then
+      .inr (none, some x) :: .inl x :: .inr (some x, some y) :: gen_intervals' (y :: t) false
+    else
+      .inl x :: .inr (some x, some y) :: gen_intervals' (y :: t) false
+
+def gen_intervals (roots : List Real) : List (Sum Real (Option Real × Option Real)) := gen_intervals' roots true
+
 lemma decomp'_covers (hd : ℝ) (tl : List ℝ) (sl : (hd :: tl).SortedLT) :
     decomp'_merge (hd :: tl) sl = fun x => x ≥ hd := by
   cases tl
@@ -166,7 +180,7 @@ lemma L (x : ℝ) (l : List ℝ) (sl : l.SortedLT) (hl : l ≠ []) :
   simp_all only [ne_eq, decomp, Set.mem_univ, not_true_eq_false]
 
 theorem t {P : ℝ → Prop} (l : List ℝ) (sl : l.SortedLT) (hl : l ≠ []) :
-    (∃ x, P x) → (∃ p ∈ decomp l sl, (∃ x ∈ p, P x)) := by
+    (∃ x, P x) → (∃ p : Set Real, p ∈ decomp l sl ∧ (∃ x : Real, x ∈ p ∧ P x)) := by
   rintro ⟨x, hx⟩
   obtain ⟨p, hp⟩  := L x l sl hl
   tauto
@@ -229,11 +243,34 @@ def go (imps: List Expr) (or_pf: Expr) : MetaM Expr :=
     | _ => throwError ""
 
 -- Solves one of the intervals for univ_cad. Returns `some mv` if it is not supported yet
-def solveCase (mv : MVarId) : Option MVarId := some mv
+def solveCase (mv : MVarId) (inter : Sum Real (Option Real × Option Real)) : MetaM (Option MVarId) := do
+  let ty ← mv.getType
+  logInfo m!"ty = {ty}"
+  match inter with
+  | .inl x =>
+    logInfo "inl"
+    return mv
+  | .inr (ol, or) =>
+    logInfo "inr"
+    return mv
+
+  /- if let some ty ← checkTypeQ (u := levelOne) ty q(Prop) then -/
+  /-   match ty with -/
+  /-   | ~q((Exists (α := Real) $P) -> False) => -/
+  /-     let .lam _ _ body _ ← pure P | throwError "unreachable" -/
+  /-     if let some body ← checkTypeQ (u := levelOne) body q(Prop) then -/
+  /-       let ~q($p_mem ∧ $p_polys) ← pure body | throwError "unreachable" -/
+  /-       return mv -/
+  /-     else -/
+  /-       return mv -/
+  /-   | _ => throwError "[solveCase]: Not an existential" -/
+  /- else return mv -/
 
 @[tactic univ_cad] def evalUnivCad : Tactic := fun stx => withMainContext do
   let h ← elabTerm stx[1] none -- exists x, F x
   let roots ← parseUnivCad stx
+  let roots' := roots.map f
+  let inters := gen_intervals roots'
   let e_roots' := toExpr roots
   let e_roots : Q(List Real) ← Meta.mkAppM ``List.map #[Expr.const `f [], e_roots']
   let decompPf ← getDecompPf e_roots h
@@ -250,10 +287,17 @@ def solveCase (mv : MVarId) : Option MVarId := some mv
     let disjunctsToFalseMvs ← disjunctsToFalse.mapM (fun e => Meta.mkFreshExprMVar e)
     let answer ← go disjunctsToFalseMvs (.fvar fv_decomp)
     mainMv.assign answer
-
-    let unsolvedMvs := disjunctsToFalseMvs.map (fun e => solveCase e.mvarId!)
+    let disjsAndInters := disjunctsToFalseMvs.zip inters
+    let unsolvedMvs ← disjsAndInters.mapM (fun (e, i) => solveCase e.mvarId! i)
     let unsolvedMvs := unsolvedMvs.foldr (fun o acc => match o with | some x => x :: acc | _ => acc) []
     replaceMainGoal unsolvedMvs
+
+#check List.zip
+example : (∃ x: Real, Membership.mem (setOf (fun y => y = (Real.sqrt 3 + Real.sqrt 2))) x ∧ x + 3 < 0 ∧ 2⁻¹ * x ^ 2 < 1) → False := by
+  intro H
+  simp at H
+  admit
+
 
 example (h : ∃ (x : ℝ), x + 3 < 0 ∧ (1/2) * x ^ 2 - 1 < 0) : False := by
   univ_cad h, [1]
@@ -268,3 +312,4 @@ example (h : ∃ (x : ℝ), x + 3 < 0 ∧ (1/2) * x ^ 2 - 1 < 0) : False := by
 /-     let e ← Term.elabTerm term none -/
 /-     logInfo m!"{e} ::: {repr e}" -/
 /-   | _ => throwUnsupportedSyntax -/
+

@@ -3,19 +3,19 @@ namespace Definitions
 -- Esse arquivo contém as definições necessárias para
 -- resolver o problema de uma forma computável
 
-structure MyMonomial where
+structure CMonomial where
   coef : ℚ
   exp : Nat
 
-instance : ToString MyMonomial where
+instance : ToString CMonomial where
   toString m :=
     let pref := if m.coef = 1 then "" else toString m.coef ++ " * "
     let suff := if m.exp = 1 then "" else " ^ " ++ (toString m.exp)
     pref ++ "x" ++ suff
 
-def MyPolynomial := List MyMonomial
+def CPolynomial := List CMonomial
 
-instance : ToString MyPolynomial where
+instance : ToString CPolynomial where
   toString ms :=
     let ms' := ms.map toString
     if ms'.isEmpty then ""
@@ -166,44 +166,44 @@ instance : ToString MyPolynomial where
 /-     vals[elem.var] ^ elem.exp * evalElems numVars elems vals -/
 
 @[simp]
-def evalMonom : (MyMonomial) → ℝ → ℝ := fun { coef, exp } r =>
+def evalMonom : CMonomial → ℝ → ℝ := fun { coef, exp } r =>
   coef * r ^ exp
 
 @[simp]
-def evalPoly : (p : MyPolynomial) → ℝ → ℝ := fun p r =>
+def evalPoly : (p : CPolynomial) → ℝ → ℝ := fun p r =>
   match p with
   | [] => 0
   | monom :: monoms =>
     evalMonom monom r + evalPoly monoms r
 
-def M : MyMonomial := { coef := 2, exp := 1 }
+def M : CMonomial := { coef := 2, exp := 1 }
 def r : Real := 3
-def P : MyPolynomial := [M]
+def P : CPolynomial := [M]
 
 example : evalMonom M 3 > 0 := by simp [M, r]
 example : evalPoly P r > 0 := by simp [P, M, r]
 example : evalPoly P r = 6 := by simp [P, M, r]; linarith
 
-def isRoot (p : MyPolynomial) (r : Real) : Prop := evalPoly p r = 0
+def isRoot (p : CPolynomial) (r : Real) : Prop := evalPoly p r = 0
 
 @[simp]
-noncomputable def monom_toMathlib (m : MyMonomial) : Polynomial ℝ :=
+noncomputable def monom_toMathlib (m : CMonomial) : Polynomial ℝ :=
   Polynomial.C (m.coef : ℝ) * Polynomial.X ^ m.exp
 
 @[simp]
-noncomputable def poly_toMathlib (p : MyPolynomial) : Polynomial ℝ :=
+noncomputable def poly_toMathlib (p : CPolynomial) : Polynomial ℝ :=
   match p with
   | [] => Polynomial.C 0
   | monom :: monoms =>
     monom_toMathlib monom + poly_toMathlib monoms
 
-theorem evalsMonomial : ∀ m : MyMonomial, ∀ r : ℝ, (monom_toMathlib m).eval r = evalMonom m r := by
+theorem evalsMonomial : ∀ m : CMonomial, ∀ r : ℝ, (monom_toMathlib m).eval r = evalMonom m r := by
   intros m r
   simp
 
 example (p q : Polynomial ℝ) (r : ℝ) : Polynomial.eval r (p + q) = Polynomial.eval r p + Polynomial.eval r q := Polynomial.eval_add
 
-theorem evals : ∀ p : MyPolynomial, ∀ r : ℝ, (poly_toMathlib p).eval r = evalPoly p r := by
+theorem evals : ∀ p : CPolynomial, ∀ r : ℝ, (poly_toMathlib p).eval r = evalPoly p r := by
   intros p r
   induction p
   next =>
@@ -212,19 +212,19 @@ theorem evals : ∀ p : MyPolynomial, ∀ r : ℝ, (poly_toMathlib p).eval r = e
     simp only [evalPoly, poly_toMathlib]
     rw [<- IH, Polynomial.eval_add, evalsMonomial]
 
-theorem roots : ∀ p : MyPolynomial, ∀ r : ℝ, (poly_toMathlib p).IsRoot r → isRoot p r := by
+theorem roots : ∀ p : CPolynomial, ∀ r : ℝ, (poly_toMathlib p).IsRoot r → isRoot p r := by
   intros p r hP
   rw [Polynomial.IsRoot, evals p r] at hP
   rw [isRoot]
   exact hP
 
-theorem roots_interval: ∀ p : MyPolynomial, ∀ (a b r: ℝ), r >= a ∧ r <= b ∧ (poly_toMathlib p).IsRoot r -> ∃r' : ℝ, r' >= a ∧ r' <= b ∧ isRoot p r' := by
+theorem roots_interval: ∀ p : CPolynomial, ∀ (a b r: ℝ), r >= a ∧ r <= b ∧ (poly_toMathlib p).IsRoot r -> ∃r' : ℝ, r' >= a ∧ r' <= b ∧ isRoot p r' := by
   intros p a b r hr
   obtain ⟨hra, hrb, hr_root⟩ := hr
   apply roots p r at hr_root
   exact Exists.intro r ⟨hra, hrb, hr_root⟩
 
-theorem exists_root_interval: ∀ p: MyPolynomial, ∀ (a b : ℝ), a <= b → evalPoly p a <= 0 → 0 <= evalPoly p b -> ∃ r: ℝ, r >= a ∧ r <= b ∧ isRoot p r := by
+theorem exists_root_interval: ∀ p: CPolynomial, ∀ (a b : ℝ), a <= b → evalPoly p a <= 0 → 0 <= evalPoly p b -> ∃ r: ℝ, r >= a ∧ r <= b ∧ isRoot p r := by
   intros p a b hab ha hb
   let f_p := fun x => (poly_toMathlib p).eval x
   have p_continuous : ContinuousOn f_p (Set.Icc a b) := by exact (poly_toMathlib p).continuousOn
