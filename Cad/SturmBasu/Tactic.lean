@@ -292,15 +292,12 @@ def solveCase (mv : MVarId) (inter : Sum Real (Option Real × Option Real)) : Me
     let unsolvedMvs := unsolvedMvs.foldr (fun o acc => match o with | some x => x :: acc | _ => acc) []
     replaceMainGoal unsolvedMvs
 
-#check List.zip
-example : (∃ x: Real, Membership.mem (setOf (fun y => y = (Real.sqrt 3 + Real.sqrt 2))) x ∧ x + 3 < 0 ∧ 2⁻¹ * x ^ 2 < 1) → False := by
-  intro H
-  simp at H
-  admit
-
-
 example (h : ∃ (x : ℝ), x + 3 < 0 ∧ (1/2) * x ^ 2 - 1 < 0) : False := by
-  univ_cad h, [1]
+  univ_cad h, [1, 3, 4]
+  · admit
+  · admit
+  · admit
+  · admit
   · admit
   · admit
   · admit

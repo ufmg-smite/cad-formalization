@@ -44,6 +44,69 @@ def AlgebraicNumber.wellDefined (a: 𝔸) : Prop :=
   let ⟨p, l, r⟩ := a
   ∃! x : Real, p.reval x = 0 ∧ l < x ∧ x < r
 
+def degree (p : CPolynomial) : Nat :=
+  match p with
+  | [] => 0
+  | ⟨_, exp⟩ :: _ => exp
+
+def leadingCoef (p : CPolynomial) : ℚ :=
+  match p with
+  | [] => 0
+  | ⟨coef, _⟩ :: _ => coef
+
+def CPolynomial.add (p q : CPolynomial) : CPolynomial :=
+  match h_match: (p, q) with
+  | ([], q) => q
+  | (p, []) => p
+  | (⟨coef1, exp1⟩ :: tl1, ⟨coef2, exp2⟩ :: tl2) =>
+    if exp1 = exp2 then
+      have : tl1.length + tl2.length < p.length + q.length := by grind
+      ⟨coef1 + coef2, exp1⟩ :: add tl1 tl2
+    else if exp1 < exp2 then
+      have : p.length + tl2.length < p.length + q.length := by grind
+      ⟨coef2, exp2⟩ :: add p tl2
+    else
+      have : tl1.length + q.length < p.length + q.length := by grind
+      ⟨coef1, exp1⟩ :: add tl1 q
+  termination_by p.length + q.length
+
+def CPolynomial.neg (p: CPolynomial) : CPolynomial :=
+  p.map (fun ⟨coef, exp⟩ => ⟨-coef, exp⟩)
+
+def CPolynomial.sub (p q : CPolynomial) : CPolynomial := add p (neg q)
+
+def CMonomial.mul (m : CMonomial) (p : CPolynomial) : CPolynomial :=
+  let ⟨coef, exp⟩ := m
+  match p with
+  | [] => []
+  | ⟨coef', exp'⟩ :: tl => ⟨coef * coef', exp + exp'⟩ :: mul m tl
+
+-- TODO (Tomaz): Fast Fourier Transform to do this on O(n log n)
+def CPolynomial.mul (p q : CPolynomial) : CPolynomial :=
+  match p with
+  | [] => []
+  | m :: tl =>
+    let p' := m.mul q
+    let rest := mul tl q
+    add p' rest
+
+def CPolynomial.zero : CPolynomial := [⟨0, 0⟩]
+
+def CPolynomial.divRem (p q : CPolynomial) : CPolynomial × CPolynomial :=
+  let deg_p := degree p
+  let deg_q := degree q
+  if deg_q ≤ deg_p then
+    let lcoeff_p := leadingCoef p
+    let lcoeff_q := leadingCoef q
+    let z: CMonomial := ⟨lcoeff_p / lcoeff_q, deg_p - deg_q⟩
+    let r := divRem (sub p (z.mul q)) q
+    ⟨add [z] r.1, r.2⟩
+  else ⟨zero, q⟩
+  termination_by degree p
+  decreasing_by
+    sorry
+
+
 def toSeq (a: 𝔸) : ℕ → ℚ := fun n =>
   let ⟨p, l, r⟩ := a
   match n with
