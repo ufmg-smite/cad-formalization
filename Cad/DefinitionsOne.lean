@@ -244,7 +244,7 @@ end Definitions
 noncomputable def FinsetToOrderedList (s : Finset ℝ) : List ℝ := s.sort
 
 open Polynomial
-theorem aux (p : Polynomial ℝ) (hp : p ≠ 0) : ∀ i < (p.roots.toFinset.sort (· ≤ ·)).length - 1,
+theorem no_roots_between_roots (p : Polynomial ℝ) (hp : p ≠ 0) : ∀ i < (p.roots.toFinset.sort (· ≤ ·)).length - 1,
   ¬∃ x : ℝ , x ∈ Set.Ioo (p.roots.toFinset.sort (· ≤ ·))[i]! (p.roots.toFinset.sort (· ≤ ·))[i+1]! ∧
   p.eval x = 0 := by
   intro i hi
@@ -308,3 +308,31 @@ theorem aux (p : Polynomial ℝ) (hp : p ≠ 0) : ∀ i < (p.roots.toFinset.sort
     exact lt_irrefl _ hcontra
 
   linarith
+
+-- Em um intervalo que o polinômio não tem raízes, se o sinal de um polinomio é positivo em um ponto do intervalo, então ele é sempre positivo
+theorem sign_stops (p : Polynomial ℝ) (hp : p ≠ 0) (a b : ℝ) : (∀ x : ℝ, x ∈ Set.Ioo a b → ¬p.IsRoot x) → (p.eval x > 0 → ∀ y : ℝ, y ∈ Set.Ioo a b → p.eval y > 0) := by
+  intro h_no_root hpos y hy
+
+  by_contra hneg
+
+  have hle : eval y p ≤ 0 := not_lt.mp hneg
+
+  have hroot :
+    ∃ c ∈ Set.Ioo a b, eval c p = 0 := by
+
+    have hsign_change :
+      (eval x p) * (eval y p) ≤ 0 := by
+      exact mul_nonpos_of_nonneg_of_nonpos (le_of_lt hpos) hle
+
+    have hcont : Continuous fun t => eval t p := Polynomial.continuous p
+
+    sorry
+    -- usar IVT aqui entre x e y
+    -- usando hcont, hpos e hle
+
+  rcases hroot with ⟨c, hcIoo, hc⟩
+
+  have : p.IsRoot c := by
+    simpa [Polynomial.IsRoot, hc]
+
+  exact h_no_root c hcIoo this
