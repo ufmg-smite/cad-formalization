@@ -310,29 +310,62 @@ theorem no_roots_between_roots (p : Polynomial ℝ) (hp : p ≠ 0) : ∀ i < (p.
   linarith
 
 -- Em um intervalo que o polinômio não tem raízes, se o sinal de um polinomio é positivo em um ponto do intervalo, então ele é sempre positivo
-theorem sign_stops (p : Polynomial ℝ) (hp : p ≠ 0) (a b : ℝ) : (∀ x : ℝ, x ∈ Set.Ioo a b → ¬p.IsRoot x) → (p.eval x > 0 → ∀ y : ℝ, y ∈ Set.Ioo a b → p.eval y > 0) := by
+theorem sign_stops (p : Polynomial ℝ) (hp : p ≠ 0) (a b : ℝ) (hab : a ≤ b) : (∀ x : ℝ, x ∈ Set.Ioo a b → ¬p.IsRoot x) → (p.eval x > 0 → ∀ y : ℝ, y ∈ Set.Ioo a b → p.eval y > 0) := by
   intro h_no_root hpos y hy
 
   by_contra hneg
 
   have hle : eval y p ≤ 0 := not_lt.mp hneg
 
-  have hroot :
+  have hx_le : x ≤ y ∨ y ≤ x := le_total x y
+  rcases hx_le with hxy | hyx
+
+  ·
+    -- eval x p > eval y p
+    -- y > x
+    -- Icc x y
+    have hroot : ∃ c ∈ Set.Ioo a b, eval c p = 0 := by
+      have hsign_change : (eval x p) * (eval y p) ≤ 0 := by
+        exact mul_nonpos_of_nonneg_of_nonpos (le_of_lt hpos) hle
+
+      have hcont : Continuous fun t => eval t p := Polynomial.continuous p
+      have hcont2 : ContinuousOn (fun t => p.eval t) (Set.Icc x y) :=
+        (Polynomial.continuous p).continuousOn
+
+      have := intermediate_value_Icc hxy hcont2
+      have zero_in_interval : 0 ∈ Set.Icc (eval y p) (eval x p) := by
+        sorry
+
+      sorry
+    rcases hroot with ⟨c, hcIoo, hc⟩
+
+    have : p.IsRoot c := by
+      simp [Polynomial.IsRoot, hc]
+
+    exact h_no_root c hcIoo this
+  ·
+    -- eval x p > eval y p
+    -- x > y
+    -- Icc y x
+    have hroot :
     ∃ c ∈ Set.Ioo a b, eval c p = 0 := by
 
-    have hsign_change :
-      (eval x p) * (eval y p) ≤ 0 := by
-      exact mul_nonpos_of_nonneg_of_nonpos (le_of_lt hpos) hle
+      have hsign_change : (eval x p) * (eval y p) ≤ 0 := by
+        exact mul_nonpos_of_nonneg_of_nonpos (le_of_lt hpos) hle
 
-    have hcont : Continuous fun t => eval t p := Polynomial.continuous p
+      have hcont : Continuous fun t => eval t p := Polynomial.continuous p
+      have hcont2 : ContinuousOn (fun t => p.eval t) (Set.Icc y x) :=
+        (Polynomial.continuous p).continuousOn
 
-    sorry
-    -- usar IVT aqui entre x e y
-    -- usando hcont, hpos e hle
+      have := intermediate_value_Icc hyx hcont2
 
-  rcases hroot with ⟨c, hcIoo, hc⟩
+      have zero_in_interval : 0 ∈ Set.Icc (eval y p) (eval x p) := by
+        sorry
 
-  have : p.IsRoot c := by
-    simpa [Polynomial.IsRoot, hc]
+      sorry
+    rcases hroot with ⟨c, hcIoo, hc⟩
 
-  exact h_no_root c hcIoo this
+    have : p.IsRoot c := by
+      simp [Polynomial.IsRoot, hc]
+
+    exact h_no_root c hcIoo this
