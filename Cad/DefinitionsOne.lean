@@ -240,3 +240,71 @@ theorem exists_root_interval: ∀ p: MyPolynomial, ∀ (a b : ℝ), a <= b → e
   obtain ⟨r, hra, hrb, hr_root⟩ := poly_mathlib_root
   apply (roots_interval p a b r ⟨hra, hrb, hr_root⟩)
 end Definitions
+
+noncomputable def FinsetToOrderedList (s : Finset ℝ) : List ℝ := s.sort
+
+open Polynomial
+theorem aux (p : Polynomial ℝ) (hp : p ≠ 0) : ∀ i < (p.roots.toFinset.sort (· ≤ ·)).length - 1,
+  ¬∃ x : ℝ , x ∈ Set.Ioo (p.roots.toFinset.sort (· ≤ ·))[i]! (p.roots.toFinset.sort (· ≤ ·))[i+1]! ∧
+  p.eval x = 0 := by
+  intro i hi
+  by_contra h
+  obtain ⟨x, ⟨hxi, hxi1⟩, hx_root⟩ := h
+
+  have h_roots : x ∈ p.roots := by simp_all
+  have hx_mem_sorted : x ∈ p.roots.toFinset.sort (· ≤ ·) := by simpa using h_roots
+  have x_in : x ∈ p.roots.toList := by simp_all
+  have x_in : x ∈ p.roots.sort := by simp_all
+  have x_in : x ∈ p.roots.toFinset.sort := by simp_all
+
+  have F := (List.exists_mem_iff_getElem (l := p.roots.toFinset.sort) (p := fun y => y = x)).mp (by use x)
+
+  have h_index : ∃ j : Fin ((p.roots.toFinset.sort (· ≤ ·)).length), x = (p.roots.toFinset.sort (· ≤ ·))[j] := by
+    simp at F
+    obtain ⟨i, hi⟩ := F
+    obtain ⟨h1, h2⟩ := hi
+    have : p.roots.toFinset.card = p.roots.toFinset.sort.length := Eq.symm (Finset.length_sort fun a b => a ≤ b)
+    use ⟨i, by grind⟩
+    simp
+    grind
+
+  obtain ⟨j, hj⟩ := h_index
+
+  have contr1 : j > i := by
+    by_contra h
+    have hj1 : j ≤ i := by linarith
+    rw[hj] at hxi1
+    have hmono :
+      (p.roots.toFinset.sort (· ≤ ·))[i] ≥
+      (p.roots.toFinset.sort (· ≤ ·))[j] := by
+      have := List.pairwise_iff (· ≤ ·) (p.roots.toFinset.sort (· ≤ ·))
+      simp_all only [Fin.getElem_fin]
+      have hsorted2 : (p.roots.toFinset.sort (· ≤ ·)).SortedLT := by
+        exact Finset.sortedLT_sort p.roots.toFinset
+      apply (StrictMono.le_iff_le (Finset.sortedLT_sort p.roots.toFinset)).mpr
+      grind
+    have hcontra : (p.roots.toFinset.sort (· ≤ ·))[j] < (p.roots.toFinset.sort (· ≤ ·))[j] := by
+      simp_all
+      grind
+    exact lt_irrefl _ hcontra
+
+  have contr2 : j < i + 1 := by
+    by_contra h
+    have hj1 : j ≥ i + 1 := by linarith
+    rw[hj] at hxi1
+    have hmono :
+      (p.roots.toFinset.sort (· ≤ ·))[i+1] ≤
+      (p.roots.toFinset.sort (· ≤ ·))[j] := by
+      have := List.pairwise_iff (· ≤ ·) (p.roots.toFinset.sort (· ≤ ·))
+      simp_all only [Fin.getElem_fin]
+      have hsorted2 : (p.roots.toFinset.sort (· ≤ ·)).SortedLT := by
+        exact Finset.sortedLT_sort p.roots.toFinset
+
+      apply (StrictMono.le_iff_le (Finset.sortedLT_sort p.roots.toFinset)).mpr
+      grind
+    have hcontra : (p.roots.toFinset.sort (· ≤ ·))[j] < (p.roots.toFinset.sort (· ≤ ·))[j] := by
+      simp_all
+      grind
+    exact lt_irrefl _ hcontra
+
+  linarith
