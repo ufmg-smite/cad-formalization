@@ -13,7 +13,7 @@ instance : ToString CMonomial where
     let suff := if m.exp = 1 then "" else " ^ " ++ (toString m.exp)
     pref ++ "x" ++ suff
 
-def CPolynomial := List CMonomial
+abbrev CPolynomial := List CMonomial
 
 instance : ToString CPolynomial where
   toString ms :=
