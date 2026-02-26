@@ -310,8 +310,8 @@ theorem no_roots_between_roots (p : Polynomial ℝ) (hp : p ≠ 0) : ∀ i < (p.
   linarith
 
 -- Em um intervalo que o polinômio não tem raízes, se o sinal de um polinomio é positivo em um ponto do intervalo, então ele é sempre positivo
-theorem sign_stops (p : Polynomial ℝ) (hp : p ≠ 0) (a b : ℝ) (hab : a ≤ b) : (∀ x : ℝ, x ∈ Set.Ioo a b → ¬p.IsRoot x) → (p.eval x > 0 → ∀ y : ℝ, y ∈ Set.Ioo a b → p.eval y > 0) := by
-  intro h_no_root hpos y hy
+theorem sign_stops (x : ℝ) (p : Polynomial ℝ) (hp : p ≠ 0) (a b : ℝ) (hab : a ≤ b) (h_no_roots : ∀ k : ℝ, k ∈ Set.Ioo a b → ¬p.IsRoot k): x ∈ Set.Ioo a b → ¬p.IsRoot x → (p.eval x > 0 → ∀ y : ℝ, y ∈ Set.Ioo a b → p.eval y > 0) := by
+  intro h_interval h_no_root hpos y hy
 
   by_contra hneg
 
@@ -332,24 +332,34 @@ theorem sign_stops (p : Polynomial ℝ) (hp : p ≠ 0) (a b : ℝ) (hab : a ≤ 
       have hcont2 : ContinuousOn (fun t => p.eval t) (Set.Icc x y) :=
         (Polynomial.continuous p).continuousOn
 
-      have := intermediate_value_Icc hxy hcont2
+      have := intermediate_value_Icc' hxy hcont2
+
       have zero_in_interval : 0 ∈ Set.Icc (eval y p) (eval x p) := by
-        sorry
+        exact ⟨hle, le_of_lt hpos⟩
 
-      sorry
+      have zero_in_interval2 : 0 ∈ (fun t => eval t p) '' Set.Icc x y:= by
+        apply intermediate_value_Icc' hxy hcont2
+        exact zero_in_interval
+      rcases zero_in_interval2 with ⟨c, hc_mem, hc_zero⟩
+      simp at hc_zero
+      have hcIoo : c ∈ Set.Ioo a b := by
+        simp_all only [ne_eq, Set.mem_Ioo, IsRoot.def, gt_iff_lt, not_lt, Set.mem_Icc, true_and]
+        obtain ⟨left, right⟩ := hy
+        obtain ⟨left_1, right_1⟩ := hc_mem
+        apply And.intro
+        · linarith
+        · linarith
+      grind
     rcases hroot with ⟨c, hcIoo, hc⟩
-
     have : p.IsRoot c := by
       simp [Polynomial.IsRoot, hc]
-
-    exact h_no_root c hcIoo this
+    simp_all
   ·
     -- eval x p > eval y p
     -- x > y
     -- Icc y x
     have hroot :
     ∃ c ∈ Set.Ioo a b, eval c p = 0 := by
-
       have hsign_change : (eval x p) * (eval y p) ≤ 0 := by
         exact mul_nonpos_of_nonneg_of_nonpos (le_of_lt hpos) hle
 
@@ -360,12 +370,24 @@ theorem sign_stops (p : Polynomial ℝ) (hp : p ≠ 0) (a b : ℝ) (hab : a ≤ 
       have := intermediate_value_Icc hyx hcont2
 
       have zero_in_interval : 0 ∈ Set.Icc (eval y p) (eval x p) := by
-        sorry
+        exact ⟨hle, le_of_lt hpos⟩
 
-      sorry
+      have zero_in_interval2 : 0 ∈ (fun t => eval t p) '' Set.Icc y x:= by
+        apply intermediate_value_Icc hyx hcont2
+        exact zero_in_interval
+      rcases zero_in_interval2 with ⟨c, hc_mem, hc_zero⟩
+      simp at hc_zero
+      have hcIoo : c ∈ Set.Ioo a b := by
+        simp_all only [ne_eq, Set.mem_Ioo, IsRoot.def, gt_iff_lt, not_lt, Set.mem_Icc, true_and]
+        obtain ⟨left, right⟩ := hy
+        obtain ⟨left_1, right_1⟩ := hc_mem
+        apply And.intro
+        · linarith
+        · linarith
+      grind
+
     rcases hroot with ⟨c, hcIoo, hc⟩
 
     have : p.IsRoot c := by
       simp [Polynomial.IsRoot, hc]
-
-    exact h_no_root c hcIoo this
+    simp_all
