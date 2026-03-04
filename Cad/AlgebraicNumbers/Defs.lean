@@ -9,19 +9,6 @@ lemma lt_of_le_of_neq (a b : Rat) : a ≠ 0 → b ≠ 0 → a * b ≤ 0 → a * 
   have : a * b = 0 := by linarith
   simp_all only [ne_eq, le_refl, mul_eq_zero, or_self]
 
--- The root of `p` in the interval `[l, r]`
-structure AlgebraicNumber where
-  p: CPolynomial Rat
-  l: Rat
-  r: Rat
-  sgn_diff : p.eval l * p.eval r ≤ 0
-
-abbrev 𝔸 := AlgebraicNumber
-
-def AlgebraicNumber.wellDefined (a: 𝔸) : Prop :=
-  let ⟨p, l, r, _⟩ := a
-  ∃! x : Real, p.eval₂ (Rat.castHom ℝ) x = 0 ∧ l ≤ x ∧ x ≤ r
-
 lemma sgns_3 {a b c : Rat} : 0 < a * b → a * c ≤ 0 → b * c ≤ 0 := by
   intros h1 h2
   if ha: 0 < a then
@@ -38,12 +25,34 @@ lemma sgns_3 {a b c : Rat} : 0 < a * b → a * c ≤ 0 → b * c ≤ 0 := by
       have hc : 0 ≤ c := nonneg_of_mul_nonpos_right h2 ha
       nlinarith
 
-lemma lr_wellDefined : ∀ a: 𝔸, a.wellDefined → a.l ≤ a.r := by
+lemma eval_comm_map (p : Polynomial Rat) (l : Rat) : (p.eval l) = (p.map (Rat.castHom ℝ)).eval (l : Real) := by
+  simp [Polynomial.eval_eq_sum_range]
+
+lemma cpoly_eval2_poly_eval (p : CPolynomial Rat) (x : Rat) : p.eval₂ (Rat.castHom ℝ) x = p.toPoly.eval x := by
+  rw [CPolynomial.eval₂_toPoly, <- Polynomial.eval_map, <- eval_comm_map]
+
+namespace AlgebraicNumber
+
+-- The root of `p` in the interval `[l, r]`
+structure Raw where
+  p: CPolynomial Rat
+  l: Rat
+  r: Rat
+  -- This is also guaranteed by libpoly; this is necessary for `refine_wellDefined`.
+  sgn_diff : p.eval l * p.eval r ≤ 0
+
+def Raw.wellDefined (a: Raw) : Prop :=
+  let ⟨p, l, r, _⟩ := a
+  ∃! x : Real, p.eval₂ (Rat.castHom ℝ) x = 0 ∧ l ≤ x ∧ x ≤ r
+
+instance (a : Raw) : Decidable a.wellDefined := sorry
+
+lemma lr_wellDefined : ∀ a: Raw, a.wellDefined → a.l ≤ a.r := by
   rintro ⟨p, l, r⟩ ⟨x, ⟨hx, hxl, hxr⟩, hx_unique⟩
   have : (l : Real) ≤ r := Std.le_trans hxl hxr
   simp_all only [and_imp, Rat.cast_le]
 
-def AlgebraicNumber.refine (a: 𝔸) : 𝔸 :=
+def Raw.refine (a: Raw) : Raw :=
   let ⟨p, l, r, hsgn_diff⟩ := a
   let m := (l + r) / 2
   if hev: p.eval l * p.eval m ≤ 0 then
@@ -51,19 +60,29 @@ def AlgebraicNumber.refine (a: 𝔸) : 𝔸 :=
   else
     ⟨p, m, r, by push_neg at hev; exact sgns_3 hev hsgn_diff⟩
 
-lemma eval_comm_map (p : Polynomial Rat) (l : Rat) : (p.eval l) = (p.map (Rat.castHom ℝ)).eval (l : Real) := by
-  simp [Polynomial.eval_eq_sum_range]
+lemma refine_bounds_l : ∀ (a : Raw), a.wellDefined → a.l ≤ a.refine.l := by
+  intros a h
+  have := lr_wellDefined a h
+  simp [Raw.refine]
+  split_ifs
+  · linarith
+  · linarith
 
-lemma cpoly_eval2_poly_eval (p : CPolynomial Rat) (x : Rat) : p.eval₂ (Rat.castHom ℝ) x = p.toPoly.eval x := by
-  rw [CPolynomial.eval₂_toPoly, <- Polynomial.eval_map, <- eval_comm_map]
+lemma refine_bounds_r : ∀ (a : Raw), a.wellDefined → a.refine.r ≤ a.r := by
+  intros a h
+  have := lr_wellDefined a h
+  simp [Raw.refine]
+  split_ifs
+  · linarith
+  · linarith
 
-lemma refine_wellDefined : ∀ a: 𝔸, a.wellDefined → a.refine.wellDefined := by
+lemma refine_wellDefined : ∀ a: Raw, a.wellDefined → a.refine.wellDefined := by
   intros a ha
   have hlr := lr_wellDefined a ha
   obtain ⟨p, l, r, hsgn_diff⟩ := a
   have hlr' : (l : Real) ≤ r := Rat.cast_le.mpr hlr
   obtain ⟨x, ⟨hx, hlx, hxr⟩, hx_unique⟩ := ha
-  simp only [AlgebraicNumber.refine]
+  simp only [Raw.refine]
   split_ifs
   next hi =>
     rw [CPolynomial.eval_toPoly, CPolynomial.eval_toPoly] at hi
@@ -196,23 +215,53 @@ lemma refine_wellDefined : ∀ a: 𝔸, a.wellDefined → a.refine.wellDefined :
         · grind
         · grind
 
-def toSeq (a: 𝔸) : ℕ → ℚ := fun n =>
+@[simp]
+def toSeq (a: Raw) : ℕ → ℚ := fun n =>
   match n with
   | 0 => (a.l + a.r) / 2
   | n + 1 =>
     let a' := a.refine
     toSeq a' n
 
-theorem toSeq_cauchy : ∀ a: 𝔸, a.wellDefined → IsCauSeq abs (toSeq a) := by
+lemma toSeq_bound : ∀ a : Raw, ∀ i : Nat, a.wellDefined → a.l ≤ toSeq a i ∧ toSeq a i ≤ a.r := by
+  intros a i h
+  have := lr_wellDefined a h
+  cases i
+  next =>
+    simp only [toSeq]
+    constructor <;> linarith
+  next i =>
+    simp only [toSeq]
+    have := toSeq_bound a.refine i (refine_wellDefined a h)
+    have hl := refine_bounds_l a h
+    have hr := refine_bounds_r a h
+    grind
+
+theorem toSeq_cauchy : ∀ a: Raw, a.wellDefined → IsCauSeq abs (toSeq a) := by
   intros a ha
   simp [IsCauSeq]
   intro ε hε
   admit
 
--- this is definitely possible using Sturm's theorem
-instance (a: 𝔸) : Decidable a.wellDefined := sorry
-
-def AlgebraicNumber.toReal (a: 𝔸): ℝ :=
+@[simp]
+def Raw.toReal (a: Raw): ℝ :=
   if h: a.wellDefined then Real.ofCauchy (CauSeq.Completion.mk ⟨toSeq a, toSeq_cauchy a h⟩) else 0
 
-instance : Preorder AlgebraicNumber := sorry
+lemma toReal_bounds : ∀ a : Raw, a.wellDefined → a.l ≤ a.toReal ∧ a.toReal ≤ a.r := by
+  rintro a hwda
+  simp [hwda]
+  admit
+
+theorem refine_toReal : ∀ a : Raw, a.toReal = a.refine.toReal := sorry
+
+instance : LT Raw where
+  lt a b := a.r < b.l
+
+theorem lt_toReal : ∀ (a b : Raw), a.wellDefined → b.wellDefined → a < b → a.toReal < b.toReal := sorry
+
+lemma refine_lt_toReal : ∀ a b : Raw, a.refine.toReal < b.refine.toReal → a.toReal < b.toReal := by
+  intros a b h
+  rw [refine_toReal, refine_toReal b]
+  exact h
+
+end AlgebraicNumber
