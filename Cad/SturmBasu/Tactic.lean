@@ -2,7 +2,76 @@ import Mathlib
 import Lean.Elab.Tactic.Basic
 import Qq
 
+import CompPoly
+import Cad.AlgebraicNumbers.Defs
+
 open Qq Lean Elab Tactic ToExpr
+open AlgebraicNumber
+
+-- A tactic for comparing the projection of two algebraic numbers into the reals
+section CmpAlg
+
+open CompPoly
+
+def nativeDecide (p: Q(Prop)) : MetaM Q($p) := do
+  let hp : Q(Decidable $p) ← Meta.synthInstance q(Decidable $p)
+  let auxDeclName ← mkNativeAuxDecl `_nativeUnivNl q(Bool) q(decide $p)
+  let b : Q(Bool) := .const auxDeclName []
+  return .app q(@of_decide_eq_true $p $hp) (.app q(Lean.ofReduceBool $b true) q(Eq.refl true))
+where
+  mkNativeAuxDecl (baseName : Name) (type value : Expr) : MetaM Name := do
+    let auxName ← Lean.mkAuxDeclName baseName
+    let decl := Declaration.defnDecl {
+      name := auxName, levelParams := [], type, value
+      hints := .abbrev
+      safety := .safe
+    }
+    addAndCompile decl
+    pure auxName
+
+syntax (name := cmp_alg) "cmp_alg" term "," term "," term "," term : tactic
+
+partial def loop (a b : Q(Raw)) (ha : Q(AlgebraicNumber.Raw.wellDefined $a)) (hb : Q(AlgebraicNumber.Raw.wellDefined $b)) : MetaM Expr := do
+  let goal ← Meta.mkAppM `LT.lt #[a, b]
+  let h ← nativeDecide goal
+  try
+    -- checks if nativeDecide was successful
+    withOptions (Elab.async.set · false) do
+      let _ ← Meta.mkAuxLemma [] goal h
+      Meta.mkAppM `AlgebraicNumber.lt_toReal #[a,b,ha,hb,h]
+  catch _ =>
+    let a' := mkApp (.const ``Raw.refine []) a
+    let b' := mkApp (.const ``Raw.refine []) b
+    let ha' := mkApp (mkApp (.const ``refine_wellDefined []) a) ha
+    let hb' := mkApp (mkApp (.const ``refine_wellDefined []) b) hb
+    let sub ← loop a' b' ha' hb'
+    Meta.mkAppM ``refine_lt_toReal #[a,b,sub]
+
+@[tactic cmp_alg] def evalCmp_alg : Tactic := fun stx => withMainContext do
+  let a : Q(Raw) ← elabTerm stx[1] none
+  let b : Q(Raw) ← elabTerm stx[3] none
+  -- TODO: infer these automatically via Sturm's theorem
+  let ha : Q(AlgebraicNumber.Raw.wellDefined $a) ← elabTerm stx[5] none
+  let hb : Q(AlgebraicNumber.Raw.wellDefined $b) ← elabTerm stx[7] none
+  let mv ← loop a b ha hb
+  let mainMv ← getMainGoal
+  let ra : Q(Real) := q(Raw.toReal $a)
+  let rb : Q(Real) := q(Raw.toReal $b)
+  let g ← Meta.mkAppM `LT.lt #[ra, rb]
+  let (fv_decomp, mainMv) ← MVarId.intro1P $ ← mainMv.assert (Name.mkSimple "foo") g mv
+  replaceMainGoal [mainMv]
+
+def a : Raw := ⟨CPolynomial.X, -500, 500, by native_decide⟩ -- 0
+def b : Raw := ⟨CPolynomial.X - CPolynomial.C 3, -500, 500, by native_decide⟩ -- 3
+
+axiom wd_a : a.wellDefined
+axiom wd_b : b.wellDefined
+
+example : a.toReal < b.toReal := by
+  cmp_alg a, b, wd_a, wd_b
+  exact foo
+
+end CmpAlg
 
 @[simp]
 def decomp' (l : List ℝ) (sl : l.SortedLT) (first : Bool) : List (Set ℝ) :=
@@ -185,7 +254,9 @@ theorem t {P : ℝ → Prop} (l : List ℝ) (sl : l.SortedLT) (hl : l ≠ []) :
   obtain ⟨p, hp⟩  := L x l sl hl
   tauto
 
-syntax (name := univ_cad) "univ_cad" term "," ("[" term,* "]")? : tactic
+def runGrind (mv : MVarId) : MetaM Unit := do
+  let params ← Meta.Grind.mkDefaultParams {}
+  let _ ← Meta.Grind.main mv params
 
 def getNatLit? : Expr → Option Nat
 | .app (.app _ (.lit (.natVal x))) _ => some x
@@ -199,15 +270,6 @@ def stxToNat (h : Term) : TacticM Nat := do
   match getNatLit? expr with
   | some i => pure i
   | none   => throwError "getNatLit? failed"
-
--- Nat for now because its easier, later we have to instrument lean-smt to parse algebraic numbers to real numbers
-def parseUnivCad : Syntax → TacticM (List Nat)
-  | `(tactic| univ_cad $_, [ $[$hs],* ]) => hs.toList.mapM stxToNat >>= λ li => return li
-  | _ => throwError "[univ_cad]: wrong usage"
-
-def runGrind (mv : MVarId) : MetaM Unit := do
-  let params ← Meta.Grind.mkDefaultParams {}
-  let _ ← Meta.Grind.main mv params
 
 -- given the list of roots and a proof that `exists (x : ℝ), P x` produces a proof
 -- that `∃ p ∈ decomp roots, ∃ x ∈ p, P x`, where `decomp roots` is the decomposition
@@ -254,17 +316,12 @@ def solveCase (mv : MVarId) (inter : Sum Real (Option Real × Option Real)) : Me
     logInfo "inr"
     return mv
 
-  /- if let some ty ← checkTypeQ (u := levelOne) ty q(Prop) then -/
-  /-   match ty with -/
-  /-   | ~q((Exists (α := Real) $P) -> False) => -/
-  /-     let .lam _ _ body _ ← pure P | throwError "unreachable" -/
-  /-     if let some body ← checkTypeQ (u := levelOne) body q(Prop) then -/
-  /-       let ~q($p_mem ∧ $p_polys) ← pure body | throwError "unreachable" -/
-  /-       return mv -/
-  /-     else -/
-  /-       return mv -/
-  /-   | _ => throwError "[solveCase]: Not an existential" -/
-  /- else return mv -/
+syntax (name := univ_cad) "univ_cad" term "," ("[" term,* "]")? : tactic
+
+-- Nat for now because its easier, later we have to instrument lean-smt to parse algebraic numbers to real numbers
+def parseUnivCad : Syntax → TacticM (List Nat)
+  | `(tactic| univ_cad $_, [ $[$hs],* ]) => hs.toList.mapM stxToNat >>= λ li => return li
+  | _ => throwError "[univ_cad]: wrong usage"
 
 @[tactic univ_cad] def evalUnivCad : Tactic := fun stx => withMainContext do
   let h ← elabTerm stx[1] none -- exists x, F x
@@ -275,7 +332,7 @@ def solveCase (mv : MVarId) (inter : Sum Real (Option Real × Option Real)) : Me
   let e_roots : Q(List Real) ← Meta.mkAppM ``List.map #[Expr.const `f [], e_roots']
   let decompPf ← getDecompPf e_roots h
   let decompType ← Meta.inferType decompPf
-  let mainMv ← Tactic.getMainGoal
+  let mainMv ← getMainGoal
   let (fv_decomp, mainMv) ← MVarId.intro1P $ ← mainMv.assert .anonymous decompType decompPf
   let ctx ← Meta.Simp.Context.mkDefault
   -- simp on the decomp hypothesis so it becomes a finite disjunction instead of an existential
