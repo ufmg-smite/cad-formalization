@@ -1,7 +1,7 @@
 import Mathlib
 import Cad.SturmBasu.SturmSeq
 import Cad.SturmBasu.Utils
-
+import CompPoly
 noncomputable section
 
 open Polynomial
@@ -12,6 +12,118 @@ theorem sturm_tarski_interval (a b : ℝ) (p q : Polynomial ℝ) (hab : a < b) (
     tarskiQuery p q a b = seqVarSturm_ab p (derivative p * q) a b := by
   rw [B_2_58 p (derivative p * q) a b hpa hpb hab]
   rw [B_2_57 p q a b]
+
+open CompPoly
+open CPolynomial
+def testing : CPolynomial ℚ := sorry
+
+--#eval CPolynomial.derivative_toPoly
+
+def k : CPolynomial ℚ := 0
+
+#eval k
+
+instance : DecidableEq (CPolynomial ℚ) :=
+  Classical.decEq _
+
+def sturmSeq_CPolynomial (f g : CPolynomial ℚ) : List (CPolynomial ℚ) :=
+  if f = 0 then
+    []
+  else
+    f::(sturmSeq_CPolynomial g (-f%g))
+termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
+  decreasing_by
+    if g1: g = 0 then
+      simp_all
+    else if h : g ∣ f then
+      simp_all
+      have : ¬ g.toPoly = 0 := by sorry
+      have : g.toPoly.degree ≥ 0 := zero_le_degree_iff.mpr this
+      have gnatdeg : g.degree ≥ 0 := sorry
+      have : -f % g = 0 := by sorry
+      simp_all
+      refine lt_add_of_lt_of_nonneg ?_ gnatdeg; simp
+    else
+      simp_all only [↓reduceIte]
+      have : ¬ -f % g = 0 := by sorry
+      simp_all
+      let f' := f.toPoly
+      let g' := g.toPoly
+      have : (-f' % g').degree < g'.degree := by
+        refine degree_lt_degree ?_; refine natDegree_mod_lt (-f') ?_
+        have : g'.natDegree = 0 → g' ∣ f' := by
+          intro hg
+          have : ∃ c : ℚ, Polynomial.C c = g' := natDegree_eq_zero.mp hg
+          rcases this with ⟨c, rf⟩; use Polynomial.C c⁻¹ * (f')
+          rw[←rf]; ring_nf
+          have hds : c ≠ 0 := by sorry
+          ext x
+          simp_all only [ne_eq]
+          rw[←rf]
+          have : Polynomial.C c * Polynomial.C c⁻¹ = 1 := by sorry
+          sorry
+        have : g'.natDegree ≠ 0 := by sorry
+        exact this
+      have : (-f % g).toPoly.degree < g.toPoly.degree := by sorry
+      have : (-f % g).degree < g.degree := by sorry
+      refine WithBot.add_lt_add_left ?_ this; simp_all
+
+
+def seqEval_CPolynomial (k : ℚ) : List (CPolynomial ℚ) → List ℚ
+| [] => []
+| a::as => (a.eval k)::(seqEval_CPolynomial k as)
+
+def seqVar_ab_CPolynomial (P: List (CPolynomial ℚ)) (a b: ℚ): ℤ :=
+  (seqVar (seqEval_CPolynomial a P) : Int) - seqVar (seqEval_CPolynomial b P)
+
+def seqVarSturm_ab_CPolynomial (p q: (CPolynomial ℚ)) (a b : ℚ) : ℤ :=
+  seqVar_ab_CPolynomial (sturmSeq_CPolynomial p q) a b
+
+def sturmSeq_Rat (f g : Polynomial ℚ) : List (Polynomial ℚ) :=
+  if f = 0 then
+    []
+  else
+    f::(sturmSeq_Rat g (-f%g))
+  termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
+  decreasing_by
+    if g1: g = 0 then
+      simp_all
+    else if h : g ∣ f then
+      simp_all
+      have gnatdeg : g.degree ≥ 0 := zero_le_degree_iff.mpr g1
+      refine lt_add_of_lt_of_nonneg ?_ gnatdeg; simp
+    else
+      simp_all only [↓reduceIte, EuclideanDomain.mod_eq_zero, dvd_neg]
+      have : (-f % g).degree < g.degree := by
+        refine degree_lt_degree ?_; refine natDegree_mod_lt (-f) ?_
+        have : g.natDegree = 0 → g ∣ f := by
+          intro hg
+          have : ∃ c : ℚ, Polynomial.C c = g := natDegree_eq_zero.mp hg
+          rcases this with ⟨c, rfl⟩; use Polynomial.C c⁻¹ * f
+          have hds : c ≠ 0 := by
+            intro abs; rw [abs] at hg; simp at g1; exact g1 abs
+          ext x
+          simp_all only [map_eq_zero, not_false_eq_true, isUnit_map_iff, isUnit_iff_ne_zero, ne_eq,
+            IsUnit.dvd, not_true_eq_false]
+        have : g.natDegree ≠ 0 := by simp_all only [imp_false, ne_eq, not_false_eq_true]
+        exact this
+      refine WithBot.add_lt_add_left ?_ this; simp_all
+
+def seqEval_Rat (k : ℚ) : List (Polynomial ℚ) → List ℚ
+| [] => []
+| a::as => (eval k a)::(seqEval_Rat k as)
+
+def seqVar_ab_Rat (P: List (Polynomial ℚ)) (a b: ℚ): ℤ :=
+  (seqVar (seqEval_Rat a P) : Int) - seqVar (seqEval_Rat b P)
+
+def seqVarSturm_ab_Rat (p q: (Polynomial ℚ)) (a b : ℚ) : ℤ :=
+  seqVar_ab_Rat (sturmSeq_Rat p q) a b
+-- queremos mostrar que seqVarSturm_ab p (derivative p * q) a b = mesma coisa, mas pros nossos polinomios
+theorem equiv_for_sturm_tarski_interval (a b : ℚ) (p q : CPolynomial ℚ) (hab : a < b) (hpa : p.eval a ≠ 0) (hpb : p.eval b ≠ 0) :
+    seqVarSturm_ab_CPolynomial p (CPolynomial.derivative p * q) a b = seqVarSturm_ab_Rat p.toPoly (derivative p.toPoly * q.toPoly) a b := by
+  simp_all
+
+  sorry
 
 def rootsAbove (f : Polynomial ℝ) (a : ℝ) : Finset ℝ :=
   f.roots.toFinset.filter (fun x => x > a)
