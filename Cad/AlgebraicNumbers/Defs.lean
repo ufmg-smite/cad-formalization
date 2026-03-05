@@ -1,142 +1,267 @@
-import Mathlib
-import Cad.DefinitionsOne
+import CompPoly
+import Cad.SturmBasu.Theorem
 
-namespace Definitions
+open CompPoly
 
-def CMonomial.qeval (m: CMonomial) (q: ℚ) : ℚ :=
-  m.coef * q ^ m.exp
+lemma lt_of_le_of_neq (a b : Rat) : a ≠ 0 → b ≠ 0 → a * b ≤ 0 → a * b < 0 := by
+  intros h1 h2 h3
+  by_contra! abs
+  have : a * b = 0 := by linarith
+  simp_all only [ne_eq, le_refl, mul_eq_zero, or_self]
 
-def CPolynomial.qeval (p: CPolynomial) (q: ℚ) : ℚ :=
-  p.foldr (fun m acc => m.qeval q + acc) 0
+lemma sgns_3 {a b c : Rat} : 0 < a * b → a * c ≤ 0 → b * c ≤ 0 := by
+  intros h1 h2
+  if ha: 0 < a then
+    have hb : 0 < b := (Rat.mul_pos_iff_of_pos_left ha).mp h1
+    have hc : c ≤ 0 := nonpos_of_mul_nonpos_right h2 ha
+    nlinarith
+  else
+    if ha: a = 0 then
+      rw [ha] at h1
+      simp at h1
+    else
+      have ha : a < 0 := by grind
+      have hb : b < 0 := (neg_iff_neg_of_mul_pos h1).mp ha
+      have hc : 0 ≤ c := nonneg_of_mul_nonpos_right h2 ha
+      nlinarith
 
--- TODO (TOMAZ): do we need both?
-def CMonomial.reval (m: CMonomial) (q: ℝ) : ℝ :=
-  m.coef * q ^ m.exp
+lemma eval_comm_map (p : Polynomial Rat) (l : Rat) : (p.eval l) = (p.map (Rat.castHom ℝ)).eval (l : Real) := by
+  simp [Polynomial.eval_eq_sum_range]
 
-def CPolynomial.reval (p: CPolynomial) (r: ℝ) : ℝ :=
-  p.foldr (fun m acc => m.reval r + acc) 0
+lemma cpoly_eval2_poly_eval (p : CPolynomial Rat) (x : Rat) : p.eval₂ (Rat.castHom ℝ) x = p.toPoly.eval x := by
+  rw [CPolynomial.eval₂_toPoly, <- Polynomial.eval_map, <- eval_comm_map]
 
--- the polynomial X
-def p1 : CPolynomial := [⟨1, 1⟩]
-#eval p1.qeval (13 /2) -- 13 / 2
+namespace AlgebraicNumber
 
--- the polynomial X^2
-def p2 : CPolynomial := [⟨1, 2⟩]
-#eval p2.qeval (13 / 2) -- 169 / 4
-
--- the polynomial X^2 - x + 5
-def p3 : CPolynomial := [⟨1, 2⟩, ⟨-1, 1⟩, ⟨5, 0⟩]
-#eval p3.qeval (13 / 2) -- 163 / 4
-
--- the polynomial X^2 - 2
-def p4: CPolynomial := [⟨1, 2⟩, ⟨-2, 0⟩]
-#eval p4.qeval (13 / 2) -- 161 / 4
-
--- The root of `p` in the interval `(l, r)`
-structure AlgebraicNumber where
-  p: CPolynomial
+-- The root of `p` in the interval `[l, r]`
+structure Raw where
+  p: CPolynomial Rat
   l: Rat
   r: Rat
+  -- This is also guaranteed by libpoly; this is necessary for `refine_wellDefined`.
+  sgn_diff : p.eval l * p.eval r ≤ 0
 
-abbrev 𝔸 := AlgebraicNumber
+def Raw.wellDefined (a: Raw) : Prop :=
+  let ⟨p, l, r, _⟩ := a
+  ∃! x : Real, p.eval₂ (Rat.castHom ℝ) x = 0 ∧ l ≤ x ∧ x ≤ r
 
-def AlgebraicNumber.wellDefined (a: 𝔸) : Prop :=
-  let ⟨p, l, r⟩ := a
-  ∃! x : Real, p.reval x = 0 ∧ l < x ∧ x < r
+instance (a : Raw) : Decidable a.wellDefined := sorry
 
-def degree (p : CPolynomial) : Nat :=
-  match p with
-  | [] => 0
-  | ⟨_, exp⟩ :: _ => exp
+lemma lr_wellDefined : ∀ a: Raw, a.wellDefined → a.l ≤ a.r := by
+  rintro ⟨p, l, r⟩ ⟨x, ⟨hx, hxl, hxr⟩, hx_unique⟩
+  have : (l : Real) ≤ r := Std.le_trans hxl hxr
+  simp_all only [and_imp, Rat.cast_le]
 
-def leadingCoef (p : CPolynomial) : ℚ :=
-  match p with
-  | [] => 0
-  | ⟨coef, _⟩ :: _ => coef
+def Raw.refine (a: Raw) : Raw :=
+  let ⟨p, l, r, hsgn_diff⟩ := a
+  let m := (l + r) / 2
+  if hev: p.eval l * p.eval m ≤ 0 then
+    ⟨p, l, m, hev⟩
+  else
+    ⟨p, m, r, by push_neg at hev; exact sgns_3 hev hsgn_diff⟩
 
-def CPolynomial.add (p q : CPolynomial) : CPolynomial :=
-  match h_match: (p, q) with
-  | ([], q) => q
-  | (p, []) => p
-  | (⟨coef1, exp1⟩ :: tl1, ⟨coef2, exp2⟩ :: tl2) =>
-    if exp1 = exp2 then
-      have : tl1.length + tl2.length < p.length + q.length := by grind
-      ⟨coef1 + coef2, exp1⟩ :: add tl1 tl2
-    else if exp1 < exp2 then
-      have : p.length + tl2.length < p.length + q.length := by grind
-      ⟨coef2, exp2⟩ :: add p tl2
+lemma refine_bounds_l : ∀ (a : Raw), a.wellDefined → a.l ≤ a.refine.l := by
+  intros a h
+  have := lr_wellDefined a h
+  simp [Raw.refine]
+  split_ifs
+  · linarith
+  · linarith
+
+lemma refine_bounds_r : ∀ (a : Raw), a.wellDefined → a.refine.r ≤ a.r := by
+  intros a h
+  have := lr_wellDefined a h
+  simp [Raw.refine]
+  split_ifs
+  · linarith
+  · linarith
+
+lemma refine_wellDefined : ∀ a: Raw, a.wellDefined → a.refine.wellDefined := by
+  intros a ha
+  have hlr := lr_wellDefined a ha
+  obtain ⟨p, l, r, hsgn_diff⟩ := a
+  have hlr' : (l : Real) ≤ r := Rat.cast_le.mpr hlr
+  obtain ⟨x, ⟨hx, hlx, hxr⟩, hx_unique⟩ := ha
+  simp only [Raw.refine]
+  split_ifs
+  next hi =>
+    rw [CPolynomial.eval_toPoly, CPolynomial.eval_toPoly] at hi
+    if hpl: p.toPoly.eval l = 0 then
+      have hxl : l = x := by
+        apply hx_unique
+        constructor
+        · rw [cpoly_eval2_poly_eval]
+          exact Rat.cast_eq_zero.mpr hpl
+        · grind
+      use l
+      simp only [le_refl, Rat.cast_le, true_and, and_imp]
+      constructor
+      · constructor
+        · rw [cpoly_eval2_poly_eval]
+          exact Rat.cast_eq_zero.mpr hpl
+        · linarith
+      · intros y hy1 hy2 hy3
+        rw [hxl]
+        apply hx_unique
+        constructor
+        · exact hy1
+        · exact And.intro hy2 (by norm_num at hy3; linarith)
     else
-      have : tl1.length + q.length < p.length + q.length := by grind
-      ⟨coef1, exp1⟩ :: add tl1 q
-  termination_by p.length + q.length
-
-def CPolynomial.neg (p: CPolynomial) : CPolynomial :=
-  p.map (fun ⟨coef, exp⟩ => ⟨-coef, exp⟩)
-
-def CPolynomial.sub (p q : CPolynomial) : CPolynomial := add p (neg q)
-
-def CMonomial.mul (m : CMonomial) (p : CPolynomial) : CPolynomial :=
-  let ⟨coef, exp⟩ := m
-  match p with
-  | [] => []
-  | ⟨coef', exp'⟩ :: tl => ⟨coef * coef', exp + exp'⟩ :: mul m tl
-
--- TODO (Tomaz): Fast Fourier Transform to do this on O(n log n)
-def CPolynomial.mul (p q : CPolynomial) : CPolynomial :=
-  match p with
-  | [] => []
-  | m :: tl =>
-    let p' := m.mul q
-    let rest := mul tl q
-    add p' rest
-
-def CPolynomial.zero : CPolynomial := [⟨0, 0⟩]
-
-def CPolynomial.divRem (p q : CPolynomial) : CPolynomial × CPolynomial :=
-  let deg_p := degree p
-  let deg_q := degree q
-  if deg_q ≤ deg_p then
-    let lcoeff_p := leadingCoef p
-    let lcoeff_q := leadingCoef q
-    let z: CMonomial := ⟨lcoeff_p / lcoeff_q, deg_p - deg_q⟩
-    let r := divRem (sub p (z.mul q)) q
-    ⟨add [z] r.1, r.2⟩
-  else ⟨zero, q⟩
-  termination_by degree p
-  decreasing_by
-    sorry
-
-
-def toSeq (a: 𝔸) : ℕ → ℚ := fun n =>
-  let ⟨p, l, r⟩ := a
-  match n with
-  | 0 => (l + r) / 2
-  | n + 1 =>
-    let m := (l + r) / 2
-    let a' :=
-      if p.qeval l * p.qeval m ≤ 0 then
-        ⟨p, l, m⟩
+      let m := (l + r) / 2
+      if hpm: p.toPoly.eval m = 0 then
+        use m
+        simp only [Rat.cast_le, and_imp]
+        constructor
+        · constructor
+          · rw [cpoly_eval2_poly_eval]
+            exact Rat.cast_eq_zero.mpr hpm
+          · grind
+        · intros y hy1 hy2 hy3
+          have : m = x := by
+            apply hx_unique
+            constructor
+            · rw [cpoly_eval2_poly_eval]
+              exact Rat.cast_eq_zero.mpr hpm
+            · norm_cast
+              grind
+          rw [this]
+          apply hx_unique
+          constructor
+          · exact hy1
+          · exact And.intro hy2 (by norm_num at hy3; linarith)
       else
-        ⟨p, m, r⟩
+        have : p.toPoly.eval l * p.toPoly.eval m < 0 := lt_of_le_of_neq _ _ hpl hpm hi
+        replace this : ((p.toPoly.eval l * p.toPoly.eval m) : Real) < (0 : Real) := by norm_cast
+        rw [eval_comm_map, eval_comm_map] at this
+        have hlm : (l : Real) ≤ m := by unfold m; norm_cast; linarith
+        obtain ⟨R, hR1, hR2, hR3⟩  := exists_root_ioo_mul (p := p.toPoly.map (Rat.castHom ℝ)) hlm this
+        have hRx : R = x := by
+          refine hx_unique R ⟨?_, ⟨le_of_lt hR1, ?_⟩⟩
+          · rw [CPolynomial.eval₂_toPoly, <- Polynomial.eval_map]
+            exact hR3
+          · unfold m at hR2
+            norm_num at hR2
+            grind
+        use R
+        constructor
+        · constructor
+          · rw [CPolynomial.eval₂_toPoly, <- Polynomial.eval_map]
+            exact hR3
+          · grind
+        · intros y hy
+          rw [hRx]
+          refine hx_unique y ⟨hy.1, ⟨hy.2.1, ?_⟩⟩
+          · norm_num at hy
+            grind
+  next hi =>
+    push_neg at hi
+    if hpr: p.toPoly.eval r = 0 then
+      have hxr : r = x := by
+        apply hx_unique
+        constructor
+        · rw [cpoly_eval2_poly_eval]
+          exact Rat.cast_eq_zero.mpr hpr
+        · grind
+      use r
+      simp only [le_refl, Rat.cast_le, and_imp]
+      constructor
+      · constructor
+        · rw [cpoly_eval2_poly_eval]
+          exact Rat.cast_eq_zero.mpr hpr
+        · grind
+      · intros y hy1 hy2 hy3
+        rw [hxr]
+        apply hx_unique
+        constructor
+        · exact hy1
+        · exact And.intro (by norm_num at hy2; linarith) (by linarith)
+    else
+      have hm_neq0 : p.eval ((l + r) / 2) ≠ 0 := by
+        intro abs
+        rw [abs] at hi
+        simp at hi
+      have hsgn_diff' := sgns_3 hi hsgn_diff
+      rw [CPolynomial.eval_toPoly, CPolynomial.eval_toPoly] at hsgn_diff'
+      have : p.toPoly.eval ((l + r) / 2) * p.toPoly.eval r ≠ 0 := by
+        intro abs
+        have : p.toPoly.eval ((l + r) / 2) = 0 ∨ p.toPoly.eval r = 0 := Rat.mul_eq_zero.mp abs
+        cases this
+        next H =>
+          rw [CPolynomial.eval_toPoly] at hm_neq0
+          exact hm_neq0 H
+        next H => exact hpr H
+      have mul_lt := Rat.lt_of_le_of_ne hsgn_diff' this
+      have mul_lt_r : (p.toPoly.map (Rat.castHom ℝ)).eval (((l : Real) + r) / 2) * (p.toPoly.map (Rat.castHom ℝ)).eval (r : Real) < 0 := by
+        norm_cast
+        rw [<- eval_comm_map, <- eval_comm_map]
+        norm_cast
+      obtain ⟨R, hR1, hR2, hR3⟩  := exists_root_ioo_mul (p := p.toPoly.map (Rat.castHom ℝ)) (by linarith) mul_lt_r
+      have hRx : R = x := by
+        refine hx_unique R ⟨?_, ⟨?_, ?_⟩⟩
+        · rw [CPolynomial.eval₂_toPoly, <- Polynomial.eval_map]
+          exact hR3
+        · grind
+        · grind
+      use R
+      refine ⟨⟨?_, ?_⟩, ?_⟩
+      · rw [CPolynomial.eval₂_toPoly, <- Polynomial.eval_map]
+        exact hR3
+      · norm_num
+        grind
+      · intros y hy
+        norm_num at hy
+        rw [hRx]
+        refine hx_unique y ⟨hy.1, ⟨?_, ?_⟩⟩
+        · grind
+        · grind
+
+@[simp]
+def toSeq (a: Raw) : ℕ → ℚ := fun n =>
+  match n with
+  | 0 => (a.l + a.r) / 2
+  | n + 1 =>
+    let a' := a.refine
     toSeq a' n
 
-theorem toSeq_cauchy : ∀ a: 𝔸, a.wellDefined → IsCauSeq abs (toSeq a) := by
+lemma toSeq_bound : ∀ a : Raw, ∀ i : Nat, a.wellDefined → a.l ≤ toSeq a i ∧ toSeq a i ≤ a.r := by
+  intros a i h
+  have := lr_wellDefined a h
+  cases i
+  next =>
+    simp only [toSeq]
+    constructor <;> linarith
+  next i =>
+    simp only [toSeq]
+    have := toSeq_bound a.refine i (refine_wellDefined a h)
+    have hl := refine_bounds_l a h
+    have hr := refine_bounds_r a h
+    grind
+
+theorem toSeq_cauchy : ∀ a: Raw, a.wellDefined → IsCauSeq abs (toSeq a) := by
   intros a ha
   simp [IsCauSeq]
   intro ε hε
   admit
 
--- approximates Real.sqrt 2
-def s := toSeq ⟨p4, 1, 2⟩
-
--- casting to an actual real number
-lemma hs : IsCauSeq abs s := sorry
-noncomputable def sr : ℝ := Real.ofCauchy (CauSeq.Completion.mk ⟨s, hs⟩)
-
--- this is definitely possible using Sturm's theorem
-instance (a: 𝔸) : Decidable a.wellDefined := sorry
-
-def AlgebraicNumber.toReal (a: 𝔸): ℝ :=
+@[simp]
+def Raw.toReal (a: Raw): ℝ :=
   if h: a.wellDefined then Real.ofCauchy (CauSeq.Completion.mk ⟨toSeq a, toSeq_cauchy a h⟩) else 0
 
-end Definitions
+lemma toReal_bounds : ∀ a : Raw, a.wellDefined → a.l ≤ a.toReal ∧ a.toReal ≤ a.r := by
+  rintro a hwda
+  simp [hwda]
+  admit
+
+theorem refine_toReal : ∀ a : Raw, a.toReal = a.refine.toReal := sorry
+
+instance : LT Raw where
+  lt a b := a.r < b.l
+
+theorem lt_toReal : ∀ (a b : Raw), a.wellDefined → b.wellDefined → a < b → a.toReal < b.toReal := sorry
+
+lemma refine_lt_toReal : ∀ a b : Raw, a.refine.toReal < b.refine.toReal → a.toReal < b.toReal := by
+  intros a b h
+  rw [refine_toReal, refine_toReal b]
+  exact h
+
+end AlgebraicNumber
