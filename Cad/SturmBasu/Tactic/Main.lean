@@ -31,7 +31,7 @@ where
 
 syntax (name := cmp_alg) "cmp_alg" term "," term "," term "," term : tactic
 
-partial def loop (a b : Q(Raw)) (ha : Q(AlgebraicNumber.Raw.wellDefined $a)) (hb : Q(AlgebraicNumber.Raw.wellDefined $b)) : MetaM Expr := do
+partial def gen_toReal_lt (a b : Q(Raw)) (ha : Q(AlgebraicNumber.Raw.wellDefined $a)) (hb : Q(AlgebraicNumber.Raw.wellDefined $b)) : MetaM Expr := do
   let goal ← Meta.mkAppM `LT.lt #[a, b]
   let h ← nativeDecide goal
   try
@@ -44,7 +44,7 @@ partial def loop (a b : Q(Raw)) (ha : Q(AlgebraicNumber.Raw.wellDefined $a)) (hb
     let b' := mkApp (.const ``Raw.refine []) b
     let ha' := mkApp (mkApp (.const ``refine_wellDefined []) a) ha
     let hb' := mkApp (mkApp (.const ``refine_wellDefined []) b) hb
-    let sub ← loop a' b' ha' hb'
+    let sub ← gen_toReal_lt a' b' ha' hb'
     Meta.mkAppM ``refine_lt_toReal #[a,b,sub]
 
 @[tactic cmp_alg] def evalCmp_alg : Tactic := fun stx => withMainContext do
@@ -53,13 +53,18 @@ partial def loop (a b : Q(Raw)) (ha : Q(AlgebraicNumber.Raw.wellDefined $a)) (hb
   -- TODO: infer these automatically via Sturm's theorem
   let ha : Q(AlgebraicNumber.Raw.wellDefined $a) ← elabTerm stx[5] none
   let hb : Q(AlgebraicNumber.Raw.wellDefined $b) ← elabTerm stx[7] none
-  let mv ← loop a b ha hb
+  let mv ← gen_toReal_lt a b ha hb
   let mainMv ← getMainGoal
   let ra : Q(Real) := q(Raw.toReal $a)
   let rb : Q(Real) := q(Raw.toReal $b)
   let g ← Meta.mkAppM `LT.lt #[ra, rb]
   let (fv_decomp, mainMv) ← MVarId.intro1P $ ← mainMv.assert (Name.mkSimple "foo") g mv
   replaceMainGoal [mainMv]
+
+syntax (name := cmp_alg_list) "cmp_alg_list" ("[" term,* "]") ("[" term,* "]") : tactic
+
+@[tactic cmp_alg_list] def evalCmp_alg_list : Tactic := fun stx => withMainContext do
+  sorry
 
 def a : Raw := ⟨CPolynomial.X, -500, 500, by native_decide⟩ -- 0
 def b : Raw := ⟨CPolynomial.X - CPolynomial.C 3, -500, 500, by native_decide⟩ -- 3
@@ -358,12 +363,3 @@ example (h : ∃ (x : ℝ), x + 3 < 0 ∧ (1/2) * x ^ 2 - 1 < 0) : False := by
   · admit
   · admit
   · admit
-
-/- syntax (name := cmdElabTerm) "#elab " term : command -/
-/- open Lean.Elab Lean.Elab.Command in -/
-/- @[command_elab cmdElabTerm] def evalCmdElabTerm : CommandElab -/
-/-   | `(#elab $term) => withoutModifyingEnv $ runTermElabM fun _ => do -/
-/-     let e ← Term.elabTerm term none -/
-/-     logInfo m!"{e} ::: {repr e}" -/
-/-   | _ => throwUnsupportedSyntax -/
-
