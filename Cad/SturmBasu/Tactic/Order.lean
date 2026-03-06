@@ -58,12 +58,16 @@ partial def gen_toReal_lt (a b : Q(Raw)) (ha : Q(AlgebraicNumber.Raw.wellDefined
   replaceMainGoal [mainMv]
 
 def a : Raw := ⟨CPolynomial.X, -500, 500, by native_decide⟩ -- 0
-def b : Raw := ⟨CPolynomial.X - CPolynomial.C 3, -500, 500, by native_decide⟩ -- 3
-def c : Raw := ⟨CPolynomial.X - CPolynomial.C 10, -500, 500, by native_decide⟩ -- 10
+
+def b : Raw := ⟨CPolynomial.X ^ 2 - CPolynomial.C 2, 0, 2, by native_decide⟩ -- sqrt 2
+def c : Raw := ⟨CPolynomial.X - CPolynomial.C 3, -500, 500, by native_decide⟩ -- 3
+def d : Raw := ⟨CPolynomial.X - CPolynomial.C 10, -500, 500, by native_decide⟩ -- 10
+
 
 axiom wd_a : a.wellDefined
 axiom wd_b : b.wellDefined
 axiom wd_c : c.wellDefined
+axiom wd_d : d.wellDefined
 
 example : a.toReal < b.toReal := by
   cmp_alg a, b, wd_a, wd_b
@@ -114,6 +118,6 @@ def runGrind (mv : MVarId) (pfs : List Expr) : MetaM Unit := do
   let (_, mainMv) ← MVarId.intro1P $ ← mainMv.assert (Name.mkSimple "bar") goal mv
   replaceMainGoal [mainMv]
 
-example : [a.toReal, b.toReal, c.toReal].SortedLT := by
-  cmp_alg_list [a, b, c] [wd_a, wd_b, wd_c]
+example : [a.toReal, b.toReal, c.toReal, d.toReal].SortedLT := by
+  cmp_alg_list [a, b, c, d] [wd_a, wd_b, wd_c, wd_d]
   exact bar
