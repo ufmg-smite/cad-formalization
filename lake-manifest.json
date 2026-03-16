@@ -5,7 +5,7 @@
    "type": "git",
    "subDir": null,
    "scope": "",
-   "rev": "2c89a15d98441473279dea03aba789fc36890312",
+   "rev": "5d84ed78b23130cf6edac269d50c8799e91f3248",
    "name": "CompPoly",
    "manifestFile": "lake-manifest.json",
    "inputRev": "divByMonic",
