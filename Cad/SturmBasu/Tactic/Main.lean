@@ -4,79 +4,29 @@ import Qq
 
 import CompPoly
 import Cad.AlgebraicNumbers.Defs
+import Cad.SturmBasu.Tactic.Order
 
 open Qq Lean Elab Tactic ToExpr
 open AlgebraicNumber
 
--- A tactic for comparing the projection of two algebraic numbers into the reals
-section CmpAlg
+def runGrind (mv : MVarId) : MetaM Unit := do
+  let params ← Meta.Grind.mkDefaultParams {}
+  let _ ← Meta.Grind.main mv params
 
-open CompPoly
-
-def nativeDecide (p: Q(Prop)) : MetaM Q($p) := do
-  let hp : Q(Decidable $p) ← Meta.synthInstance q(Decidable $p)
-  let auxDeclName ← mkNativeAuxDecl `_nativeUnivNl q(Bool) q(decide $p)
-  let b : Q(Bool) := .const auxDeclName []
-  return .app q(@of_decide_eq_true $p $hp) (.app q(Lean.ofReduceBool $b true) q(Eq.refl true))
+-- takes an expression with exactly one real free variable and bounds it with a lambda
+def bound_var (e : Expr) : Expr :=
+  let e' := go e 0
+  Expr.lam .anonymous (mkConst `Real) e' BinderInfo.default
 where
-  mkNativeAuxDecl (baseName : Name) (type value : Expr) : MetaM Name := do
-    let auxName ← Lean.mkAuxDeclName baseName
-    let decl := Declaration.defnDecl {
-      name := auxName, levelParams := [], type, value
-      hints := .abbrev
-      safety := .safe
-    }
-    addAndCompile decl
-    pure auxName
-
-syntax (name := cmp_alg) "cmp_alg" term "," term "," term "," term : tactic
-
-partial def gen_toReal_lt (a b : Q(Raw)) (ha : Q(AlgebraicNumber.Raw.wellDefined $a)) (hb : Q(AlgebraicNumber.Raw.wellDefined $b)) : MetaM Expr := do
-  let goal ← Meta.mkAppM `LT.lt #[a, b]
-  let h ← nativeDecide goal
-  try
-    -- checks if nativeDecide was successful
-    withOptions (Elab.async.set · false) do
-      let _ ← Meta.mkAuxLemma [] goal h
-      Meta.mkAppM `AlgebraicNumber.lt_toReal #[a,b,ha,hb,h]
-  catch _ =>
-    let a' := mkApp (.const ``Raw.refine []) a
-    let b' := mkApp (.const ``Raw.refine []) b
-    let ha' := mkApp (mkApp (.const ``refine_wellDefined []) a) ha
-    let hb' := mkApp (mkApp (.const ``refine_wellDefined []) b) hb
-    let sub ← gen_toReal_lt a' b' ha' hb'
-    Meta.mkAppM ``refine_lt_toReal #[a,b,sub]
-
-@[tactic cmp_alg] def evalCmp_alg : Tactic := fun stx => withMainContext do
-  let a : Q(Raw) ← elabTerm stx[1] none
-  let b : Q(Raw) ← elabTerm stx[3] none
-  -- TODO: infer these automatically via Sturm's theorem
-  let ha : Q(AlgebraicNumber.Raw.wellDefined $a) ← elabTerm stx[5] none
-  let hb : Q(AlgebraicNumber.Raw.wellDefined $b) ← elabTerm stx[7] none
-  let mv ← gen_toReal_lt a b ha hb
-  let mainMv ← getMainGoal
-  let ra : Q(Real) := q(Raw.toReal $a)
-  let rb : Q(Real) := q(Raw.toReal $b)
-  let g ← Meta.mkAppM `LT.lt #[ra, rb]
-  let (fv_decomp, mainMv) ← MVarId.intro1P $ ← mainMv.assert (Name.mkSimple "foo") g mv
-  replaceMainGoal [mainMv]
-
-syntax (name := cmp_alg_list) "cmp_alg_list" ("[" term,* "]") ("[" term,* "]") : tactic
-
-@[tactic cmp_alg_list] def evalCmp_alg_list : Tactic := fun stx => withMainContext do
-  sorry
-
-def a : Raw := ⟨CPolynomial.X, -500, 500, by native_decide⟩ -- 0
-def b : Raw := ⟨CPolynomial.X - CPolynomial.C 3, -500, 500, by native_decide⟩ -- 3
-
-axiom wd_a : a.wellDefined
-axiom wd_b : b.wellDefined
-
-example : a.toReal < b.toReal := by
-  cmp_alg a, b, wd_a, wd_b
-  exact foo
-
-end CmpAlg
+  go e idx := match e with
+  | .app f x => .app (go f idx) (go x idx)
+  | .fvar _ => .bvar idx
+  | .lam n t b bi => .lam n t (go b (idx + 1)) bi
+  | .forallE n t b bi => .forallE n t (go b (idx + 1)) bi
+  | .letE n t v b d => .letE n t (go v idx) (go b (idx + 1)) d
+  | .mdata d e => .mdata d (go e idx)
+  | .proj t i e => .proj t i (go e idx)
+  | e => e
 
 @[simp]
 def decomp' (l : List ℝ) (sl : l.SortedLT) (first : Bool) : List (Set ℝ) :=
@@ -99,20 +49,6 @@ def decomp'_merge (l : List ℝ) (sl : l.SortedLT) : Set ℝ := (decomp' l sl fa
 
 @[simp]
 def decomp_merge (l : List ℝ) (sl : l.SortedLT) : Set ℝ := (decomp l sl).foldr (fun s acc => s ∪ acc) ∅
-
-def gen_intervals' (roots : List Real) (first : Bool) : List (Sum Real (Option Real × Option Real)) :=
-  match roots with
-  | [] => []
-  | [x] =>
-    if first then [.inr (none, some x), .inl x, .inr (some x, none)]
-    else [.inl x,  .inr (some x, none)]
-  | x :: y :: t =>
-    if first then
-      .inr (none, some x) :: .inl x :: .inr (some x, some y) :: gen_intervals' (y :: t) false
-    else
-      .inl x :: .inr (some x, some y) :: gen_intervals' (y :: t) false
-
-def gen_intervals (roots : List Real) : List (Sum Real (Option Real × Option Real)) := gen_intervals' roots true
 
 lemma decomp'_covers (hd : ℝ) (tl : List ℝ) (sl : (hd :: tl).SortedLT) :
     decomp'_merge (hd :: tl) sl = fun x => x ≥ hd := by
@@ -228,7 +164,7 @@ lemma decomp_covers (l : List ℝ) (sl : l.SortedLT) (hl : l ≠ []) :
             have := (Eq.to_iff (congrFun this z)).mpr (by grind)
             apply this
 
-lemma l1 (x : ℝ) (l : List (Set ℝ)) :
+lemma not_in_fold_sets (x : ℝ) (l : List (Set ℝ)) :
     (∀ p ∈ l, x ∉ p) → x ∉ l.foldr (fun s acc => s ∪ acc) ∅ := by
   intro h
   cases l
@@ -242,51 +178,36 @@ lemma l1 (x : ℝ) (l : List (Set ℝ)) :
       exact this abs'
     next abs' =>
       have : ∀ p ∈ tl, x ∉ p := by grind
-      have := l1 x tl this
+      have := not_in_fold_sets x tl this
       exact (iff_false_intro this).mp abs'
 
-lemma L (x : ℝ) (l : List ℝ) (sl : l.SortedLT) (hl : l ≠ []) :
+lemma in_component (x : ℝ) (l : List ℝ) (sl : l.SortedLT) (hl : l ≠ []) :
     ∃ p ∈ decomp l sl, x ∈ p := by
   by_contra! h
   have foo := decomp_covers l sl hl
   unfold decomp_merge at foo
-  have := l1 x (decomp l sl) h
+  have := not_in_fold_sets x (decomp l sl) h
   simp_all only [ne_eq, decomp, Set.mem_univ, not_true_eq_false]
 
-theorem t {P : ℝ → Prop} (l : List ℝ) (sl : l.SortedLT) (hl : l ≠ []) :
-    (∃ x, P x) → (∃ p : Set Real, p ∈ decomp l sl ∧ (∃ x : Real, x ∈ p ∧ P x)) := by
-  rintro ⟨x, hx⟩
-  obtain ⟨p, hp⟩  := L x l sl hl
+theorem in_component_prop {P : ℝ → Prop} (l : List ℝ) (sl : l.SortedLT) (hl : l ≠ []) (x : ℝ) :
+    P x → (∃ p : Set Real, p ∈ decomp l sl ∧ (x ∈ p ∧ P x)) := by
+  intro hx
+  obtain ⟨p, hp⟩ := in_component x l sl hl
   tauto
 
-def runGrind (mv : MVarId) : MetaM Unit := do
-  let params ← Meta.Grind.mkDefaultParams {}
-  let _ ← Meta.Grind.main mv params
-
-def getNatLit? : Expr → Option Nat
-| .app (.app _ (.lit (.natVal x))) _ => some x
-| _ => none
-
-@[grind, simp]
-def f (x : Nat) : Real := x
-
-def stxToNat (h : Term) : TacticM Nat := do
-  let expr ← elabTerm h.raw none
-  match getNatLit? expr with
-  | some i => pure i
-  | none   => throwError "getNatLit? failed"
-
--- given the list of roots and a proof that `exists (x : ℝ), P x` produces a proof
--- that `∃ p ∈ decomp roots, ∃ x ∈ p, P x`, where `decomp roots` is the decomposition
+-- given the list of roots and a proof that `P x` produces a proof
+-- that `∃ p ∈ decomp roots, x ∈ p ∧ P x`, where `decomp roots` is the decomposition
 -- of the real line into intervals separated at the roots.
-def getDecompPf (roots : Q(List Real)) (h : Expr) : MetaM Expr := do
-  let t ← Meta.mkAppM `List.SortedLT #[roots]
-  let roots_sorted_pf ← Meta.mkFreshExprMVar t
-  runGrind roots_sorted_pf.mvarId!
+def getDecompPf (x : Q(Real)) (roots_list : List Q(Real)) (wds : List Expr) (h : Expr) : MetaM Expr := do
+  let roots_sorted_pf ← genPfSortedLT roots_list wds
+  let roots_list_real ← roots_list.mapM (fun a => Meta.mkAppM `AlgebraicNumber.Raw.toReal #[a])
+  let roots := toListExpr q(Real) roots_list_real
   let roots_not_empty : Q(Prop) := q($roots ≠ [])
   let roots_not_empty_pf ← Meta.mkFreshExprMVar roots_not_empty
   runGrind roots_not_empty_pf.mvarId!
-  Meta.mkAppM ``t #[roots, roots_sorted_pf, roots_not_empty_pf, h]
+  let hType ← Meta.inferType h
+  let P := bound_var hType
+  Meta.mkAppOptM ``in_component_prop #[some P, roots, roots_sorted_pf, roots_not_empty_pf, x, h]
 
 def collectDisjuncts (e: Expr) : List Expr :=
   match e with
@@ -294,11 +215,12 @@ def collectDisjuncts (e: Expr) : List Expr :=
     lhs :: collectDisjuncts rhs
   | _ => [e]
 
-def go (imps: List Expr) (or_pf: Expr) : MetaM Expr :=
+def go (imps: List Expr) (or_pf: Expr) : MetaM Expr := do
   match imps with
   | [] => throwError ""
-  | [e] => return e
-  | [e1, e2] => Meta.mkAppM `Or.elim #[or_pf, e1, e2]
+  | [_] => return or_pf
+  | [e1, e2] =>
+    Meta.mkAppM `Or.elim #[or_pf, e1, e2]
   | e :: t => do
     let or_ty ← Meta.inferType or_pf
     match or_ty with
@@ -310,32 +232,27 @@ def go (imps: List Expr) (or_pf: Expr) : MetaM Expr :=
     | _ => throwError ""
 
 -- Solves one of the intervals for univ_cad. Returns `some mv` if it is not supported yet
-def solveCase (mv : MVarId) (inter : Sum Real (Option Real × Option Real)) : MetaM (Option MVarId) := do
-  let ty ← mv.getType
-  logInfo m!"ty = {ty}"
-  match inter with
-  | .inl x =>
-    logInfo "inl"
+def solveCase (mv : MVarId) (idx : Nat) : MetaM (Option MVarId) := do
+  if idx % 2 = 0 then -- interval
     return mv
-  | .inr (ol, or) =>
-    logInfo "inr"
+  else
     return mv
 
-syntax (name := univ_cad) "univ_cad" term "," ("[" term,* "]")? : tactic
+syntax (name := univ_cad) "univ_cad" term "," term "," ("[" term,* "]") "," ("[" term,* "]") : tactic
 
 -- Nat for now because its easier, later we have to instrument lean-smt to parse algebraic numbers to real numbers
-def parseUnivCad : Syntax → TacticM (List Nat)
-  | `(tactic| univ_cad $_, [ $[$hs],* ]) => hs.toList.mapM stxToNat >>= λ li => return li
+def parseUnivCad : Syntax → TacticM (Expr × Expr × List Expr × List Expr)
+  | `(tactic| univ_cad $x, $h, [ $[$as],* ], [ $[$hs],* ]) => do
+      let as ← as.toList.mapM (elabTerm · none)
+      let hs ← hs.toList.mapM (elabTerm · none)
+      let x' ← elabTerm x none
+      let h' ← elabTerm h none
+      return (x', h', as, hs)
   | _ => throwError "[univ_cad]: wrong usage"
 
-@[tactic univ_cad] def evalUnivCad : Tactic := fun stx => withMainContext do
-  let h ← elabTerm stx[1] none -- exists x, F x
-  let roots ← parseUnivCad stx
-  let roots' := roots.map f
-  let inters := gen_intervals roots'
-  let e_roots' := toExpr roots
-  let e_roots : Q(List Real) ← Meta.mkAppM ``List.map #[Expr.const `f [], e_roots']
-  let decompPf ← getDecompPf e_roots h
+@[tactic univ_cad] unsafe def evalUnivCad : Tactic := fun stx => withMainContext do
+  let (x, h, roots, wds) ← parseUnivCad stx
+  let decompPf ← getDecompPf x roots wds h
   let decompType ← Meta.inferType decompPf
   let mainMv ← getMainGoal
   let (fv_decomp, mainMv) ← MVarId.intro1P $ ← mainMv.assert .anonymous decompType decompPf
@@ -345,19 +262,48 @@ def parseUnivCad : Syntax → TacticM (List Nat)
   mainMv.withContext do
     let t ← fv_decomp.getType
     let disjuncts := collectDisjuncts t
-    let disjunctsToFalse ← disjuncts.mapM (mkArrow · (.const `False []))
+    let disjunctsToFalse ← disjuncts.mapM (mkArrow · q(False))
     let disjunctsToFalseMvs ← disjunctsToFalse.mapM (fun e => Meta.mkFreshExprMVar e)
+    /- let T ← Meta.inferType (.fvar fv_decomp) -/
     let answer ← go disjunctsToFalseMvs (.fvar fv_decomp)
     mainMv.assign answer
-    let disjsAndInters := disjunctsToFalseMvs.zip inters
-    let unsolvedMvs ← disjsAndInters.mapM (fun (e, i) => solveCase e.mvarId! i)
+    let indexedGoals := disjunctsToFalseMvs.zipIdx
+    let unsolvedMvs ← indexedGoals.mapM (fun (e, i) => solveCase e.mvarId! i)
     let unsolvedMvs := unsolvedMvs.foldr (fun o acc => match o with | some x => x :: acc | _ => acc) []
     replaceMainGoal unsolvedMvs
 
-example (h : ∃ (x : ℝ), x + 3 < 0 ∧ (1/2) * x ^ 2 - 1 < 0) : False := by
-  univ_cad h, [1, 3, 4]
+open CompPoly
+
+def p := CPolynomial.C ((1 : Rat) / 2) * CPolynomial.X ^ 2 - CPolynomial.C 1
+
+def r1 : Raw := ⟨CPolynomial.X + CPolynomial.C 3, -10, 0, by native_decide⟩
+def r2 : Raw := ⟨p, -2, -1, by native_decide⟩
+def r3 : Raw := ⟨p, 1, 2, by native_decide⟩
+
+axiom wd_r1 : r1.wellDefined
+axiom wd_r2 : r2.wellDefined
+axiom wd_r3 : r3.wellDefined
+
+#check Set
+
+lemma set_eq (x : Real) (y : Real) : (x ∈ setOf (fun z => z = y)) -> x = y := by
+  intro h
+  finiteness
+
+
+example (a b : Real) : ¬ (a < b) → False := by
+  intro h
+  push_neg at h
+
+example (x : Real) (h : x + 3 < 0 ∧ (1/2) * x ^ 2 - 1 < 0) : False := by
+  /- have := in_component_prop (P := fun y => y + 3 < 0 ∧ (1/2) * y ^ 2 - 1 < 0) [1, 3, 4] (by grind) (by grind) x h -/
+  univ_cad x, h, [r1, r2, r3], [wd_r1, wd_r2, wd_r3]
   · admit
-  · admit
+  · rintro ⟨h1, h2⟩
+    have := set_eq _ _ h1
+    rw [this] at h2
+    simp [wd_r1] at h2
+    admit
   · admit
   · admit
   · admit

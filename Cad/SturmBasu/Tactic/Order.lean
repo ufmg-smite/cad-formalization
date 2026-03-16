@@ -9,6 +9,9 @@ open Qq Lean Elab Tactic ToExpr Meta
 open AlgebraicNumber
 open CompPoly
 
+-- evalExpr?
+-- it should be possible just with refl, create a minimum example and ask on zulip
+-- c.f. https://github.com/Verified-zkEVM/CompPoly/issues/140
 def nativeDecide (p: Q(Prop)) : MetaM Q($p) := do
   let hp : Q(Decidable $p) ← synthInstance q(Decidable $p)
   let auxDeclName ← mkNativeAuxDecl `_nativeUnivNl q(Bool) q(decide $p)
@@ -97,7 +100,7 @@ def getPfs (as hs : List Expr) : MetaM (List Expr) :=
     return p :: rest
   | _, _ => throwError "[getPfs]: impossible"
 
-def runGrind (mv : MVarId) (pfs : List Expr) : MetaM Unit := do
+def runGrind' (mv : MVarId) (pfs : List Expr) : MetaM Unit := do
   let mut mv := mv
   for pf in pfs do
     let t ← inferType pf
@@ -106,14 +109,21 @@ def runGrind (mv : MVarId) (pfs : List Expr) : MetaM Unit := do
   let params ← Meta.Grind.mkDefaultParams {}
   let _ ← Meta.Grind.main mv params
 
+-- given a list of algebraic numbers and a list of proofs that they are well
+-- defined, tries to create a proof that the list is sorted (`List.SortedLT`)
+def genPfSortedLT (as : List Q(Raw)) (hs : List Expr) : MetaM Expr := do
+  let pfs ← getPfs as hs -- each pair is sorted
+  let as' ← as.mapM (fun a => mkAppM `AlgebraicNumber.Raw.toReal #[a])
+  let as := toListExpr q(Real) as'
+  let goal ← mkAppM `List.SortedLT #[as]
+  let mv ← mkFreshExprMVar goal
+  runGrind' mv.mvarId! pfs
+  return mv
+
 @[tactic cmp_alg_list] def evalCmp_alg_list : Tactic := fun stx => withMainContext do
   let (as, hs) ← parse_cmp_alg_list stx
-  let pfs ← getPfs as hs
-  let as ← as.mapM (fun a => mkAppM `AlgebraicNumber.Raw.toReal #[a])
-  let as' : Q(List Real) := toListExpr q(Real) as
-  let goal ← mkAppM `List.SortedLT #[as']
-  let mv ← mkFreshExprMVar goal
-  runGrind mv.mvarId! pfs
+  let mv ← genPfSortedLT as hs
+  let goal ← Meta.inferType mv
   let mainMv ← getMainGoal
   let (_, mainMv) ← MVarId.intro1P $ ← mainMv.assert (Name.mkSimple "bar") goal mv
   replaceMainGoal [mainMv]
