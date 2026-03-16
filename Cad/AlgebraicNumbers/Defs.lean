@@ -306,16 +306,57 @@ lemma toReal_bounds : ∀ a : Raw, a.wellDefined → a.l ≤ a.toReal ∧ a.toRe
   simp [hwda]
   admit
 
-theorem refine_toReal : ∀ a : Raw, a.toReal = a.refine.toReal := sorry
+theorem refine_toReal : ∀ a : Raw, a.wellDefined → a.toReal = a.refine.toReal := by
+  intro a hwd
+  have hwd' := refine_wellDefined a hwd
+  simp only [Raw.toReal, hwd, hwd', dite_true]
+  apply Real.ext_cauchy
+  exact CauSeq.Completion.mk_eq.mpr (by
+    show CauSeq.LimZero _
+    intro ε hε
+    -- Both toSeq a n and toSeq a.refine n are in the interval [refine^n a .l, refine^n a .r]
+    -- which has width (a.r - a.l) / 2^n → 0
+    obtain ⟨N, hN⟩ : ∃ N : ℕ, (a.r - a.l) / 2 ^ N < ε := by
+      have hlr := lr_wellDefined a hwd
+      have hwidth_nn : 0 ≤ a.r - a.l := by linarith
+      rcases eq_or_lt_of_le hwidth_nn with heq | hlt
+      · exact ⟨0, by simp [← heq, hε]⟩
+      · obtain ⟨N, hN⟩ := exists_pow_lt_of_lt_one (div_pos hε hlt) (show (1:ℚ)/2 < 1 by norm_num)
+        refine ⟨N, ?_⟩
+        have h2pos : (0 : ℚ) < 2 ^ N := pow_pos (by norm_num) N
+        have := mul_lt_mul_of_pos_right hN hlt
+        rwa [div_mul_cancel₀ _ (ne_of_gt hlt), one_div, inv_pow, mul_comm,
+          ← div_eq_mul_inv] at this
+    use N
+    intro j hj
+    have hbA := toSeq_in_refineN a N j hwd hj
+    -- toSeq a.refine j is in refine^j (a.refine) = refine^(j+1) a ⊆ refine^N a
+    have hbR_own := toSeq_in_refineN a.refine N j hwd' hj
+    -- refine^N (a.refine) = refine^(N+1) a
+    -- refine^(N+1) a is contained in refine^N a
+    have hcontain_l := refine_bounds_l (Raw.refine^[N] a) (refineN_wellDefined a N hwd)
+    have hcontain_r := refine_bounds_r (Raw.refine^[N] a) (refineN_wellDefined a N hwd)
+    have hbR : (Raw.refine^[N] a).l ≤ toSeq a.refine j ∧ toSeq a.refine j ≤ (Raw.refine^[N] a).r := by
+      have : (Raw.refine^[N] a.refine) = (Raw.refine^[N] a).refine := by
+        rw [← Function.iterate_succ_apply, Function.iterate_succ_apply']
+      rw [this] at hbR_own
+      constructor
+      · exact le_trans hcontain_l hbR_own.1
+      · exact le_trans hbR_own.2 hcontain_r
+    have hwidthN : (Raw.refine^[N] a).r - (Raw.refine^[N] a).l = (a.r - a.l) / 2 ^ N := refineN_width a N
+    simp only [CauSeq.sub_apply]
+    rw [abs_lt]
+    constructor <;> nlinarith [hbA.1, hbA.2, hbR.1, hbR.2]
+  )
 
 instance : LT Raw where
   lt a b := a.r < b.l
 
 theorem lt_toReal : ∀ (a b : Raw), a.wellDefined → b.wellDefined → a < b → a.toReal < b.toReal := sorry
 
-lemma refine_lt_toReal : ∀ a b : Raw, a.refine.toReal < b.refine.toReal → a.toReal < b.toReal := by
-  intros a b h
-  rw [refine_toReal, refine_toReal b]
+lemma refine_lt_toReal : ∀ a b : Raw, a.wellDefined → b.wellDefined → a.refine.toReal < b.refine.toReal → a.toReal < b.toReal := by
+  intros a b ha hb h
+  rw [refine_toReal a ha, refine_toReal b hb]
   exact h
 
 end AlgebraicNumber

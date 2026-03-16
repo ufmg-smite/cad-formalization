@@ -44,7 +44,7 @@ partial def gen_toReal_lt (a b : Q(Raw)) (ha : Q(AlgebraicNumber.Raw.wellDefined
     let ha' := mkApp (mkApp (.const ``refine_wellDefined []) a) ha
     let hb' := mkApp (mkApp (.const ``refine_wellDefined []) b) hb
     let sub ← gen_toReal_lt a' b' ha' hb'
-    mkAppM ``refine_lt_toReal #[a,b,sub]
+    mkAppM ``refine_lt_toReal #[a,b,ha,hb,sub]
 
 @[tactic cmp_alg] def evalCmp_alg : Tactic := fun stx => withMainContext do
   let a : Q(Raw) ← elabTerm stx[1] none
@@ -60,11 +60,11 @@ partial def gen_toReal_lt (a b : Q(Raw)) (ha : Q(AlgebraicNumber.Raw.wellDefined
   let (fv_decomp, mainMv) ← MVarId.intro1P $ ← mainMv.assert (Name.mkSimple "foo") g mv
   replaceMainGoal [mainMv]
 
-def a : Raw := ⟨CPolynomial.X, -500, 500, by native_decide⟩ -- 0
+def a : Raw := ⟨CPolynomial.X, -500, 500, by decide +kernel⟩ -- 0
 
-def b : Raw := ⟨CPolynomial.X ^ 2 - CPolynomial.C 2, 0, 2, by native_decide⟩ -- sqrt 2
-def c : Raw := ⟨CPolynomial.X - CPolynomial.C 3, -500, 500, by native_decide⟩ -- 3
-def d : Raw := ⟨CPolynomial.X - CPolynomial.C 10, -500, 500, by native_decide⟩ -- 10
+def b : Raw := ⟨CPolynomial.X ^ 2 - CPolynomial.C 2, 0, 2, by decide +kernel⟩ -- sqrt 2
+def c : Raw := ⟨CPolynomial.X - CPolynomial.C 3, -500, 500, by decide +kernel⟩ -- 3
+def d : Raw := ⟨CPolynomial.X - CPolynomial.C 10, -500, 500, by decide +kernel⟩ -- 10
 
 
 axiom wd_a : a.wellDefined
