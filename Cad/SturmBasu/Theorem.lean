@@ -19,12 +19,63 @@ def testing : CPolynomial ℚ := sorry
 
 --#eval CPolynomial.derivative_toPoly
 
-def k : CPolynomial ℚ := 0
-
+def k : CPolynomial ℚ := 12
+def h : CPolynomial ℚ := 2
 #eval k
+#eval k % h
+
+example (p q : Polynomial ℚ) : p.mod q = p % q := by
+  exact coeff_inj.mp rfl
+
+#check CPolynomial.toPoly_mul
+
+example (f g : Polynomial ℚ) (h : g ∣ f) (h2 : g ≠ 0): (f % g) = 0 := by
+  exact EuclideanDomain.mod_eq_zero.mpr h
+
+#check CPolynomial.div_toPoly
+#check CPolynomial.divX_mul_X_add
+#check Polynomial.dvd_iff_isRoot
+
+example (f g : CPolynomial ℚ) (h : g ∣ f) (h2 : g ≠ 0): g.toPoly ∣ f.toPoly := by
+
+  sorry
+
+example (f : CPolynomial ℚ) : toPoly f = f.toPoly := by simp_all
+
+theorem gneg_imp_gtopoly_neg (g : CPolynomial ℚ) (h : g ≠ 0) : g.toPoly ≠ 0 := by
+  intro abs
+  have : g = 0 := by
+    apply CPolynomial.eq_zero_iff_coeff_zero.mpr
+    --rw [← CPolynomial.toPoly_zero] at abs
+    have aux (x : ℚ) := CPolynomial.eval_toPoly x g
+    rw[abs] at aux
+    --rw [CPolynomial.toPoly_zero] at aux
+    simp at aux
+
+    simp only [CPolynomial.coeff_toPoly]
+    rw[abs]
+    apply Polynomial.coeff_zero
+  exact h this
 
 instance : DecidableEq (CPolynomial ℚ) :=
   Classical.decEq _
+
+#eval -(5 % 4)
+#eval -5 / 4
+
+example (k : CPolynomial ℚ) : (-k).toPoly = -k.toPoly := by
+  exact toPoly_neg k
+
+theorem gtopolyzeroeq (g : CPolynomial ℚ  ) : g.toPoly = 0 → g = 0 := by
+  contrapose
+  apply gneg_imp_gtopoly_neg
+
+theorem fg_mod_eq (f g : CPolynomial ℚ) (h : g≠ 0): (f % g).toPoly = f.toPoly % g.toPoly := by
+  have aux := CPolynomial.mod_toPoly f g
+  have : (f.mod g) = f%g := by
+    exact eq_iff_coeff.mpr (congrFun rfl)
+  rw[this] at aux
+  apply aux; exact h
 
 def sturmSeq_CPolynomial (f g : CPolynomial ℚ) : List (CPolynomial ℚ) :=
   if f = 0 then
@@ -35,12 +86,54 @@ termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
   decreasing_by
     if g1: g = 0 then
       simp_all
-    else if h : g ∣ f then
+    else if h : f%g = 0 then
       simp_all
-      have : ¬ g.toPoly = 0 := by sorry
+      have : ¬ g.toPoly = 0 := by
+        intro hgp
+        have : g = 0 := by
+          apply CPolynomial.eq_zero_iff_coeff_zero.mpr
+          have aux (x : ℚ) := CPolynomial.eval_toPoly x g
+          rw[hgp] at aux; simp at aux
+          simp only [CPolynomial.coeff_toPoly]
+          rw[hgp]
+          apply Polynomial.coeff_zero
+        simp_all
       have : g.toPoly.degree ≥ 0 := zero_le_degree_iff.mpr this
-      have gnatdeg : g.degree ≥ 0 := sorry
-      have : -f % g = 0 := by sorry
+      have gnatdeg : g.degree ≥ 0 := by
+        have aux := CPolynomial.degree_toPoly g
+        rw [← aux] at this; exact this
+      have : -f % g = 0 := by
+        have : (f % g).toPoly = 0 := by rw[h]; exact toPoly_zero
+        have : ∃ k , f = g*k := by sorry
+        rcases this with ⟨k, hk⟩
+        rw[hk]
+        simp_all
+        have : (g * k) % g = 0 := by
+          subst hk
+          simp_all only
+        have : -(g*k) = g*-k := by
+          subst hk
+          simp_all only [mul_neg]
+        rw[this]
+        have : (g*-k % g).toPoly = 0 := by
+          have := fg_mod_eq (g*-k) g
+          rw[this]
+          have : (g * -k).toPoly % g.toPoly = 0 := by
+            apply EuclideanDomain.mod_eq_zero.mpr
+            have t1 : (g * -k).toPoly = g.toPoly * -k.toPoly := by
+              have : g.toPoly * -k.toPoly = toPoly g * toPoly (-k) := by
+                simp_all
+                have := toPoly_neg k
+                rw[this]
+                simp_all only [mul_neg]
+              rw[this]
+              apply CPolynomial.toPoly_mul
+            have := toPoly_neg k
+            rw[t1];
+            subst hk
+            simp_all only [mul_neg, ne_eq, not_false_eq_true, forall_const, dvd_neg, dvd_mul_right]
+          exact this; simp; exact g1
+        apply gtopolyzeroeq; exact this
       simp_all
       refine lt_add_of_lt_of_nonneg ?_ gnatdeg; simp
     else
@@ -67,7 +160,6 @@ termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
       have : (-f % g).toPoly.degree < g.toPoly.degree := by sorry
       have : (-f % g).degree < g.degree := by sorry
       refine WithBot.add_lt_add_left ?_ this; simp_all
-
 
 def seqEval_CPolynomial (k : ℚ) : List (CPolynomial ℚ) → List ℚ
 | [] => []
@@ -120,9 +212,9 @@ def seqVarSturm_ab_Rat (p q: (Polynomial ℚ)) (a b : ℚ) : ℤ :=
   seqVar_ab_Rat (sturmSeq_Rat p q) a b
 -- queremos mostrar que seqVarSturm_ab p (derivative p * q) a b = mesma coisa, mas pros nossos polinomios
 theorem equiv_for_sturm_tarski_interval (a b : ℚ) (p q : CPolynomial ℚ) (hab : a < b) (hpa : p.eval a ≠ 0) (hpb : p.eval b ≠ 0) :
-    seqVarSturm_ab_CPolynomial p (CPolynomial.derivative p * q) a b = seqVarSturm_ab_Rat p.toPoly (derivative p.toPoly * q.toPoly) a b := by
+    seqVarSturm_ab_CPolynomial p (CPolynomial.derivative (p * q)) a b = seqVarSturm_ab_Rat p.toPoly (derivative p.toPoly * q.toPoly) a b := by
   simp_all
-
+  --
   sorry
 
 def rootsAbove (f : Polynomial ℝ) (a : ℝ) : Finset ℝ :=
