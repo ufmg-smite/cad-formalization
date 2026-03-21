@@ -103,36 +103,22 @@ termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
         have aux := CPolynomial.degree_toPoly g
         rw [← aux] at this; exact this
       have : -f % g = 0 := by
-        have : (f % g).toPoly = 0 := by rw[h]; exact toPoly_zero
-        have : ∃ k , f = g*k := by sorry
+        have fgtopoly : (f % g).toPoly = 0 := by rw[h]; exact toPoly_zero
+        have : ∃ k , f.toPoly = g.toPoly * k := by
+          have : (f % g).toPoly = f.toPoly % g.toPoly := by apply fg_mod_eq; simp; exact g1
+          rw[this] at fgtopoly; simp_all only [ge_iff_le, EuclideanDomain.mod_eq_zero]
+          exact fgtopoly
         rcases this with ⟨k, hk⟩
-        rw[hk]
-        simp_all
-        have : (g * k) % g = 0 := by
-          subst hk
-          simp_all only
-        have : -(g*k) = g*-k := by
-          subst hk
-          simp_all only [mul_neg]
-        rw[this]
-        have : (g*-k % g).toPoly = 0 := by
-          have := fg_mod_eq (g*-k) g
+        have : (-f % g).toPoly = 0 := by
+          have : (-f % g).toPoly = (-f).toPoly % g.toPoly := by apply fg_mod_eq; simp; exact g1
           rw[this]
-          have : (g * -k).toPoly % g.toPoly = 0 := by
-            apply EuclideanDomain.mod_eq_zero.mpr
-            have t1 : (g * -k).toPoly = g.toPoly * -k.toPoly := by
-              have : g.toPoly * -k.toPoly = toPoly g * toPoly (-k) := by
-                simp_all
-                have := toPoly_neg k
-                rw[this]
-                simp_all only [mul_neg]
-              rw[this]
-              apply CPolynomial.toPoly_mul
-            have := toPoly_neg k
-            rw[t1];
-            subst hk
-            simp_all only [mul_neg, ne_eq, not_false_eq_true, forall_const, dvd_neg, dvd_mul_right]
-          exact this; simp; exact g1
+          have : (-f).toPoly = -f.toPoly := by exact toPoly_neg f
+          rw[this, hk]
+          have : -(g.toPoly * k) = g.toPoly*-k := by simp_all only [ge_iff_le, mul_neg]
+          rw[this]; expose_names;
+          refine CanonicalEuclideanDomain.mul_mod_eq_zero_of_mod_dvd g.toPoly (-k) g.toPoly this_1 ?_
+          have : g.toPoly ∣ g.toPoly := by apply dvd_refl
+          exact EuclideanDomain.mod_eq_zero.mpr this
         apply gtopolyzeroeq; exact this
       simp_all
       refine lt_add_of_lt_of_nonneg ?_ gnatdeg; simp
