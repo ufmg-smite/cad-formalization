@@ -35,10 +35,10 @@ example (f g : Polynomial ℚ) (h : g ∣ f) (h2 : g ≠ 0): (f % g) = 0 := by
 #check CPolynomial.div_toPoly
 #check CPolynomial.divX_mul_X_add
 #check Polynomial.dvd_iff_isRoot
+#check CPolynomial.coeff_neg
 
-example (f g : CPolynomial ℚ) (h : g ∣ f) (h2 : g ≠ 0): g.toPoly ∣ f.toPoly := by
-
-  sorry
+example (f : CPolynomial ℚ) : (-f).toPoly = -f.toPoly := by
+  exact toPoly_neg f
 
 example (f : CPolynomial ℚ) : toPoly f = f.toPoly := by simp_all
 
@@ -65,6 +65,12 @@ instance : DecidableEq (CPolynomial ℚ) :=
 
 example (k : CPolynomial ℚ) : (-k).toPoly = -k.toPoly := by
   exact toPoly_neg k
+
+example (k : CPolynomial ℚ) : (k).toPoly.degree = k.degree := by
+  exact Eq.symm (degree_toPoly k)
+theorem gtopolyzeroeq2 (g : CPolynomial ℚ  ) : g.toPoly ≠ 0 → g ≠ 0 := by
+  contrapose
+  intro h; rw[h]; exact toPoly_zero
 
 theorem gtopolyzeroeq (g : CPolynomial ℚ  ) : g.toPoly = 0 → g = 0 := by
   contrapose
@@ -124,27 +130,60 @@ termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
       refine lt_add_of_lt_of_nonneg ?_ gnatdeg; simp
     else
       simp_all only [↓reduceIte]
-      have : ¬ -f % g = 0 := by sorry
+      have : ¬ -f % g = 0 := by
+        have k1 : ¬ (f % g).toPoly = 0 := by apply gneg_imp_gtopoly_neg; simp; exact h
+        have : (f % g).toPoly = f.toPoly % g.toPoly := by exact fg_mod_eq f g g1
+        rw[this] at k1
+        have k2 : (-f % g).toPoly = (-f).toPoly % g.toPoly := by apply fg_mod_eq; simp; exact g1
+        have k3 : (-f).toPoly = -f.toPoly := by exact toPoly_neg f
+        have k4 : ¬ (-f % g).toPoly = 0 := by
+          rw[k2, k3]; simp_all only [EuclideanDomain.mod_eq_zero, dvd_neg, not_false_eq_true]
+        apply gtopolyzeroeq2; simp; exact k4
       simp_all
       let f' := f.toPoly
       let g' := g.toPoly
-      have : (-f' % g').degree < g'.degree := by
-        refine degree_lt_degree ?_; refine natDegree_mod_lt (-f') ?_
-        have : g'.natDegree = 0 → g' ∣ f' := by
+      have : (-f.toPoly % g.toPoly).degree < g.toPoly.degree := by
+        refine degree_lt_degree ?_; refine natDegree_mod_lt (-f.toPoly) ?_
+        have : g.toPoly.natDegree = 0 → g.toPoly ∣ f.toPoly := by
           intro hg
-          have : ∃ c : ℚ, Polynomial.C c = g' := natDegree_eq_zero.mp hg
-          rcases this with ⟨c, rf⟩; use Polynomial.C c⁻¹ * (f')
+          have : ∃ c : ℚ, Polynomial.C c = g.toPoly := natDegree_eq_zero.mp hg
+          rcases this with ⟨c, rf⟩; use Polynomial.C c⁻¹ * (f.toPoly)
           rw[←rf]; ring_nf
-          have hds : c ≠ 0 := by sorry
+          have hds : c ≠ 0 := by
+            by_contra
+            have : Polynomial.C c = 0 := by
+              rw[this]; aesop
+            rw[this] at rf
+            have : ¬ g.toPoly = 0 := by
+              have : g.toPoly ≠ 0 := by apply gneg_imp_gtopoly_neg; simp; exact g1
+              simp at this; exact this
+            simp_all
           ext x
           simp_all only [ne_eq]
           rw[←rf]
-          have : Polynomial.C c * Polynomial.C c⁻¹ = 1 := by sorry
-          sorry
-        have : g'.natDegree ≠ 0 := by sorry
-        exact this
-      have : (-f % g).toPoly.degree < g.toPoly.degree := by sorry
-      have : (-f % g).degree < g.degree := by sorry
+          have : Polynomial.C c * Polynomial.C c⁻¹ = 1 := by
+            have : Polynomial.C (c*c⁻¹ ) = Polynomial.C c * Polynomial.C c⁻¹ := by
+              apply C_mul
+            rw[← this]; simp_all only [ne_eq, not_false_eq_true, mul_inv_cancel₀, map_one]
+          rw[this]; aesop
+        have : ¬ (g.toPoly ∣ f.toPoly) → ¬ (g.toPoly.natDegree = 0) := by
+          contrapose; exact this
+        simp; apply this
+        by_contra
+        have contr1 : f.toPoly % g.toPoly = 0 := by simp_all only [implies_true, not_true_eq_false, IsEmpty.forall_iff, EuclideanDomain.mod_eq_zero]
+        have : ¬ (f % g).toPoly = 0 := by apply gneg_imp_gtopoly_neg; simp; exact h
+        have contr2 : (f % g).toPoly = f.toPoly % g.toPoly := by apply fg_mod_eq; simp; exact g1
+        simp_all
+      have : (-f % g).toPoly.degree < g.toPoly.degree := by
+        have : (-f % g).toPoly = (-f).toPoly % g.toPoly := by apply fg_mod_eq; simp; exact g1
+        rw[this]
+        have : (-f).toPoly = -f.toPoly := by exact toPoly_neg f
+        rw[this]; simp_all
+      have : (-f % g).degree < g.degree := by
+        have : (-f%g).degree = (-f%g).toPoly.degree := by exact degree_toPoly (-f%g)
+        rw[this]
+        have : g.degree = g.toPoly.degree := by exact degree_toPoly g
+        rw[this]; simp_all
       refine WithBot.add_lt_add_left ?_ this; simp_all
 
 def seqEval_CPolynomial (k : ℚ) : List (CPolynomial ℚ) → List ℚ
