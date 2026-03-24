@@ -303,8 +303,11 @@ def Raw.toReal (a: Raw): ℝ :=
 
 lemma toReal_bounds : ∀ a : Raw, a.wellDefined → a.l ≤ a.toReal ∧ a.toReal ≤ a.r := by
   rintro a hwda
-  simp [hwda]
-  admit
+  simp only [Raw.toReal, hwda, dite_true]
+  change (a.l : ℝ) ≤ Real.mk ⟨toSeq a, toSeq_cauchy a hwda⟩ ∧
+         Real.mk ⟨toSeq a, toSeq_cauchy a hwda⟩ ≤ (a.r : ℝ)
+  exact ⟨Real.le_mk_of_forall_le ⟨0, fun j _ => by exact_mod_cast (toSeq_bound a j hwda).1⟩,
+         Real.mk_le_of_forall_le ⟨0, fun j _ => by exact_mod_cast (toSeq_bound a j hwda).2⟩⟩
 
 theorem refine_toReal : ∀ a : Raw, a.wellDefined → a.toReal = a.refine.toReal := by
   intro a hwd
@@ -352,11 +355,95 @@ theorem refine_toReal : ∀ a : Raw, a.wellDefined → a.toReal = a.refine.toRea
 instance : LT Raw where
   lt a b := a.r < b.l
 
-theorem lt_toReal : ∀ (a b : Raw), a.wellDefined → b.wellDefined → a < b → a.toReal < b.toReal := sorry
+theorem lt_toReal : ∀ (a b : Raw), a.wellDefined → b.wellDefined → a < b → a.toReal < b.toReal := by
+  intros a b ha hb hlt
+  have ha_bounds := toReal_bounds a ha
+  have hb_bounds := toReal_bounds b hb
+  have : (a.r : ℝ) < (b.l : ℝ) := Rat.cast_lt.mpr hlt
+  linarith [ha_bounds.2, hb_bounds.1]
 
 lemma refine_lt_toReal : ∀ a b : Raw, a.wellDefined → b.wellDefined → a.refine.toReal < b.refine.toReal → a.toReal < b.toReal := by
   intros a b ha hb h
   rw [refine_toReal a ha, refine_toReal b hb]
   exact h
+
+
+theorem wellDefined_iff_rootsInInterval (a : Raw)
+    (hp : a.p.toPoly.map (Rat.castHom ℝ) ≠ 0)
+    (hl : a.p.eval a.l ≠ 0)
+    (hr : a.p.eval a.r ≠ 0)
+    (hlr : a.l < a.r) :
+    a.wellDefined ↔
+      Finset.card (rootsInInterval (a.p.toPoly.map (Rat.castHom ℝ)) ↑a.l ↑a.r) = 1 := by
+  set q := a.p.toPoly.map (Rat.castHom ℝ) with hq_def
+  obtain ⟨p, l, r, hsgn⟩ := a
+  simp only at *
+  -- Convert endpoint non-vanishing to real versions
+  rw [CPolynomial.eval_toPoly] at hl hr
+  have hl' : Polynomial.eval (↑l : ℝ) q ≠ 0 := by
+    rw [hq_def, ← eval_comm_map]; exact_mod_cast hl
+  have hr' : Polynomial.eval (↑r : ℝ) q ≠ 0 := by
+    rw [hq_def, ← eval_comm_map]; exact_mod_cast hr
+  have hlr' : (l : ℝ) < r := Rat.cast_lt.mpr hlr
+  -- Helper to convert between eval₂ and polynomial eval
+  have eval_conv : ∀ x : ℝ, p.eval₂ (Rat.castHom ℝ) x = q.eval x := by
+    intro x; rw [CPolynomial.eval₂_toPoly, ← Polynomial.eval_map]
+  constructor
+  · -- Forward: wellDefined → card = 1
+    rintro ⟨x, ⟨hxeval, hxl, hxr⟩, hx_unique⟩
+    -- x ∈ (l, r) since endpoints aren't roots
+    have hxl' : (↑l : ℝ) < x := by
+      rcases eq_or_lt_of_le hxl with heq | hlt
+      · exfalso; exact hl' (by rw [← eval_conv, heq]; exact hxeval)
+      · exact hlt
+    have hxr' : x < (↑r : ℝ) := by
+      rcases eq_or_lt_of_le hxr with heq | hlt
+      · exfalso; exact hr' (by rw [← eval_conv, ← heq]; exact hxeval)
+      · exact hlt
+    have hx_root : q.eval x = 0 := by rwa [← eval_conv]
+    have hx_mem : x ∈ rootsInInterval q ↑l ↑r := by
+      simp only [rootsInInterval, Finset.mem_filter, Multiset.mem_toFinset, Polynomial.mem_roots',
+        Polynomial.IsRoot.def]
+      exact ⟨⟨hp, hx_root⟩, Set.mem_Ioo.mpr ⟨hxl', hxr'⟩⟩
+    suffices rootsInInterval q ↑l ↑r = {x} by rw [this, Finset.card_singleton]
+    ext y
+    simp only [Finset.mem_singleton]
+    constructor
+    · intro hy
+      simp only [rootsInInterval, Finset.mem_filter, Multiset.mem_toFinset, Polynomial.mem_roots',
+        Polynomial.IsRoot.def] at hy
+      obtain ⟨⟨_, hy_root⟩, hy_ioo⟩ := hy
+      have hy_ioo := Set.mem_Ioo.mp hy_ioo
+      apply hx_unique
+      exact ⟨by rw [eval_conv]; exact hy_root, le_of_lt hy_ioo.1, le_of_lt hy_ioo.2⟩
+    · rintro rfl; exact hx_mem
+  · -- Backward: card = 1 → wellDefined
+    intro hcard
+    rw [Finset.card_eq_one] at hcard
+    obtain ⟨x, hx_eq⟩ := hcard
+    have hx_mem : x ∈ rootsInInterval q ↑l ↑r := by
+      rw [hx_eq]; exact Finset.mem_singleton_self x
+    simp only [rootsInInterval, Finset.mem_filter, Multiset.mem_toFinset, Polynomial.mem_roots',
+      Polynomial.IsRoot.def] at hx_mem
+    obtain ⟨⟨_, hx_root⟩, hx_ioo⟩ := hx_mem
+    have hx_ioo := Set.mem_Ioo.mp hx_ioo
+    refine ⟨x, ⟨by rw [eval_conv]; exact hx_root, le_of_lt hx_ioo.1, le_of_lt hx_ioo.2⟩, ?_⟩
+    intro y ⟨hyeval, hyl, hyr⟩
+    -- y is a root in [l, r], so in (l, r) since endpoints aren't roots
+    have hyl' : (↑l : ℝ) < y := by
+      rcases eq_or_lt_of_le hyl with heq | hlt
+      · exfalso; exact hl' (by rw [← eval_conv, heq]; exact hyeval)
+      · exact hlt
+    have hyr' : y < (↑r : ℝ) := by
+      rcases eq_or_lt_of_le hyr with heq | hlt
+      · exfalso; exact hr' (by rw [← eval_conv, ← heq]; exact hyeval)
+      · exact hlt
+    have hy_root : q.eval y = 0 := by rwa [← eval_conv]
+    have hy_mem : y ∈ rootsInInterval q ↑l ↑r := by
+      simp only [rootsInInterval, Finset.mem_filter, Multiset.mem_toFinset, Polynomial.mem_roots',
+        Polynomial.IsRoot.def]
+      exact ⟨⟨hp, hy_root⟩, Set.mem_Ioo.mpr ⟨hyl', hyr'⟩⟩
+    rw [hx_eq] at hy_mem
+    exact Finset.mem_singleton.mp hy_mem
 
 end AlgebraicNumber
