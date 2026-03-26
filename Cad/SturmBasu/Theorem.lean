@@ -35,7 +35,7 @@ example (f g : Polynomial ℚ) (h : g ∣ f) (h2 : g ≠ 0): (f % g) = 0 := by
 #check CPolynomial.div_toPoly
 #check CPolynomial.divX_mul_X_add
 #check Polynomial.dvd_iff_isRoot
-#check CPolynomial.coeff_neg
+#check CPolynomial.toPoly_zero
 
 example (f : CPolynomial ℚ) : (-f).toPoly = -f.toPoly := by
   exact toPoly_neg f
@@ -238,9 +238,22 @@ def seqVarSturm_ab_Rat (p q: (Polynomial ℚ)) (a b : ℚ) : ℤ :=
 -- queremos mostrar que seqVarSturm_ab p (derivative p * q) a b = mesma coisa, mas pros nossos polinomios
 theorem equiv_for_sturm_tarski_interval (a b : ℚ) (p q : CPolynomial ℚ) (hab : a < b) (hpa : p.eval a ≠ 0) (hpb : p.eval b ≠ 0) :
     seqVarSturm_ab_CPolynomial p (CPolynomial.derivative (p * q)) a b = seqVarSturm_ab_Rat p.toPoly (derivative p.toPoly * q.toPoly) a b := by
-  simp_all
-  --
-  sorry
+  --simp_all
+  rw[seqVarSturm_ab_CPolynomial, seqVar_ab_CPolynomial, seqEval_CPolynomial.eq_def, sturmSeq_CPolynomial]--
+  rw[seqVarSturm_ab_Rat, sturmSeq_Rat, seqVar_ab_Rat, seqEval_Rat.eq_def]
+
+  have (a b : ℚ) : (sturmSeq_CPolynomial p (p * q).derivative).length = ((sturmSeq_Rat p.toPoly (p.toPoly * q.toPoly).derivative)).length := by sorry
+  if h : p = 0 then
+    have : p.toPoly = 0 := by rw[h]; apply toPoly_zero
+    simp_all
+    rw[seqEval_CPolynomial, seqEval_Rat]
+  else
+    have : ¬ p.toPoly = 0 := by sorry
+    simp_all
+    have : CPolynomial.eval a p = Polynomial.eval a p.toPoly := by sorry
+    simp_all
+    sorry
+  --induction on sturmSeq_CPolynomial (p * q).derivative (-p % (p * q).derivative.size se precisar
 
 def rootsAbove (f : Polynomial ℝ) (a : ℝ) : Finset ℝ :=
   f.roots.toFinset.filter (fun x => x > a)
