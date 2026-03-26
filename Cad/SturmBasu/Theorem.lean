@@ -9,8 +9,8 @@ namespace Theorem
 
 theorem sturm_tarski_interval (a b : ℝ) (p q : Polynomial ℝ) (hab : a < b) (hpa : eval a p ≠ 0) (hpb : eval b p ≠ 0) :
     tarskiQuery p q a b = seqVarSturm_ab p (derivative p * q) a b := by
-  rw [B_2_58 p (derivative p * q) a b hpa hpb hab]
-  rw [B_2_57 p q a b]
+  rw [cauchyIndex_sturmSeq p (derivative p * q) a b hpa hpb hab]
+  rw [cauchyIndex_poly_taq p q a b]
 
 open CompPoly
 open CPolynomial
@@ -26,6 +26,13 @@ theorem gneg_imp_gtopoly_neg (g : CPolynomial ℚ) (h : g ≠ 0) : g.toPoly ≠ 
     rw[abs]
     apply Polynomial.coeff_zero
   exact h this
+
+#check CPolynomial.toPoly_mul
+#check CPolynomial.toPoly_mul
+#check CPolynomial.div_toPoly
+#check CPolynomial.divX_mul_X_add
+#check Polynomial.dvd_iff_isRoot
+#check CPolynomial.coeff_neg
 
 instance : DecidableEq (CPolynomial.Raw Rat) := instDecidableEqOfLawfulBEq
 
@@ -199,13 +206,13 @@ noncomputable def seqVar_ab_Rat (P: List (Polynomial ℚ)) (a b: ℚ): ℤ :=
 noncomputable def seqVarSturm_ab_Rat (p q: (Polynomial ℚ)) (a b : ℚ) : ℤ :=
   seqVar_ab_Rat (sturmSeq_Rat p q) a b
 
-noncomputable def toPolyList : List (CPolynomial ℚ) → List (Polynomial ℚ)
-| [] => []
-| a::as => a.toPoly::(toPolyList as)
+/- noncomputable def toPolyList : List (CPolynomial ℚ) → List (Polynomial ℚ) -/
+/- | [] => [] -/
+/- | a::as => a.toPoly::(toPolyList as) -/
 
-theorem seq_eval_equiv (k : ℚ) (c : List (CPolynomial ℚ)) : (seqEval_CPolynomial k c) = (seqEval_Rat k (toPolyList c)) := by sorry
-theorem sturm_seq_equiv (f g : CPolynomial ℚ) : sturmSeq_Rat f.toPoly g.toPoly = toPolyList (sturmSeq_CPolynomial f g) := by sorry
-theorem derivative_equiv (p q : CPolynomial ℚ) : Polynomial.derivative p.toPoly * q.toPoly = (p*q).derivative.toPoly := by sorry
+/- theorem seq_eval_equiv (k : ℚ) (c : List (CPolynomial ℚ)) : (seqEval_CPolynomial k c) = (seqEval_Rat k (toPolyList c)) := by sorry -/
+/- theorem sturm_seq_equiv (f g : CPolynomial ℚ) : sturmSeq_Rat f.toPoly g.toPoly = toPolyList (sturmSeq_CPolynomial f g) := by sorry -/
+/- theorem derivative_equiv (p q : CPolynomial ℚ) : Polynomial.derivative p.toPoly * q.toPoly = (p*q).derivative.toPoly := by sorry -/
 
 
 -- queremos mostrar que seqVarSturm_ab p (derivative p * q) a b = mesma coisa, mas pros nossos polinomios

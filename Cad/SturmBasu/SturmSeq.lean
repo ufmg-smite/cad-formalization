@@ -198,7 +198,7 @@ theorem seqVarSturm_ab_z_2 (p: Polynomial ℝ) (a b: ℝ) : seqVarSturm_ab p 0 a
   if H: p = 0 then simp [H]
   else simp [H]
 
-lemma B_2_57 (p q : Polynomial ℝ) (a b : ℝ) :
+lemma cauchyIndex_poly_taq (p q : Polynomial ℝ) (a b : ℝ) :
     tarskiQuery p q a b = cauchyIndex p (derivative p * q) a b := by
   if hp : p = 0 then
     simp_rw [hp, tarskiQuery, cauchyIndex, rootsInIntervalZero]
@@ -316,7 +316,7 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
      ring_nf at hf ⊢
      rw [hf]
 
-theorem B_2_58_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): ∃ (a' b': ℝ), a < a' ∧ a' < b' ∧ b' < b ∧ (∀p' ∈ sturmSeq p q, (∀ x: ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) -> eval x p' ≠ 0)) := by
+theorem cauchyIndex_sturmSeq_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): ∃ (a' b': ℝ), a < a' ∧ a' < b' ∧ b' < b ∧ (∀p' ∈ sturmSeq p q, (∀ x: ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) -> eval x p' ≠ 0)) := by
   induction h: (sturmSeq p q) generalizing p q with
     | nil =>
       let a' := 2/3 * a + 1/3 * b
@@ -388,7 +388,7 @@ theorem B_2_58_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): ∃ (a' b': �
       simp [haa', ha'b', hbb']
       exact ⟨h_final, h_rec⟩
 
-lemma B_2_60 (p q : Polynomial ℝ) (a b: ℝ) (hab : a < b)
+lemma cauchyIndex_poly_rec (p q : Polynomial ℝ) (a b: ℝ) (hab : a < b)
     (ha : (p * q).eval a ≠ 0) (hb : (p * q).eval b ≠ 0) :
     cauchyIndex p q a b = cross (p * q) a b + cauchyIndex q (- p % q) a b
     := by
@@ -686,7 +686,7 @@ lemma changes_itv_smods_congr (p q : Polynomial ℝ) (a a' b b' : ℝ) (hpa : ev
   unfold seqVarSturm_ab seqVar_ab
   rw [h1, h2]
 
-theorem B_2_58 (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.eval b ≠ 0) (hab : a < b) :
+theorem cauchyIndex_sturmSeq (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.eval b ≠ 0) (hab : a < b) :
     seqVarSturm_ab p q a b = cauchyIndex p q a b := by
   induction h: (sturmSeq p q) generalizing p q a b with
   | nil =>
@@ -698,7 +698,7 @@ theorem B_2_58 (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.
     simp [cauchyIndex, rootsInInterval]
    | cons hd tl ih =>
       have : p ≠ 0 := eval_non_zero p a hpa
-      have ⟨a', b', haa', ha'b', hbb', hn_root⟩ := B_2_58_aux p q a b hab
+      have ⟨a', b', haa', ha'b', hbb', hn_root⟩ := cauchyIndex_sturmSeq_aux p q a b hab
       if H: q = 0 then simp [H]
       else
         let r := (-p % q)
@@ -729,6 +729,6 @@ theorem B_2_58 (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.
         have h_congr_cindex := cindex_poly_congr p q a a' b b' haa' hbb' t0 this
         have t1 : eval a' (p * q) ≠ 0 := by simp [Polynomial.eval_mul, hpa', hqa']
         have t2 : eval b' (p * q) ≠ 0 := by simp [Polynomial.eval_mul, hpb', hqb']
-        have h_cindex := B_2_60 p q a' b' ha'b' t1 t2
+        have h_cindex := cauchyIndex_poly_rec p q a' b' ha'b' t1 t2
         have h_changes_itv := changes_itv_smods_rec t1 t2
         rw [h_congr_cindex, h_cindex, h_changes_itv, h_ind]
