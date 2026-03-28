@@ -27,31 +27,24 @@ theorem gneg_imp_gtopoly_neg (g : CPolynomial ℚ) (h : g ≠ 0) : g.toPoly ≠ 
     apply Polynomial.coeff_zero
   exact h this
 
-#check CPolynomial.toPoly_mul
-#check CPolynomial.toPoly_mul
-#check CPolynomial.div_toPoly
-#check CPolynomial.divX_mul_X_add
-#check Polynomial.dvd_iff_isRoot
-#check CPolynomial.coeff_neg
-
 instance : DecidableEq (CPolynomial.Raw Rat) := instDecidableEqOfLawfulBEq
 
 instance : DecidableEq (CPolynomial Rat) := Subtype.instDecidableEq
 
-theorem gtopolyzeroeq2 (g : CPolynomial ℚ  ) : g.toPoly ≠ 0 → g ≠ 0 := by
+theorem gtopolyzeroeq2 (g : CPolynomial ℚ) : g.toPoly ≠ 0 → g ≠ 0 := by
   contrapose
   intro h; rw[h]; exact toPoly_zero
 
-theorem gtopolyzeroeq (g : CPolynomial ℚ  ) : g.toPoly = 0 → g = 0 := by
+theorem gtopolyzeroeq (g : CPolynomial ℚ) : g.toPoly = 0 → g = 0 := by
   contrapose
   apply gneg_imp_gtopoly_neg
 
-theorem fg_mod_eq (f g : CPolynomial ℚ) (h : g≠ 0): (f % g).toPoly = f.toPoly % g.toPoly := by
+theorem fg_mod_eq (f g : CPolynomial ℚ) : (f % g).toPoly = f.toPoly % g.toPoly := by
   have aux := CPolynomial.mod_toPoly f g
   have : (f.mod g) = f%g := by
     exact eq_iff_coeff.mpr (congrFun rfl)
   rw[this] at aux
-  apply aux; exact h
+  apply aux
 
 def sturmSeq_CPolynomial (f g : CPolynomial ℚ) : List (CPolynomial ℚ) :=
   if f = 0 then
@@ -81,12 +74,12 @@ termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
       have : -f % g = 0 := by
         have fgtopoly : (f % g).toPoly = 0 := by rw[h]; exact toPoly_zero
         have : ∃ k , f.toPoly = g.toPoly * k := by
-          have : (f % g).toPoly = f.toPoly % g.toPoly := by apply fg_mod_eq; simp; exact g1
+          have : (f % g).toPoly = f.toPoly % g.toPoly := by apply fg_mod_eq
           rw[this] at fgtopoly; simp_all only [ge_iff_le, EuclideanDomain.mod_eq_zero]
           exact fgtopoly
         rcases this with ⟨k, hk⟩
         have : (-f % g).toPoly = 0 := by
-          have : (-f % g).toPoly = (-f).toPoly % g.toPoly := by apply fg_mod_eq; simp; exact g1
+          have : (-f % g).toPoly = (-f).toPoly % g.toPoly := by apply fg_mod_eq
           rw[this]
           have : (-f).toPoly = -f.toPoly := by exact toPoly_neg f
           rw[this, hk]
@@ -102,9 +95,9 @@ termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
       simp_all only [↓reduceIte]
       have : ¬ -f % g = 0 := by
         have k1 : ¬ (f % g).toPoly = 0 := by apply gneg_imp_gtopoly_neg; simp; exact h
-        have : (f % g).toPoly = f.toPoly % g.toPoly := by exact fg_mod_eq f g g1
+        have : (f % g).toPoly = f.toPoly % g.toPoly := by exact fg_mod_eq f g
         rw[this] at k1
-        have k2 : (-f % g).toPoly = (-f).toPoly % g.toPoly := by apply fg_mod_eq; simp; exact g1
+        have k2 : (-f % g).toPoly = (-f).toPoly % g.toPoly := by apply fg_mod_eq
         have k3 : (-f).toPoly = -f.toPoly := by exact toPoly_neg f
         have k4 : ¬ (-f % g).toPoly = 0 := by
           rw[k2, k3]; simp_all only [EuclideanDomain.mod_eq_zero, dvd_neg, not_false_eq_true]
@@ -142,10 +135,10 @@ termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
         by_contra
         have contr1 : f.toPoly % g.toPoly = 0 := by simp_all only [implies_true, not_true_eq_false, IsEmpty.forall_iff, EuclideanDomain.mod_eq_zero]
         have : ¬ (f % g).toPoly = 0 := by apply gneg_imp_gtopoly_neg; simp; exact h
-        have contr2 : (f % g).toPoly = f.toPoly % g.toPoly := by apply fg_mod_eq; simp; exact g1
+        have contr2 : (f % g).toPoly = f.toPoly % g.toPoly := by apply fg_mod_eq
         simp_all
       have : (-f % g).toPoly.degree < g.toPoly.degree := by
-        have : (-f % g).toPoly = (-f).toPoly % g.toPoly := by apply fg_mod_eq; simp; exact g1
+        have : (-f % g).toPoly = (-f).toPoly % g.toPoly := by apply fg_mod_eq
         rw[this]
         have : (-f).toPoly = -f.toPoly := by exact toPoly_neg f
         rw[this]; simp_all
@@ -161,7 +154,7 @@ def seqEval_CPolynomial (k : ℚ) : List (CPolynomial ℚ) → List ℚ
 | a::as => (a.eval k)::(seqEval_CPolynomial k as)
 
 noncomputable def seqVar_ab_CPolynomial (P: List (CPolynomial ℚ)) (a b: ℚ): ℤ :=
-  (seqVar (seqEval_CPolynomial a P) : Int) - seqVar (seqEval_CPolynomial b P)
+  (seqVarR (seqEval_CPolynomial a P) : Int) - seqVarR (seqEval_CPolynomial b P)
 
 noncomputable def seqVarSturm_ab_CPolynomial (p q: (CPolynomial ℚ)) (a b : ℚ) : ℤ :=
   seqVar_ab_CPolynomial (sturmSeq_CPolynomial p q) a b
@@ -201,7 +194,7 @@ def seqEval_Rat (k : ℚ) : List (Polynomial ℚ) → List ℚ
 | a::as => (eval k a)::(seqEval_Rat k as)
 
 noncomputable def seqVar_ab_Rat (P: List (Polynomial ℚ)) (a b: ℚ): ℤ :=
-  (seqVar (seqEval_Rat a P) : Int) - seqVar (seqEval_Rat b P)
+  (seqVarR (seqEval_Rat a P) : Int) - seqVarR (seqEval_Rat b P)
 
 noncomputable def seqVarSturm_ab_Rat (p q: (Polynomial ℚ)) (a b : ℚ) : ℤ :=
   seqVar_ab_Rat (sturmSeq_Rat p q) a b
@@ -255,7 +248,7 @@ lemma seq_sgn_pos_inf_seqEvalSgn (ub : ℝ) (ps : List (Polynomial ℝ)) (key : 
   cases ps
   next => simp only [seq_sgn_pos_inf, seqEvalSgn, List.map]
   next hd tl =>
-    simp only [seq_sgn_pos_inf, seqEvalSgn, List.cons.injEq, Int.cast_inj, List.map]
+    simp only [seq_sgn_pos_inf, seqEvalSgn, List.cons.injEq, List.map]
     constructor
     · apply Eq.symm
       apply key
@@ -296,6 +289,7 @@ theorem sturm_tarski_above (a : ℝ) (p q : Polynomial ℝ) (hpa : eval a p ≠ 
   have changes_changes : seqVarAboveSturm p (derivative p * q) a = seqVarSturm_ab p (derivative p * q) a ub := by
     simp [seqVarSturm_ab, seqVarAboveSturm, seqVarAbove_a, seqVar_ab]
     rw [seqVarSgn, <- ps_def, seq_sgn_pos_inf_seqEvalSgn ub ps hub3]
+    rw [seqVarI_seqVarR]
   rw [taq_taq, changes_changes]
   apply sturm_tarski_interval _ _ _ _ hub2 hpa
   intro abs
@@ -307,7 +301,7 @@ lemma seq_sgn_neg_inf_seqEvalSgn (lb : ℝ) (ps : List (Polynomial ℝ)) (key : 
   cases ps
   next => simp only [seq_sgn_neg_inf, seqEvalSgn, List.map]
   next hd tl =>
-    simp only [seq_sgn_neg_inf, seqEvalSgn, List.cons.injEq, Int.cast_inj, List.map]
+    simp only [seq_sgn_neg_inf, seqEvalSgn, List.cons.injEq, List.map]
     constructor
     · apply Eq.symm
       exact key _ (Preorder.le_refl lb) _ List.mem_cons_self
@@ -344,6 +338,7 @@ theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpa : eval b p ≠ 
   have changes_changes : seqVarBelowSturm p (derivative p * q) b = seqVarSturm_ab p (derivative p * q) lb b := by
     simp [seqVarSturm_ab, seqVarBelowSturm, seqVarBelow_b, seqVar_ab]
     rw [seqVarSgn, <- ps_def, seq_sgn_neg_inf_seqEvalSgn lb ps hlb3]
+    rw [seqVarI_seqVarR]
   rw [taq_taq, changes_changes]
   apply sturm_tarski_interval _ _ _ _ hlb2 _ hpa
   intro abs
@@ -351,10 +346,10 @@ theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpa : eval b p ≠ 
   simp at this
 
 theorem sturm_tarski_R (p q : Polynomial ℝ) :
-    tarskiQuery_R p q = seqVarRSturm p (derivative p * q) := by
+    tarskiQuery_R p q = seqVarLineSturm p (derivative p * q) := by
   if hp: p = 0 then
     rw [hp]
-    simp [tarskiQuery_R, seqVarRSturm, seqVarR, seq_sgn_neg_inf, seq_sgn_pos_inf]
+    simp [tarskiQuery_R, seqVarLineSturm, seqVarLine, seq_sgn_neg_inf, seq_sgn_pos_inf]
   else
     let ps := sturmSeq p (derivative p * q)
     have ps_def : ps = sturmSeq p (derivative p * q) := rfl
@@ -389,13 +384,15 @@ theorem sturm_tarski_R (p q : Polynomial ℝ) :
       · apply hub1
         · exact this
         · simp_all only
-    have changes_changes : seqVarRSturm p (derivative p * q) = seqVarSturm_ab p (derivative p * q) lb ub := by
-      simp [seqVarRSturm, seqVarR, seqVarSturm_ab, seqVar_ab]
+    have changes_changes : seqVarLineSturm p (derivative p * q) = seqVarSturm_ab p (derivative p * q) lb ub := by
+      simp [seqVarLineSturm, seqVarLine, seqVarSturm_ab, seqVar_ab]
       rw [ seqVarSgn
          , seqVarSgn
          , <- ps_def
          , seq_sgn_neg_inf_seqEvalSgn lb ps hlb3
          , seq_sgn_pos_inf_seqEvalSgn ub ps hub3
+         , seqVarI_seqVarR
+         , seqVarI_seqVarR
          ]
     have lb_neq_0 : eval lb p ≠ 0 := by
       intro abs
@@ -428,11 +425,9 @@ theorem sturm_below (b : ℝ) (p : Polynomial ℝ) (hpa : eval b p ≠ 0) :
   exact this
 
 theorem sturm_R (p : Polynomial ℝ) :
-    Finset.card p.roots.toFinset = seqVarRSturm p (derivative p) := by
+    Finset.card p.roots.toFinset = seqVarLineSturm p (derivative p) := by
   have := sturm_tarski_R p 1
   simp [tarskiQuery_R, sgn] at this
   exact this
-
-#print axioms sturm_tarski_R
 
 end Theorem

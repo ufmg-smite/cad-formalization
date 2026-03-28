@@ -1,3 +1,4 @@
+import Cad.SturmBasu.SeqDefs
 import Mathlib.Algebra.Lie.OfAssociative
 import Mathlib.Algebra.Order.Ring.Star
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
@@ -19,11 +20,6 @@ lemma or_neg_of_mul_neg (a b : ℝ) : a * b < 0 → a < 0 ∨ b < 0 := by
 
 def rootsInInterval (f : Polynomial ℝ) (a b : ℝ) : Finset ℝ :=
   f.roots.toFinset.filter (fun x => x ∈ Ioo a b)
-
-def sgn (k : ℝ) : ℤ  :=
-  if k > 0 then 1
-  else if k = 0 then 0
-  else -1
 
 lemma sgn_sgn_neg : ∀ x : ℝ, sgn x < 0 ↔ x < 0 := by
   intro x
@@ -53,22 +49,6 @@ lemma sgn_sgn_pos : ∀ x : ℝ, sgn x > 0 ↔ x > 0 := by
   next h => simp [h]
   next h1 h2 => simp [h2]
   next h1 h2 => simp [h1]
-
-def sgn_pos_inf (p : Polynomial ℝ) : ℤ :=
-  sgn p.leadingCoeff
-
-def sgn_neg_inf (p : Polynomial ℝ) : ℤ :=
-  if Even p.natDegree then sgn p.leadingCoeff else - sgn p.leadingCoeff
-
--- TODO (Tomaz): Add simp annotations to all these and fix everything that breaks
--- NOTE (Tomaz): I think only `sturmSeq` cannot be annotated with simp
-def seq_sgn_pos_inf : List (Polynomial ℝ) → List ℝ
-| [] => []
-| p::ps => sgn_pos_inf p :: seq_sgn_pos_inf ps
-
-def seq_sgn_neg_inf : List (Polynomial ℝ) → List ℝ
-| [] => []
-| p::ps => sgn_neg_inf p :: seq_sgn_neg_inf ps
 
 def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
   ∑ x ∈ rootsInInterval f a b, sgn (g.eval x)
@@ -615,3 +595,19 @@ lemma root_list_lb (ps : List (Polynomial ℝ)) (b : ℝ) (h0 : 0 ∉ ps) :
           apply hlb3
           · linarith
           · exact hmem
+
+lemma seqVarI_seqVarR (is : List ℤ) : seqVarI is = seqVarR (is : List ℝ) := match is with
+| [] => by simp [seqVarR, seqVarI]
+| [i] => by simp [seqVarR, seqVarI]
+| i1 :: i2 :: is => by
+  simp [seqVarR, seqVarI]
+  have IH1 := seqVarI_seqVarR (i1 :: is)
+  have IH2 := seqVarI_seqVarR (i2 :: is)
+  have IH3 := seqVarI_seqVarR is
+  split_ifs
+  next => finiteness
+  next => simp_all only [List.pure_def, List.bind_eq_flatMap, List.flatMap_cons, List.cons_append,
+    List.nil_append]
+  next H1 H2 => norm_cast at H2
+  next H1 H2 => norm_cast at H2
+  next => finiteness

@@ -1,7 +1,16 @@
 import Mathlib
 import CompPoly
 
-import Cad.SturmBasu.Utils
+def seqVarI : List ℤ → ℕ
+| [] => 0
+| _::[] => 0
+| a::(b::as) =>
+  if b == 0 then
+    seqVarI (a::as)
+  else if a * b < 0 then
+    1 + seqVarI (b::as)
+  else
+    seqVarI (b::as)
 
 noncomputable section RealPoly
 
@@ -43,15 +52,20 @@ def sturmSeq {α : Type*} [Field α] (f g : Polynomial α) : List (Polynomial α
   termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
   decreasing_by exact termination_sturmSeq f g (by assumption)
 
-def sgn_pos_inf' (p : Polynomial ℝ) : ℤ :=
+def sgn (k : ℝ) : ℤ  :=
+  if k > 0 then 1
+  else if k = 0 then 0
+  else -1
+
+def sgn_pos_inf (p : Polynomial ℝ) : ℤ :=
   sgn p.leadingCoeff
 
-def sgn_neg_inf' (p : Polynomial ℝ) : ℤ :=
+def sgn_neg_inf (p : Polynomial ℝ) : ℤ :=
   if Even p.natDegree then sgn p.leadingCoeff else - sgn p.leadingCoeff
 
-def seq_sgn_pos_inf' : List (Polynomial ℝ) → List ℤ := List.map (fun x => sgn_pos_inf' x)
+def seq_sgn_pos_inf : List (Polynomial ℝ) → List ℤ := List.map (fun x => sgn_pos_inf x)
 
-def seq_sgn_neg_inf' : List (Polynomial ℝ) → List ℤ := List.map (fun x => sgn_neg_inf' x)
+def seq_sgn_neg_inf : List (Polynomial ℝ) → List ℤ := List.map (fun x => sgn_neg_inf x)
 
 -- If we use typeclasses for these three we don't know which one is computable (?)
 def seqVarR : List ℝ → ℕ
@@ -76,20 +90,9 @@ def seqVarQ : List ℚ → ℕ
   else
     seqVarQ (b::as)
 
-def seqVarI : List ℤ → ℕ
-| [] => 0
-| _::[] => 0
-| a::(b::as) =>
-  if b == 0 then
-    seqVarQ (a::as)
-  else if a * b < 0 then
-    1 + seqVarQ (b::as)
-  else
-    seqVarQ (b::as)
-
 def seqEval {α : Type*} [Semiring α] (k : α) : List (Polynomial α) → List α := List.map (eval k)
 
-def seqEvalSgn (k : ℝ) : List (Polynomial ℝ) → List ℝ := List.map (fun a => sgn (eval k a))
+def seqEvalSgn (k : ℝ) : List (Polynomial ℝ) → List ℤ := List.map (fun a => sgn (eval k a))
 
 def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
   (seqVarR (seqEval a P) : Int) - seqVarR (seqEval b P)
@@ -98,13 +101,13 @@ def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
   seqVar_ab (sturmSeq p q) a b
 
 def seqVarAbove_a (P: List (Polynomial ℝ)) (a : ℝ) : ℤ :=
-  (seqVarR (seqEval a P) : Int) - seqVarI (seq_sgn_pos_inf' P)
+  (seqVarR (seqEval a P) : Int) - seqVarI (seq_sgn_pos_inf P)
 
 def seqVarBelow_b (P: List (Polynomial ℝ)) (b : ℝ) : ℤ :=
-  (seqVarI (seq_sgn_neg_inf' P) : Int) - seqVarR (seqEval b P)
+  (seqVarI (seq_sgn_neg_inf P) : Int) - seqVarR (seqEval b P)
 
 def seqVarLine (P : List (Polynomial ℝ)) : ℤ :=
-  (seqVarI (seq_sgn_neg_inf' P) : Int) - seqVarI (seq_sgn_pos_inf' P)
+  (seqVarI (seq_sgn_neg_inf P) : Int) - seqVarI (seq_sgn_pos_inf P)
 
 def seqVarAboveSturm (p q : Polynomial ℝ) (a : ℝ) : ℤ :=
   seqVarAbove_a (sturmSeq p q) a
@@ -238,13 +241,11 @@ theorem termination_sturmSeqC (f g: CPolynomial ℚ) (hf : f ≠ 0) :
       have contr2 : (f % g).toPoly = f.toPoly % g.toPoly := by apply fg_mod_eq
       simp_all
     have : (-f % g).toPoly.degree < g.toPoly.degree := by
-      have : (-f % g).toPoly = (-f).toPoly % g.toPoly := by apply fg_mod_eq
-      rw[this]
-      have : (-f).toPoly = -f.toPoly := by exact toPoly_neg f
-      rw[this]; simp_all
+      rw[fg_mod_eq, toPoly_neg]
+      simp_all
     have : (-f % g).degree < g.degree := by
       have : (-f%g).degree = (-f%g).toPoly.degree := by exact degree_toPoly (-f%g)
-      rw[this]
+      rw[degree_toPoly]
       have : g.degree = g.toPoly.degree := by exact degree_toPoly g
       rw[this]; simp_all
     refine WithBot.add_lt_add_left ?_ this; simp_all
@@ -307,27 +308,27 @@ lemma natDegree_toReal (p: CPolynomial ℚ) : p.natDegree = (p.toPoly.map (Rat.c
   simp only [CPolynomial.natDegree_toPoly]
   norm_num
 
-theorem seq_pos_inf_equiv (p : CPolynomial ℚ) : sgn_pos_inf'' p = sgn_pos_inf' (p.toPoly.map (Rat.castHom Real)) := by
-  unfold sgn_pos_inf'' sgn_pos_inf' sgn sgnC
+theorem seq_pos_inf_equiv (p : CPolynomial ℚ) : sgn_pos_inf'' p = sgn_pos_inf (p.toPoly.map (Rat.castHom Real)) := by
+  unfold sgn_pos_inf'' sgn_pos_inf sgn sgnC
   rw [<- leadingCoeff_toReal]
   have : (p.leadingCoeff : Real) > 0 ↔ p.leadingCoeff > 0 := by norm_num
   have : (p.leadingCoeff : Real) = 0 ↔ p.leadingCoeff = 0 := by norm_num
   grind
 
-theorem seq_neg_inf_equiv (p : CPolynomial ℚ) : sgn_neg_inf'' p = sgn_neg_inf' (p.toPoly.map (Rat.castHom Real)) := by
-  unfold sgn_neg_inf'' sgn_neg_inf' sgn sgnC
+theorem seq_neg_inf_equiv (p : CPolynomial ℚ) : sgn_neg_inf'' p = sgn_neg_inf (p.toPoly.map (Rat.castHom Real)) := by
+  unfold sgn_neg_inf'' sgn_neg_inf sgn sgnC
   rw [<- leadingCoeff_toReal, <- natDegree_toReal]
   have : (p.leadingCoeff : Real) > 0 ↔ p.leadingCoeff > 0 := by norm_num
   have : (p.leadingCoeff : Real) = 0 ↔ p.leadingCoeff = 0 := by norm_num
   grind
 
-theorem seq_sgn_pos_inf_eq (l : List (CPolynomial ℚ)) : seq_sgn_pos_inf'' l = seq_sgn_pos_inf' (List.map (Polynomial.map (Rat.castHom Real)) (List.map CPolynomial.toPoly l)) := by
-  unfold seq_sgn_pos_inf' seq_sgn_pos_inf''
+theorem seq_sgn_pos_inf_eq (l : List (CPolynomial ℚ)) : seq_sgn_pos_inf'' l = seq_sgn_pos_inf (List.map (Polynomial.map (Rat.castHom Real)) (List.map CPolynomial.toPoly l)) := by
+  unfold seq_sgn_pos_inf seq_sgn_pos_inf''
   have H := seq_pos_inf_equiv
   simp_all only [List.map_map, List.map_inj_left, Function.comp_apply, implies_true]
 
-theorem seq_sgn_neg_inf_eq (l : List (CPolynomial ℚ)) : seq_sgn_neg_inf'' l = seq_sgn_neg_inf' (List.map (Polynomial.map (Rat.castHom Real)) (List.map CPolynomial.toPoly l)) := by
-  unfold seq_sgn_neg_inf' seq_sgn_neg_inf''
+theorem seq_sgn_neg_inf_eq (l : List (CPolynomial ℚ)) : seq_sgn_neg_inf'' l = seq_sgn_neg_inf (List.map (Polynomial.map (Rat.castHom Real)) (List.map CPolynomial.toPoly l)) := by
+  unfold seq_sgn_neg_inf seq_sgn_neg_inf''
   have H := seq_neg_inf_equiv
   simp_all only [List.map_map, List.map_inj_left, Function.comp_apply, implies_true]
 
