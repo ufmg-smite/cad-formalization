@@ -218,7 +218,49 @@ noncomputable def toPolyList : List (CPolynomial ℚ) → List (Polynomial ℚ)
 | [] => []
 | a::as => a.toPoly::(toPolyList as)
 
-theorem seq_eval_equiv (k : ℚ) (c : List (CPolynomial ℚ)) : (seqEval_CPolynomial k c) = (seqEval_Rat k (toPolyList c)) := by sorry
+theorem seq_eval_equiv (k : ℚ) (c : List (CPolynomial ℚ)) : (seqEval_CPolynomial k c) = (seqEval_Rat k (toPolyList c)) := by
+  rw [seqEval_CPolynomial.eq_def, seqEval_Rat.eq_def]
+  split
+  next x =>
+    simp_all only [List.nil_eq]
+    rfl
+  next x a as =>
+    split
+    next x_1 heq =>
+      simp_all only [reduceCtorEq]
+      rw [toPolyList] at heq
+      simp_all only [reduceCtorEq]
+    next x_1 a_1 as_1 heq =>
+      simp_all only [List.cons.injEq]
+      apply And.intro
+      · have : a_1 = a.toPoly := by
+          rw[toPolyList] at heq
+          simp_all
+        rw[this]
+        have := CPolynomial.eval_toPoly k a
+        exact this
+      · have : as_1 = toPolyList as := by
+          rw[toPolyList] at heq
+          simp_all
+        rw[this]
+        simp_all;
+        if as = [] then
+          rename_i h
+          subst this h
+          rfl
+        else
+          have : ∃ a2 : CPolynomial ℚ, ∃ as2 : List (CPolynomial ℚ), as = a2::as2 := by
+            subst this
+            (expose_names; exact List.ne_nil_iff_exists_cons.mp h)
+          rcases this with ⟨a2, a2s, has⟩
+          rw[has]
+          rw [seqEval_CPolynomial, toPolyList, seqEval_Rat]
+          have := CPolynomial.eval_toPoly k a2
+          rw[this]
+          congr
+          have := seq_eval_equiv k a2s
+          apply this
+
 theorem sturm_seq_equiv (f g : CPolynomial ℚ) : sturmSeq_Rat f.toPoly g.toPoly = toPolyList (sturmSeq_CPolynomial f g) := by sorry
 theorem derivative_equiv (p q : CPolynomial ℚ) : Polynomial.derivative p.toPoly * q.toPoly = (p.derivative*q).toPoly := by sorry
 
