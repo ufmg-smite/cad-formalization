@@ -262,8 +262,33 @@ theorem seq_eval_equiv (k : ℚ) (c : List (CPolynomial ℚ)) : (seqEval_CPolyno
           apply this
 
 theorem sturm_seq_equiv (f g : CPolynomial ℚ) : sturmSeq_Rat f.toPoly g.toPoly = toPolyList (sturmSeq_CPolynomial f g) := by
+  rw [sturmSeq_CPolynomial]
+  rw [sturmSeq_Rat]
+  split
+  next h =>
+    simp_all only [List.nil_eq]
+    split
+    next h_1 =>
+      subst h_1
+      rfl
+    next h_1 =>
+      exfalso
+      have := gtopolyzeroeq f
+      simp_all
+  next h =>
+    split
+    next h_1 =>
+      subst h_1
+      exfalso
+      exact h CPolynomial.toPoly_zero
+    next h_1 =>
+      rw[toPolyList]
+      congr
+      have : (-f.toPoly % g.toPoly) = (-f%g).toPoly := by sorry
+      rw[this]
+      have := sturm_seq_equiv  g (-f % g)
+      apply this
 
-  sorry
 theorem derivative_equiv (p q : CPolynomial ℚ) : Polynomial.derivative p.toPoly * q.toPoly = (p.derivative*q).toPoly := by
   have : Polynomial.derivative p.toPoly = p.derivative.toPoly := by
     have := CPolynomial.derivative_toPoly p
