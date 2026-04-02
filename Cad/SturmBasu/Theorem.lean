@@ -261,8 +261,15 @@ theorem seq_eval_equiv (k : ℚ) (c : List (CPolynomial ℚ)) : (seqEval_CPolyno
           have := seq_eval_equiv k a2s
           apply this
 
-theorem sturm_seq_equiv (f g : CPolynomial ℚ) : sturmSeq_Rat f.toPoly g.toPoly = toPolyList (sturmSeq_CPolynomial f g) := by sorry
-theorem derivative_equiv (p q : CPolynomial ℚ) : Polynomial.derivative p.toPoly * q.toPoly = (p.derivative*q).toPoly := by sorry
+theorem sturm_seq_equiv (f g : CPolynomial ℚ) : sturmSeq_Rat f.toPoly g.toPoly = toPolyList (sturmSeq_CPolynomial f g) := by
+
+  sorry
+theorem derivative_equiv (p q : CPolynomial ℚ) : Polynomial.derivative p.toPoly * q.toPoly = (p.derivative*q).toPoly := by
+  have : Polynomial.derivative p.toPoly = p.derivative.toPoly := by
+    have := CPolynomial.derivative_toPoly p
+    simp_all
+  rw[this]; have := CPolynomial.toPoly_mul p.derivative q
+  simp_all
 
 -- queremos mostrar que seqVarSturm_ab p (derivative p * q) a b = mesma coisa, mas pros nossos polinomios
 theorem equiv_for_sturm_tarski_interval (a b : ℚ) (p q : CPolynomial ℚ) (hab : a < b) (hpa : p.eval a ≠ 0) (hpb : p.eval b ≠ 0) :
