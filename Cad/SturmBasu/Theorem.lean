@@ -50,8 +50,8 @@ theorem fg_mod_eq (f g : CPolynomial ℚ) : (f % g).toPoly = f.toPoly % g.toPoly
   have aux := CPolynomial.mod_toPoly f g
   have : (f.mod g) = f%g := by
     exact eq_iff_coeff.mpr (congrFun rfl)
-  rw[this] at aux; sorry
-  --apply aux; exact h
+  rw[this] at aux
+  apply aux
 
 def sturmSeq_CPolynomial (f g : CPolynomial ℚ) : List (CPolynomial ℚ) :=
   if f = 0 then

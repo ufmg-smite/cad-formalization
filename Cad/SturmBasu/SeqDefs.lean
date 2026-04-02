@@ -147,26 +147,11 @@ theorem gtopolyzeroeq (g : CPolynomial ℚ) : g.toPoly = 0 → g = 0 := by
   apply gneg_imp_gtopoly_neg
 
 theorem fg_mod_eq (f g : CPolynomial ℚ) : (f % g).toPoly = f.toPoly % g.toPoly := by
-  if h : g ≠ 0 then
-    have aux := CPolynomial.mod_toPoly f g
-    have : (f.mod g) = f%g := by
-      exact eq_iff_coeff.mpr (congrFun rfl)
-    rw[this] at aux
-    apply aux
-    exact h
-  else
-    simp at h
-    have : f.toPoly % g.toPoly = f.toPoly := by
-      rw[h]
-      simp only [toPoly_zero]
-      subst h
-      simp_all only [EuclideanDomain.mod_zero]
-    have : f % g = f := by
-      rw[h]
-
-      sorry
-    sorry
-
+  have aux := CPolynomial.mod_toPoly f g
+  have : (f.mod g) = f%g := by
+    exact eq_iff_coeff.mpr (congrFun rfl)
+  rw[this] at aux
+  apply aux
 
 theorem termination_sturmSeqC (f g: CPolynomial ℚ) (hf : f ≠ 0) :
    (if g = 0 then 0 else if -f % g = 0 then 1 else 2 + (-f % g).degree) <
