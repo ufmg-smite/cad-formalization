@@ -1,6 +1,10 @@
 import Mathlib
 import CompPoly
 
+open CompPoly in
+@[simp, grind =]
+noncomputable def toPolyReal (p : CPolynomial Rat) : Polynomial Real := p.toPoly.map (Rat.castHom Real)
+
 def seqVarI : List ℤ → ℕ
 | [] => 0
 | _::[] => 0
@@ -12,7 +16,7 @@ def seqVarI : List ℤ → ℕ
   else
     seqVarI (b::as)
 
-noncomputable section RealPoly
+section RealPoly
 
 open Polynomial
 
@@ -44,7 +48,7 @@ theorem termination_sturmSeq {α : Type*} [Field α] (f g : Polynomial α) (hf :
     refine WithBot.add_lt_add_left ?_ this; simp_all
 
 open Classical in
-def sturmSeq {α : Type*} [Field α] (f g : Polynomial α) : List (Polynomial α) :=
+noncomputable def sturmSeq {α : Type*} [Field α] (f g : Polynomial α) : List (Polynomial α) :=
   if f = 0 then
     []
   else
@@ -52,23 +56,23 @@ def sturmSeq {α : Type*} [Field α] (f g : Polynomial α) : List (Polynomial α
   termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
   decreasing_by exact termination_sturmSeq f g (by assumption)
 
-def sgn (k : ℝ) : ℤ  :=
+noncomputable def sgn (k : ℝ) : ℤ  :=
   if k > 0 then 1
   else if k = 0 then 0
   else -1
 
-def sgn_pos_inf (p : Polynomial ℝ) : ℤ :=
+noncomputable def sgn_pos_inf (p : Polynomial ℝ) : ℤ :=
   sgn p.leadingCoeff
 
-def sgn_neg_inf (p : Polynomial ℝ) : ℤ :=
+noncomputable def sgn_neg_inf (p : Polynomial ℝ) : ℤ :=
   if Even p.natDegree then sgn p.leadingCoeff else - sgn p.leadingCoeff
 
-def seq_sgn_pos_inf : List (Polynomial ℝ) → List ℤ := List.map (fun x => sgn_pos_inf x)
+noncomputable def seq_sgn_pos_inf : List (Polynomial ℝ) → List ℤ := List.map (fun x => sgn_pos_inf x)
 
-def seq_sgn_neg_inf : List (Polynomial ℝ) → List ℤ := List.map (fun x => sgn_neg_inf x)
+noncomputable def seq_sgn_neg_inf : List (Polynomial ℝ) → List ℤ := List.map (fun x => sgn_neg_inf x)
 
 -- If we use typeclasses for these three we don't know which one is computable (?)
-def seqVarR : List ℝ → ℕ
+noncomputable def seqVarR : List ℝ → ℕ
 | [] => 0
 | _::[] => 0
 | a::(b::as) =>
@@ -92,30 +96,30 @@ def seqVarQ : List ℚ → ℕ
 
 def seqEval {α : Type*} [Semiring α] (k : α) : List (Polynomial α) → List α := List.map (eval k)
 
-def seqEvalSgn (k : ℝ) : List (Polynomial ℝ) → List ℤ := List.map (fun a => sgn (eval k a))
+noncomputable def seqEvalSgn (k : ℝ) : List (Polynomial ℝ) → List ℤ := List.map (fun a => sgn (eval k a))
 
-def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
+noncomputable def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
   (seqVarR (seqEval a P) : Int) - seqVarR (seqEval b P)
 
-def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
+noncomputable def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
   seqVar_ab (sturmSeq p q) a b
 
-def seqVarAbove_a (P: List (Polynomial ℝ)) (a : ℝ) : ℤ :=
+noncomputable def seqVarAbove_a (P: List (Polynomial ℝ)) (a : ℝ) : ℤ :=
   (seqVarR (seqEval a P) : Int) - seqVarI (seq_sgn_pos_inf P)
 
-def seqVarBelow_b (P: List (Polynomial ℝ)) (b : ℝ) : ℤ :=
+noncomputable def seqVarBelow_b (P: List (Polynomial ℝ)) (b : ℝ) : ℤ :=
   (seqVarI (seq_sgn_neg_inf P) : Int) - seqVarR (seqEval b P)
 
-def seqVarLine (P : List (Polynomial ℝ)) : ℤ :=
+noncomputable def seqVarLine (P : List (Polynomial ℝ)) : ℤ :=
   (seqVarI (seq_sgn_neg_inf P) : Int) - seqVarI (seq_sgn_pos_inf P)
 
-def seqVarAboveSturm (p q : Polynomial ℝ) (a : ℝ) : ℤ :=
+noncomputable def seqVarAboveSturm (p q : Polynomial ℝ) (a : ℝ) : ℤ :=
   seqVarAbove_a (sturmSeq p q) a
 
-def seqVarBelowSturm (p q : Polynomial ℝ) (b : ℝ) : ℤ :=
+noncomputable def seqVarBelowSturm (p q : Polynomial ℝ) (b : ℝ) : ℤ :=
   seqVarBelow_b (sturmSeq p q) b
 
-def seqVarLineSturm (p q : Polynomial ℝ) : ℤ  :=
+noncomputable def seqVarLineSturm (p q : Polynomial ℝ) : ℤ  :=
   seqVarLine (sturmSeq p q)
 
 end RealPoly
@@ -415,7 +419,7 @@ decreasing_by
       exact this
     refine WithBot.add_lt_add_left ?_ this; simp_all
 
-theorem seqVarLine_equiv (fs : List (CPolynomial ℚ)) :
+theorem seqVarLineEquiv (fs : List (CPolynomial ℚ)) :
     seqVarLineC fs = seqVarLine (List.map (Polynomial.map (Rat.castHom Real)) (List.map CPolynomial.toPoly fs)) := by
   unfold seqVarLineC seqVarLine
   rw [seq_sgn_pos_inf_eq, seq_sgn_neg_inf_eq]
@@ -424,8 +428,24 @@ theorem seqVarLine_equiv (fs : List (CPolynomial ℚ)) :
 -- that `seqVarLineSturm f.toPoly.toReal f.derivative.toPoly.toReal` is also `k`. `sturm_R` will conclude that
 -- `f.toPoly.toReal` has `k` roots. From that point we only use with `f.toPoly.toReal`. Eventually we will need to evaluate it
 -- at a given rational point. We need a theorem saying `f.toPoly.toReal.eval (x.toReal) = f.eval x` for rational x
-theorem seqVarLineEquiv (f g : CPolynomial ℚ) : seqVarLineSturmC f g = seqVarLineSturm (f.toPoly.map (Rat.castHom Real)) (g.toPoly.map (Rat.castHom Real)) := by
+theorem seqVarLineEquivSturm (f g : CPolynomial ℚ) : seqVarLineSturmC f g = seqVarLineSturm (f.toPoly.map (Rat.castHom Real)) (g.toPoly.map (Rat.castHom Real)) := by
   unfold seqVarLineSturm
   rw [sturm_seq_toReal, sturm_seq_toPoly]
   unfold seqVarLineSturmC
-  exact seqVarLine_equiv (sturmSeqC f g)
+  exact seqVarLineEquiv (sturmSeqC f g)
+
+lemma map_cast (p : Polynomial Rat) (x : Rat) :
+    (p.eval x) = (p.map (Rat.castHom Real)).eval (Rat.castHom Real x) := by
+  have := Polynomial.eval_map_apply (Rat.castHom Real) x (p := p)
+  rw [this]
+  norm_num
+
+lemma cpolynomial_map_cast (x : Rat) (p : CPolynomial Rat) : p.eval x = (p.toPoly.map (Rat.castHom Real)).eval (x : Real) := by
+  have := CPolynomial.eval_toPoly x p
+  rw [this]
+  have : (↑(Polynomial.eval x p.toPoly) : Real) = Rat.castHom Real (Polynomial.eval x p.toPoly) := by norm_num
+  rw [map_cast p.toPoly x]
+  congr
+
+axiom seqVarABEquivSturm (p q : CPolynomial ℚ) (a b : ℚ) :
+    seqVarSturmC_ab p (p.derivative * q) a b = seqVarSturm_ab (toPolyReal p) ((toPolyReal p).derivative * (toPolyReal q)) a b

@@ -1,4 +1,5 @@
 import Cad.SturmBasu.SeqDefs
+import CompPoly
 import Mathlib.Algebra.Lie.OfAssociative
 import Mathlib.Algebra.Order.Ring.Star
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
