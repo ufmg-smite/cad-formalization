@@ -284,11 +284,115 @@ theorem sturm_seq_equiv (f g : CPolynomial ℚ) : sturmSeq_Rat f.toPoly g.toPoly
     next h_1 =>
       rw[toPolyList]
       congr
-      have : (-f.toPoly % g.toPoly) = (-f%g).toPoly := by sorry
+      have : (-f.toPoly % g.toPoly) = (-f%g).toPoly := by
+        have : -f.toPoly = (-f).toPoly := by
+          have : (-f).toPoly = -f.toPoly := by apply CPolynomial.toPoly_neg
+          simp_all
+        rw[this]
+        have : (-f % g).toPoly = (-f).toPoly % g.toPoly := by apply fg_mod_eq
+        simp_all
       rw[this]
       have := sturm_seq_equiv  g (-f % g)
       apply this
-
+termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
+  decreasing_by
+    if g1: g = 0 then
+      simp_all
+    else if h : f%g = 0 then
+      simp_all
+      have : ¬ g.toPoly = 0 := by
+        intro hgp
+        have : g = 0 := by
+          apply CPolynomial.eq_zero_iff_coeff_zero.mpr
+          have aux (x : ℚ) := CPolynomial.eval_toPoly x g
+          rw[hgp] at aux; simp at aux
+          simp only [CPolynomial.coeff_toPoly]
+          rw[hgp]
+          apply Polynomial.coeff_zero
+        simp_all
+      have : g.toPoly.degree ≥ 0 := zero_le_degree_iff.mpr this
+      have gnatdeg : g.degree ≥ 0 := by
+        have aux := CPolynomial.degree_toPoly g
+        rw [← aux] at this; exact this
+      have : -f % g = 0 := by
+        have fgtopoly : (f % g).toPoly = 0 := by rw[h]; exact toPoly_zero
+        have : ∃ k , f.toPoly = g.toPoly * k := by
+          have : (f % g).toPoly = f.toPoly % g.toPoly := by apply fg_mod_eq;
+          rw[this] at fgtopoly; simp_all only [ge_iff_le, EuclideanDomain.mod_eq_zero]
+          exact fgtopoly
+        rcases this with ⟨k, hk⟩
+        have : (-f % g).toPoly = 0 := by
+          have : (-f % g).toPoly = (-f).toPoly % g.toPoly := by apply fg_mod_eq;
+          rw[this]
+          have : (-f).toPoly = -f.toPoly := by exact toPoly_neg f
+          rw[this, hk]
+          have : -(g.toPoly * k) = g.toPoly*-k := by simp_all only [ge_iff_le, mul_neg]
+          rw[this]; expose_names
+          refine CanonicalEuclideanDomain.mul_mod_eq_zero_of_mod_dvd g.toPoly (-k) g.toPoly this_2 ?_
+          have : g.toPoly ∣ g.toPoly := by apply dvd_refl
+          exact EuclideanDomain.mod_eq_zero.mpr this
+        apply gtopolyzeroeq; exact this
+      simp_all
+      refine lt_add_of_lt_of_nonneg ?_ gnatdeg; simp
+    else
+      simp_all only [↓reduceIte]
+      have : ¬ -f % g = 0 := by
+        have k1 : ¬ (f % g).toPoly = 0 := by apply gneg_imp_gtopoly_neg; simp; exact h
+        have : (f % g).toPoly = f.toPoly % g.toPoly := by apply fg_mod_eq
+        rw[this] at k1
+        have k2 : (-f % g).toPoly = (-f).toPoly % g.toPoly := by apply fg_mod_eq;
+        have k3 : (-f).toPoly = -f.toPoly := by exact toPoly_neg f
+        have k4 : ¬ (-f % g).toPoly = 0 := by
+          rw[k2, k3]; simp_all only [EuclideanDomain.mod_eq_zero, dvd_neg, not_false_eq_true]
+        apply gtopolyzeroeq2; simp; exact k4
+      simp_all
+      let f' := f.toPoly
+      let g' := g.toPoly
+      have : (-f.toPoly % g.toPoly).degree < g.toPoly.degree := by
+        refine degree_lt_degree ?_; refine natDegree_mod_lt (-f.toPoly) ?_
+        have : g.toPoly.natDegree = 0 → g.toPoly ∣ f.toPoly := by
+          intro hg
+          have : ∃ c : ℚ, Polynomial.C c = g.toPoly := natDegree_eq_zero.mp hg
+          rcases this with ⟨c, rf⟩; use Polynomial.C c⁻¹ * (f.toPoly)
+          rw[←rf]; ring_nf
+          have hds : c ≠ 0 := by
+            by_contra
+            have : Polynomial.C c = 0 := by
+              rw[this]; aesop
+            rw[this] at rf
+            have : ¬ g.toPoly = 0 := by
+              have : g.toPoly ≠ 0 := by apply gneg_imp_gtopoly_neg; simp; exact g1
+              simp at this; exact this
+            simp_all
+          ext x
+          simp_all only [ne_eq]
+          rw[←rf]
+          have : Polynomial.C c * Polynomial.C c⁻¹ = 1 := by
+            have : Polynomial.C (c*c⁻¹ ) = Polynomial.C c * Polynomial.C c⁻¹ := by
+              apply C_mul
+            rw[← this]; simp_all only [ne_eq, not_false_eq_true, mul_inv_cancel₀, map_one]
+          rw[this]; aesop
+        have : ¬ (g.toPoly ∣ f.toPoly) → ¬ (g.toPoly.natDegree = 0) := by
+          contrapose; exact this
+        simp; apply this
+        by_contra
+        have contr1 : f.toPoly % g.toPoly = 0 := by simp_all only [implies_true, not_true_eq_false, IsEmpty.forall_iff, EuclideanDomain.mod_eq_zero]
+        have : ¬ (f % g).toPoly = 0 := by apply gneg_imp_gtopoly_neg; simp; exact h
+        have contr2 : (f % g).toPoly = f.toPoly % g.toPoly := by apply fg_mod_eq;
+        simp_all
+      have : (-f % g).toPoly.degree < g.toPoly.degree := by
+        have : (-f % g).toPoly = (-f).toPoly % g.toPoly := by apply fg_mod_eq;
+        rw[this]
+        have : (-f).toPoly = -f.toPoly := by exact toPoly_neg f
+        rw[this]; simp_all
+      have : (-f % g).degree < g.degree := by
+        have : (-f%g).degree = (-f%g).toPoly.degree := by exact degree_toPoly (-f%g)
+        rw[this]
+        have : g.degree = g.toPoly.degree := by exact degree_toPoly g
+        rw[this]; simp_all
+      refine WithBot.add_lt_add_left ?_ this;
+      intro h
+      cases h
 theorem derivative_equiv (p q : CPolynomial ℚ) : Polynomial.derivative p.toPoly * q.toPoly = (p.derivative*q).toPoly := by
   have : Polynomial.derivative p.toPoly = p.derivative.toPoly := by
     have := CPolynomial.derivative_toPoly p
