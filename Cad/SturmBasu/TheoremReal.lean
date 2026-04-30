@@ -19,6 +19,36 @@ lemma toPolyReal_ne_zero : toPolyReal 0 = 0 := by
   rw[toPolyReal]
   simp only [CPolynomial.toPoly_zero, Polynomial.map_zero]
 
+--#check eval_comm_map_real
+
+lemma eval_comm_map_real (p : Polynomial ℚ) (l : ℚ) : ((p.eval l : ℚ) : Real) = (p.map (Rat.castHom ℝ)).eval ((l : ℚ) : Real) := by
+
+  sorry
+
+-- Helper: polynomial evaluation commutes with casting
+lemma poly_eval_cast (p : Polynomial ℚ) (x : ℚ) : ((p.eval x : ℚ) : Real) = (p.map (Rat.castHom ℝ)).eval ((x : ℚ) : Real) :=
+  eval_comm_map_real p x
+
+-- Helper lemma: sign is preserved under Rat to Real casting
+lemma sgn_rat_cast (r : ℚ) : sgn ((r : ℝ)) = sgn r := by
+  unfold sgn
+  split_ifs <;> decide
+
+-- Map Rat to Real preserves evaluations in list form
+lemma seqEval_toPolyReal_helper (k : ℚ) (ps : List (CPolynomial ℚ)) :
+    seqEval ((k : ℝ)) (List.map toPolyReal ps) =
+    List.map (fun (x : ℚ) => (x : ℝ)) (seqEval_CPolynomial k ps) := by
+  induction ps with
+  | nil => rfl
+  | cons p ps IH =>
+    unfold seqEval seqEval_CPolynomial toPolyReal
+    simp only [List.map_cons]
+    congr 1
+    · have hp := CPolynomial.eval_toPoly k p
+      simp only [hp]
+      exact (poly_eval_cast p.toPoly k).symm
+
+-- seqVarSturm_ab_CPolynomial p (CPolynomial.derivative (p) * q) a b = seqVarSturm_ab_Rat p.toPoly (derivative p.toPoly * q.toPoly) a b := by
 theorem equiv_for_Realsturm_tarski_interval (a b : ℚ) (p q : CPolynomial ℚ) :
     seqVarSturm_ab_CPolynomial p (CPolynomial.derivative (p) * q) a b = seqVarSturm_ab (toPolyReal p) ((toPolyReal p).derivative * (toPolyReal q)) a b := by
   rw[seqVarSturm_ab_CPolynomial, seqVar_ab_CPolynomial, seqEval_CPolynomial.eq_def, sturmSeq_CPolynomial]--
@@ -38,7 +68,10 @@ theorem equiv_for_Realsturm_tarski_interval (a b : ℚ) (p q : CPolynomial ℚ) 
     have : (k : Real)= (Polynomial.eval (a:Real) (toPolyReal p)) := by
       unfold k
       have := CPolynomial.eval_toPoly a p
-      sorry
+      rw[this]
+      unfold toPolyReal
+      exact poly_eval_cast p.toPoly a
+
     rw[← this]; unfold k
 
     sorry
