@@ -240,3 +240,154 @@ theorem exists_root_interval: ∀ p: CPolynomial, ∀ (a b : ℝ), a <= b → ev
   obtain ⟨r, hra, hrb, hr_root⟩ := poly_mathlib_root
   apply (roots_interval p a b r ⟨hra, hrb, hr_root⟩)
 end Definitions
+
+noncomputable def FinsetToOrderedList (s : Finset ℝ) : List ℝ := s.sort
+
+open Polynomial
+theorem no_roots_between_roots (p : Polynomial ℝ) (hp : p ≠ 0) : ∀ i < (p.roots.toFinset.sort (· ≤ ·)).length - 1,
+  ¬∃ x : ℝ , x ∈ Set.Ioo (p.roots.toFinset.sort (· ≤ ·))[i]! (p.roots.toFinset.sort (· ≤ ·))[i+1]! ∧
+  p.eval x = 0 := by
+  intro i hi
+  by_contra h
+  obtain ⟨x, ⟨hxi, hxi1⟩, hx_root⟩ := h
+
+  have h_roots : x ∈ p.roots := by simp_all
+  have hx_mem_sorted : x ∈ p.roots.toFinset.sort (· ≤ ·) := by simpa using h_roots
+  have x_in : x ∈ p.roots.toList := by simp_all
+  have x_in : x ∈ p.roots.sort := by simp_all
+  have x_in : x ∈ p.roots.toFinset.sort := by simp_all
+
+  have F := (List.exists_mem_iff_getElem (l := p.roots.toFinset.sort) (p := fun y => y = x)).mp (by use x)
+
+  have h_index : ∃ j : Fin ((p.roots.toFinset.sort (· ≤ ·)).length), x = (p.roots.toFinset.sort (· ≤ ·))[j] := by
+    simp at F
+    obtain ⟨i, hi⟩ := F
+    obtain ⟨h1, h2⟩ := hi
+    have : p.roots.toFinset.card = p.roots.toFinset.sort.length := Eq.symm (Finset.length_sort fun a b => a ≤ b)
+    use ⟨i, by grind⟩
+    simp
+    grind
+
+  obtain ⟨j, hj⟩ := h_index
+
+  have contr1 : j > i := by
+    by_contra h
+    have hj1 : j ≤ i := by linarith
+    rw[hj] at hxi1
+    have hmono :
+      (p.roots.toFinset.sort (· ≤ ·))[i] ≥
+      (p.roots.toFinset.sort (· ≤ ·))[j] := by
+      have := List.pairwise_iff (· ≤ ·) (p.roots.toFinset.sort (· ≤ ·))
+      simp_all only [Fin.getElem_fin]
+      have hsorted2 : (p.roots.toFinset.sort (· ≤ ·)).SortedLT := by
+        exact Finset.sortedLT_sort p.roots.toFinset
+      apply (StrictMono.le_iff_le (Finset.sortedLT_sort p.roots.toFinset)).mpr
+      grind
+    have hcontra : (p.roots.toFinset.sort (· ≤ ·))[j] < (p.roots.toFinset.sort (· ≤ ·))[j] := by
+      simp_all
+      grind
+    exact lt_irrefl _ hcontra
+
+  have contr2 : j < i + 1 := by
+    by_contra h
+    have hj1 : j ≥ i + 1 := by linarith
+    rw[hj] at hxi1
+    have hmono :
+      (p.roots.toFinset.sort (· ≤ ·))[i+1] ≤
+      (p.roots.toFinset.sort (· ≤ ·))[j] := by
+      have := List.pairwise_iff (· ≤ ·) (p.roots.toFinset.sort (· ≤ ·))
+      simp_all only [Fin.getElem_fin]
+      have hsorted2 : (p.roots.toFinset.sort (· ≤ ·)).SortedLT := by
+        exact Finset.sortedLT_sort p.roots.toFinset
+
+      apply (StrictMono.le_iff_le (Finset.sortedLT_sort p.roots.toFinset)).mpr
+      grind
+    have hcontra : (p.roots.toFinset.sort (· ≤ ·))[j] < (p.roots.toFinset.sort (· ≤ ·))[j] := by
+      simp_all
+      grind
+    exact lt_irrefl _ hcontra
+
+  linarith
+
+-- Em um intervalo que o polinômio não tem raízes, se o sinal de um polinomio é positivo em um ponto do intervalo, então ele é sempre positivo
+theorem sign_stops (x : ℝ) (p : Polynomial ℝ) (hp : p ≠ 0) (a b : ℝ) (hab : a ≤ b) (h_no_roots : ∀ k : ℝ, k ∈ Set.Ioo a b → ¬p.IsRoot k): x ∈ Set.Ioo a b → ¬p.IsRoot x → (p.eval x > 0 → ∀ y : ℝ, y ∈ Set.Ioo a b → p.eval y > 0) := by
+  intro h_interval h_no_root hpos y hy
+
+  by_contra hneg
+
+  have hle : eval y p ≤ 0 := not_lt.mp hneg
+
+  have hx_le : x ≤ y ∨ y ≤ x := le_total x y
+  rcases hx_le with hxy | hyx
+
+  ·
+    -- eval x p > eval y p
+    -- y > x
+    -- Icc x y
+    have hroot : ∃ c ∈ Set.Ioo a b, eval c p = 0 := by
+      have hsign_change : (eval x p) * (eval y p) ≤ 0 := by
+        exact mul_nonpos_of_nonneg_of_nonpos (le_of_lt hpos) hle
+
+      have hcont : Continuous fun t => eval t p := Polynomial.continuous p
+      have hcont2 : ContinuousOn (fun t => p.eval t) (Set.Icc x y) :=
+        (Polynomial.continuous p).continuousOn
+
+      have := intermediate_value_Icc' hxy hcont2
+
+      have zero_in_interval : 0 ∈ Set.Icc (eval y p) (eval x p) := by
+        exact ⟨hle, le_of_lt hpos⟩
+
+      have zero_in_interval2 : 0 ∈ (fun t => eval t p) '' Set.Icc x y:= by
+        apply intermediate_value_Icc' hxy hcont2
+        exact zero_in_interval
+      rcases zero_in_interval2 with ⟨c, hc_mem, hc_zero⟩
+      simp at hc_zero
+      have hcIoo : c ∈ Set.Ioo a b := by
+        simp_all only [ne_eq, Set.mem_Ioo, IsRoot.def, gt_iff_lt, not_lt, Set.mem_Icc, true_and]
+        obtain ⟨left, right⟩ := hy
+        obtain ⟨left_1, right_1⟩ := hc_mem
+        apply And.intro
+        · linarith
+        · linarith
+      grind
+    rcases hroot with ⟨c, hcIoo, hc⟩
+    have : p.IsRoot c := by
+      simp [Polynomial.IsRoot, hc]
+    simp_all
+  ·
+    -- eval x p > eval y p
+    -- x > y
+    -- Icc y x
+    have hroot :
+    ∃ c ∈ Set.Ioo a b, eval c p = 0 := by
+      have hsign_change : (eval x p) * (eval y p) ≤ 0 := by
+        exact mul_nonpos_of_nonneg_of_nonpos (le_of_lt hpos) hle
+
+      have hcont : Continuous fun t => eval t p := Polynomial.continuous p
+      have hcont2 : ContinuousOn (fun t => p.eval t) (Set.Icc y x) :=
+        (Polynomial.continuous p).continuousOn
+
+      have := intermediate_value_Icc hyx hcont2
+
+      have zero_in_interval : 0 ∈ Set.Icc (eval y p) (eval x p) := by
+        exact ⟨hle, le_of_lt hpos⟩
+
+      have zero_in_interval2 : 0 ∈ (fun t => eval t p) '' Set.Icc y x:= by
+        apply intermediate_value_Icc hyx hcont2
+        exact zero_in_interval
+      rcases zero_in_interval2 with ⟨c, hc_mem, hc_zero⟩
+      simp at hc_zero
+      have hcIoo : c ∈ Set.Ioo a b := by
+        simp_all only [ne_eq, Set.mem_Ioo, IsRoot.def, gt_iff_lt, not_lt, Set.mem_Icc, true_and]
+        obtain ⟨left, right⟩ := hy
+        obtain ⟨left_1, right_1⟩ := hc_mem
+        apply And.intro
+        · linarith
+        · linarith
+      grind
+
+    rcases hroot with ⟨c, hcIoo, hc⟩
+
+    have : p.IsRoot c := by
+      simp [Polynomial.IsRoot, hc]
+    simp_all
