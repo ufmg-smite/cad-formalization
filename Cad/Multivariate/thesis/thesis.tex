@@ -1,0 +1,3190 @@
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{graphicx}
+
+
+
+\theoremstyle{plain}
+\newtheorem*{theorem*}{Theorem}
+\newtheorem*{lemma*}{Lemma}
+\newtheorem*{corollary*}{Corollary}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{Definition}
+\newtheorem*{example}{Example}
+\newtheorem*{remark}{Remark}
+\newtheorem*{remarks}{Remarks}
+\newtheorem*{notation}{Notation}
+\newtheorem*{assertion}{Assertion}
+\newtheorem*{claim}{Claim}
+
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\nbd}{neighborhood}
+\DeclareMathOperator{\ord}{ord}
+\DeclareMathOperator{\res}{res}
+\DeclareMathOperator{\discr}{discr}
+\DeclareMathOperator{\subres}{subres}
+\DeclareMathOperator{\subdiscr}{subdiscr}
+\DeclareMathOperator{\coeff}{coeff}
+\DeclareMathOperator{\cont}{cont}
+\DeclareMathOperator{\prm}{prim}
+\DeclareMathOperator{\red}{red}
+\DeclareMathOperator{\der}{der}
+\DeclareMathOperator{\gsfd}{gsfd}
+\DeclareMathOperator{\ldcf}{ldcf}
+\DeclareMathOperator{\ldt}{ldt}
+\DeclareMathOperator{\gcdop}{gcd}
+\DeclareMathOperator{\PROJ}{PROJ}
+\DeclareMathOperator{\APROJ}{APROJ}
+
+
+
+\title{An Improved Projection Operation\\for Cylindrical Algebraic Decomposition\\[1em]\large Chapters 2, 3 and 4}
+\author{Scott McCallum}
+\date{February 1985}
+
+\begin{document}
+
+\maketitle
+
+\section*{Chapter Two: Mathematical Preliminaries}
+
+This chapter presents mathematical background material which the reader
+should find helpful in reading Chapters 3 and 4.
+
+Our discussion of projection of algebraic varieties presented in Chapter 3
+involves a rather careful study of the properties of algebraic sets in the
+neighborhood of a particular point (such properties are called
+\emph{local properties}). A basic tool in local analysis of algebraic sets
+is the (multiple) power series. Functions having power series expansions,
+or analytic functions, thus enter the discussion in a natural way.
+
+There are a number of texts which include a discussion of the elementary
+properties of analytic functions of several complex variables (for
+example, [GRO65], [BMA48], and [KAP66]). Analytic functions of real
+variables are best studied with the aid of complex variables: Chapter 2 of
+[BMA48] contains a comparison between the real and complex cases.
+Section 1 of this chapter is a collection of many basic results about
+analytic functions (of both real and complex variables). For proofs one is
+generally referred to texts.
+
+The original cylindrical algebraic decomposition (cad) algorithm [COL75]
+decomposes $\R^n$ into semi-algebraic subsets which Collins called
+\emph{cells}. It has been subsequently observed [KAH78] that the cells
+produced by this decomposition of $n$-space are actually bona fide cells
+in the sense of topology: that is, each cell is homeomorphic to the open
+unit ball in $\R^i$, for some $i$, $0 \le i \le n$. What is further true
+is that each cell is homeomorphic to an open unit ball via a mapping which
+is \emph{analytic}: thus each cell is an analytic $i$-dimensional
+submanifold of $\R^n$, for some $i$. This smoothness property of the cells
+turns out to be quite important in developing an improved projection
+operation for the cad algorithm.
+
+Section 2 develops the concept of submanifold as far as needed for our
+purposes. Although the material is standard, it does not appear in quite
+the form we require in any of the texts. Our presentation is tailored to
+the needs of our later chapters.
+
+Section 3 is a collection of miscellaneous results which will prove useful
+in subsequent chapters.
+
+\section{Analytic Functions of Several Variables}
+
+We assume that the reader is familiar with the elementary theory of
+analytic functions of a single complex variable. We discuss the notion of
+a multiple power series and that of an analytic function of several (real
+or complex) variables. We present statements of many basic theorems about
+such functions, often referring the reader to standard texts for the
+proofs.
+
+We present a short summary of the material presented in this section. A
+function $f(x_1,\ldots,x_n)$ (the $x_i$ real or complex variables) is said
+to be analytic if it has a (multiple) power series representation about
+each point of its domain. An analytic function of complex variables is
+also termed \emph{holomorphic}. An analytic function is continuous and
+has continuous partial derivatives of all orders. A function defined as
+the sum of a convergent power series is analytic, and its partial
+derivatives can be obtained by differentiating the defining series
+term-by-term. Sums, products and quotients (assuming nonzero denominator)
+of analytic functions are analytic.
+
+Let $\R$ denote the field of real numbers, and let $\C$ denote the field
+of complex numbers, i.e.\ numbers of the form $z = x + iy$, where $x$ and
+$y$ are elements of $\R$ and $i$ is a square root of $-1$. \emph{Throughout
+this section $K$ will denote either $\R$ or $\C$}. $K^n$ will denote the
+Cartesian product $K \times \cdots \times K$ of $n$ copies of $K$. In this
+section, unless otherwise specified, we will use the notation
+$x = (x_1, \ldots, x_n)$ for points of $K^n$.
+
+\begin{definition}
+Let $c = (c_1, \ldots, c_n)$ be a point of $K^n$. A \emph{power series
+about $c$ over $K$} is an expression of the form
+\begin{equation}
+\sum_{i_1, \ldots, i_n = 0}^{\infty}
+a_{i_1, \ldots, i_n} (x_1 - c_1)^{i_1} \cdots (x_n - c_n)^{i_n}
+\tag{2.1.1}
+\end{equation}
+where the coefficients $a_{i_1, \ldots, i_n}$ are elements of $K$.
+\end{definition}
+
+\begin{remark}
+If $n > 1$ then the power series (2.1.1) is a multiple power series
+because of the multiple index $i_1, \ldots, i_n$. We can, however,
+arrange the terms to form a simple series, for example, with $n = 2$:
+\[
+\begin{aligned}
+a_{00} &+ a_{10}(x_1 - c_1) + a_{01}(x_2 - c_2) + a_{20}(x_1 - c_1)^2
++ a_{11}(x_1 - c_1)(x_2 - c_2) \\
+&+ a_{02}(x_2 - c_2)^2 + a_{30}(x_1 - c_1)^3 + \cdots .
+\end{aligned}
+\]
+We are thus, in this example, sweeping out all the combinations
+$(i_1, i_2)$ by following diagonals of the corresponding array (see
+fig.~2.1.1).
+\end{remark}
+
+\begin{center}
+\textit{[Figure 2.1.1: diagram showing diagonal enumeration of pairs
+$(i_1, i_2)$ in a two-dimensional grid with $i_1$ labelling columns
+$0,1,2,3,4$ and $i_2$ labelling rows $0,1,2,3,4$, with arrows indicating
+the diagonal sweep.]}
+\end{center}
+
+Another arrangement of the terms is obtained by going around the sides of
+squares of increasing size, that is, choosing the successive pairs
+$(i_1, i_2)$ as follows:
+\[
+(0,0),\ (1,0),\ (1,1),\ (0,1),\ (2,0),\ (2,1),\ (2,2),\ (1,2),\ (0,2),\
+(3,0),\ \ldots .
+\]
+
+If $x = (x_1, \ldots, x_n)$ is a point of $K^n$ then one can ask whether
+the series (2.1.1) has some arrangement as a convergent simple series. If
+there exists an arrangement of the series as a simple series for which
+one has absolute convergence, then by theorem 28 on p.~333 of [KAP52],
+the series is absolutely convergent for every arrangement as a simple
+series, and the sum is the same for all arrangements. We shall say,
+simply, that the series (2.1.1) is absolutely convergent if it is
+absolutely convergent for some arrangement as a simple series.
+
+If $c \in K^n$ then a \emph{neighborhood} of $c$ is an open subset $W$ of
+$K^n$ containing $c$. Let $c \in K^n$ and let
+$r = (r_1, \ldots, r_n) \in \R^n$, with $r_i > 0$ for $1 \le i \le n$.
+Consider the neighborhood
+\[
+\{ x \in K^n : |x_i - c_i| < r_i,\ 1 \le i \le n \}
+\]
+of $c$. In the case $K = \R$, we call this neighborhood a \emph{box} about
+$c$ and denote it by $B(c;r)$. In case $K = \C$, we call this neighborhood
+the \emph{polydisc} about $c$ of polyradius $r$ and denote it by
+$\Delta(c;r)$. Note that if $c \in \R^n$, then
+$B(c;r) = \Delta(c;r) \cap \R^n$. Let $1 \le s \le n$ and let
+$\pi: K^n \to K^s$ be the projection
+$\pi(x_1, \ldots, x_n) = (x_1, \ldots, x_s)$. Let $K = \R$ and let $B$ be
+the box $B(c;r)$ in $\R^n$. Then we shall denote by $B^{(s)}$ the image
+of $B$ under $\pi$, i.e.
+\[
+B^{(s)} = \{ (x_1, \ldots, x_s) \in \R^s : |x_i - c_i| < r_i,\
+1 \le i \le s \}.
+\]
+Let $K = \C$ and let $\Delta$ be the polydisc $\Delta(c;r)$ in $\C^n$. We
+similarly denote by $\Delta^{(s)}$ the image of $\Delta$ under $\pi$.
+
+\begin{definition}
+Let $U$ be an open subset of $K^n$ and let $f: U \to K$ be a function.
+Then $f$ is said to be \emph{analytic in $U$} if each point $c$ of $U$
+has a neighborhood $W \subseteq U$ such that $f$ has a power series
+about $c$ over $K$
+\begin{equation}
+f(x_1, \ldots, x_n) = \sum_{i_1, \ldots, i_n = 0}^{\infty}
+a_{i_1, \ldots, i_n} (x_1 - c_1)^{i_1} \cdots (x_n - c_n)^{i_n}
+\tag{2.1.3}
+\end{equation}
+which is absolutely convergent for every point $x$ of $W$.
+\end{definition}
+
+\begin{example}
+Every polynomial in $x_1, \ldots, x_n$ over $K$ is analytic in the whole
+of $K^n$.
+\end{example}
+
+\begin{remark}
+If $K = \C$ and $U \subseteq K^n$ is open, then a function $f: U \to K$
+analytic in $U$ is also termed \emph{holomorphic in $U$}.
+\end{remark}
+
+\begin{remark}
+In the case $K = \R$, the above is the definition of analytic function
+that appears in most texts. In the case $K = \C$, one sometimes finds an
+alternative, equivalent definition of holomorphic function: a
+complex-valued function $f(z_1, \ldots, z_n)$ defined in the open subset
+$U$ of $\C^n$ is said to be holomorphic in $U$ if it is continuous in $U$
+and has continuous partial derivatives $\dfrac{\partial f}{\partial z_i}$
+in $U$. That this definition is equivalent to our definition for the
+case $K = \C$ follows from Theorems 2.1.1 and 2.1.8 below.
+\end{remark}
+
+\begin{theorem*}[2.1.1]
+Let $U \subseteq K^n$ be open and let $f: U \to K$ be an analytic
+function. Then $f$ is continuous and has continuous partial derivatives
+of all orders, given by:
+\[
+\frac{\partial^{i_1 + \cdots + i_n} f}
+{\partial x_1^{i_1} \cdots \partial x_n^{i_n}}(c)
+= (i_1!) \cdots (i_n!)\, a_{i_1, \ldots, i_n}
+\]
+where the $a_{i_1, \ldots, i_n}$ are the coefficients of the power series
+expansion~(2.1.3) of $f$ about the point $c$ of $U$.
+\end{theorem*}
+
+\textit{References for proof.} For the real case, (i.e.\ $K = \R$), we
+refer the reader to Sec.~6-20 of [KAP52]; and for the complex case,
+($K = \C$), to Theorem 1 of Chapter II of [BMA48]. $\square$
+
+\textit{Remark 1:} It follows from Theorem 2.1.1 that the power series
+expansion of an analytic function about a point is unique.
+
+\textit{Remark 2:} The converse of Theorem 2.1.1 holds in the case
+$K = \C$ (this is Theorem 2.1.8) but not in the case $K = \R$, as is
+shown by the example $f(x) = e^{-1/x^2}$ (discussed in Sec.~6-17 of
+[KAP52]).
+
+A function defined as the sum of a convergent power series is, as might
+be expected, analytic:
+
+\begin{theorem*}[2.1.2]
+Let $c = (c_1, \ldots, c_n)$ be a point of $K^n$ and let the power
+series over $K$
+\begin{equation}
+\sum_{i_1, \ldots, i_n = 0}^{\infty}
+a_{i_1, \ldots, i_n} (x_1 - c_1)^{i_1} \cdots (x_n - c_n)^{i_n}
+\tag{2.1.4}
+\end{equation}
+converge (for some arrangement as a simple series) for
+$x_1 = c_1 + r_1,\ \ldots,\ x_n = c_n + r_n$, where each $r_i > 0$. Let
+\[
+D = \{ x = (x_1, \ldots, x_n) \in K^n : |x_i - c_i| < r_i,\
+1 \le i \le n \}.
+\]
+Then the series~(2.1.4) is absolutely convergent for every $x \in D$, and
+the sum of the series, say $f(x)$, is an analytic function in $D$.
+Moreover, every partial derivative (of any order) of $f$ is analytic in
+$D$, and its power series expansion about $c$, absolutely convergent for
+every $x \in D$, is obtained by differentiating~(2.1.4) term-by-term.
+\end{theorem*}
+
+\begin{proof}
+We first present a proof for the case $K = \C$. For the complex case let
+us imagine that $z_i$ replaces each occurrence of $x_i$ in the statement
+of the theorem. Note that in this case, the neighborhood $D$ of $c$ is
+the polydisc $\Delta(c;r)$ about $c$. The first part of the conclusions,
+as to the absolute convergence of the series~(2.1.4), follows from the
+$n$-variable analogue of Theorem 54 in [KAP66]. By analogy with
+Theorem 55 of [KAP66], let $E$ be the set of points $z \in \C^n$ for
+which the series~(2.1.4) converges and let $E^i$ be the interior of $E$.
+As the series~(2.1.4) converges for every $z \in D$, we have $D \subseteq E$.
+Consequently, $D \subseteq E^i$. Hence the hypothesis of the $n$-variable
+analogue of Theorem 55 of [KAP66] is satisfied. The holomorphicity of
+the function $f$ now follows by the $n$-variable analogue of Theorem 56
+of [KAP66]. The proof of this $n$-variable analogue of Theorem 56
+yields the required results about the partial derivatives of $f$. The
+theorem is now proved for the case $K = \C$.
+
+Let us now deal with the real case. In this case the neighborhood $D$ of
+$c$ is the box $B(c;r)$ about $c$. The first part of the conclusions as
+to the convergence of~(2.1.4) follows from the $n$-variable analogue of
+Theorem 54 in [KAP66]. By the complex case, the series~(2.1.4) (with the
+$x_i$'s replaced by $z_i$'s) is absolutely convergent in
+$\Delta_c := \Delta(c;r)$ and its sum, say $F(z)$, is holomorphic in
+$\Delta_c$. Moreover, every partial derivative of $F$ is holomorphic in
+$\Delta_c$, and its power series expansion about $c$ is obtained by
+differentiating~(2.1.4) term-by-term. It is not hard to see that, for
+every point $d$ of $D$, the power series expansion of $F(z)$ about $d$
+has real coefficients. Hence, when $x_i$'s are substituted for $z_i$'s in
+this power series about $d$, a power series representation for $f(x)$ is
+obtained. It follows that $f$ is analytic in $D$.
+
+The proof of the assertion concerning the partial derivatives of $f$ is
+straightforward.
+\end{proof}
+
+It is well-known that sums, products and quotients of analytic functions
+are analytic. We state this as
+
+\begin{theorem*}[2.1.3]
+Let $U$ be an open subset of $K^n$ and let $f$ and $g$ be analytic in
+$U$. Then the functions $f + g$ and $fg$ (defined pointwise) are analytic
+in $U$. If $f \ne 0$ in $U$ then the function $1/f$ is analytic in $U$.
+\end{theorem*}
+
+\begin{example}
+Any rational function $f(x_1, \ldots, x_n)/g(x_1, \ldots, x_n)$ (where
+$f$ and $g$ are polynomials over $K$) is analytic in the region of $K^n$
+where $g \ne 0$.
+\end{example}
+
+\begin{theorem*}[2.1.4 (Identity Theorem)]
+Let $D \subseteq K^n$ be a connected open set and let $f$ be analytic in
+$D$. If $f(x) = 0$ for all points $x$ in a nonempty open subset $U$ of
+$D$, then $f \equiv 0$ everywhere in $D$.
+\end{theorem*}
+
+\textit{References for proof.} The complex identity theorem is Theorem 6
+of Ch.~I, [GRO65]. The real identity theorem is the theorem on page 53
+of [JOH75]. $\square$
+
+Let $U$ be an open subset of $K^n$ and let $G: U \to K^m$ be a mapping.
+Then there are $m$ functions $g_1, \ldots, g_m$ from $U$ to $K$ such that
+\[
+G(x) = (g_1(x), \ldots, g_m(x))
+\]
+for all $x \in U$. We call $G$ an \emph{analytic mapping} if the $m$
+functions $g_1, \ldots, g_m$ are analytic in $U$.
+
+\begin{theorem*}[2.1.5 (Composition Theorem)]
+Let $U$ and $U'$ be open subsets of $K^n$ and $K^m$ respectively, let
+$G: U \to U'$ be an analytic mapping, and let $f: U' \to K$ be an
+analytic function. Then the composite $f \circ G$ is an analytic function
+in $U$.
+\end{theorem*}
+
+\textit{References for proof.} For the real case, see the last paragraph
+of Sec.~2, Ch.~2 of [BMA48]. For the complex case, see Theorem 5 of
+Sec.~A, Ch.~I of [GRO65]. $\square$
+
+If $F$ is an analytic mapping from $U \subseteq K^n$ into $K^m$,
+$F(x) = (f_1(x), \ldots, f_m(x))$, and if $p$ is a point of $U$, then we
+denote the Jacobian matrix $\left(\dfrac{\partial f_i}{\partial x_j}(p)\right)$
+of $F$ at $p$ by $J_F(p)$. We can now state a couple of fundamental
+theorems on the local properties of analytic mappings. These theorems,
+the inverse mapping and the implicit mapping theorems, generalize the
+familiar inverse function and implicit function theorems from the
+elementary calculus.
+
+\begin{theorem*}[2.1.6 (Inverse Mapping Theorem)]
+Let $F$ be an analytic mapping from the open subset $U$ of $K^n$ into
+$K^n$, and let $p$ be a point of $U$. Suppose that $J_F(p)$ is
+invertible. Then there is a neighborhood $V \subseteq U$ of $p$ in which
+$F$ is invertible. That is, the set $V' := F(V)$ is open in $K^n$, and
+there is an analytic map $G: V' \to V$ such that, for all $x$ in $V$ and
+$y$ in $V'$,
+\[
+y = F(x) \text{ if and only if } x = G(y).
+\]
+\end{theorem*}
+
+\textit{References.} The real case of the theorem is stated without
+proof in the appendix on Calculus in [HIR76]. (Note that the linear map
+$Df_p : \R^n \to \R^n$, which is mentioned in the statement of the
+theorem in [HIR76], has matrix $J_F(p)$ with respect to the standard
+basis of unit coordinate vectors of $\R^n$. Hence, the mapping $Df_p$ is
+invertible if and only if the matrix $J_F(p)$ is invertible.)
+
+The complex version of the theorem appears in [GRO65]: it is Theorem 7
+of Sec.~B, Ch.~I of this book. $\square$
+
+\begin{theorem*}[2.1.7 (Implicit Mapping Theorem)]
+Let $0 \le s < n$, let $U$ be an open subset of $K^n$, and let
+$F: U \to K^{n-s}$ be an analytic map with component functions
+$f_{s+1}, \ldots, f_n$. Let $p = (p_1, \ldots, p_n)$ be a point of $U$
+and suppose $F(p) = 0$. Suppose that the $(n-s) \times (n-s)$ square
+submatrix of $J_F(p)$ consisting of the last $n-s$ rows and columns of
+$J_F(p)$ is invertible. Then there are neighborhoods $V \subseteq K^s$
+of $(p_1, \ldots, p_s)$ and $W \subseteq K^{n-s}$ of
+$(p_{s+1}, \ldots, p_n)$, with $V \times W \subseteq U$, and analytic
+functions $\psi_{s+1}, \ldots, \psi_n$ from $V$ into $K$, such that for
+all $(x_1, \ldots, x_s)$ in $V$ and all $(x_{s+1}, \ldots, x_n)$ in $W$,
+\[
+F(x_1, \ldots, x_n) = 0 \text{ iff }
+x_{s+1} = \psi_{s+1}(x_1, \ldots, x_s),\ \ldots,\
+x_n = \psi_n(x_1, \ldots, x_s).
+\]
+\end{theorem*}
+
+This result can be proved using the inverse mapping theorem
+(cf.~[BUC56]).
+
+Up to now, the theories of real and complex analytic functions have been
+developed in parallel. We now mention a couple of differences between
+the two theories. The following theorem holds for complex but not real
+analytic functions:
+
+\begin{theorem*}[2.1.8]
+Let $U$ be an open subset of $\C^n$ and let $f$ be a complex-valued
+function defined in $U$. Suppose that $f$ is continuous in $U$ and that
+each partial derivative $\dfrac{\partial f}{\partial z_i}$ exists and is
+continuous in $U$. Then $f$ is analytic in $U$.
+\end{theorem*}
+
+\textit{References for Proof.} The result follows from the $n$-variable
+analogue of Theorem 53 in Sec.~9-3 of [KAP66] (note that the definition
+of holomorphicity in [KAP66] is equivalent to the conditions in the
+hypothesis of Theorem 2.1.8).
+
+We include one more theorem that is valid for holomorphic functions but
+which does not have a real analogue.
+
+\begin{theorem*}[2.1.9]
+Let $U$ be an open subset of $\C^n$ and let $f$ be holomorphic in $U$.
+Let $c$ be a point of $U$, let $r = (r_1, \ldots, r_n)$, where each
+$r_i > 0$, and suppose that $\Delta(c;r) \subseteq U$. Then the power
+series expansion of $f$ about $c$ is absolutely convergent in
+$\Delta(c;r)$.
+\end{theorem*}
+
+\textit{Reference for proof.} See Theorem 3 in Ch.~II of [BMA48].
+
+\begin{remark}
+In a real analogue of the above theorem one would presumably have boxes
+$B(c;r)$ in place of polydiscs $\Delta(c;r)$. That there is no real
+analogue of the theorem, however, is shown by the following example: the
+function $f(x) = \dfrac{1}{1 + x^2}$ is analytic on the whole real line,
+but the interval of convergence of the power series expansion for $f$
+about $0$
+\[
+1 - x^2 + x^4 - x^6 + \cdots
+\]
+is $|x| < 1$.
+\end{remark}
+
+By a \emph{zero} of a holomorphic function $f(z_1, \ldots, z_n)$ is meant
+a point $p = (p_1, \ldots, p_n)$ such that $f(p) = 0$. It is noted in
+Sec.~9-7 of [KAP66] that if $n \ge 2$, then a holomorphic function
+$f(z_1, \ldots, z_n)$ can have no isolated zeros. Further information on
+the set of zeros is given by the Weierstrass preparation theorem. We
+need a definition before we can state the theorem. Let $z$ denote the
+$(n-1)$-tuple $(z_1, \ldots, z_{n-1})$.
+
+\begin{definition}
+Let
+\begin{equation}
+h(z, z_n) = a_0(z) z_n^m + a_1(z) z_n^{m-1} + \cdots + a_m(z)
+\tag{2.1.6}
+\end{equation}
+where each $a_i(z)$ is holomorphic in the polydisc
+$\Delta_1 \subseteq \C^{n-1}$ about $0$. Then $h(z, z_n)$ is called a
+\emph{pseudopolynomial} (in $\Delta_1$). If $a_0$ is not identically
+zero, then the \emph{degree} of $h(z, z_n)$ is $m$. If $a_0 \equiv 1$ and
+$a_i(0) = 0$ for each $i$, $1 \le i \le m$, then $h(z, z_n)$ is called a
+\emph{Weierstrass polynomial} (in $\Delta_1$).
+\end{definition}
+
+\begin{theorem*}[2.1.10 (Weierstrass preparation theorem)]
+Let $f(z, z_n)$ be holomorphic in the polydisc
+$\Delta_1 \times \Delta(0;\epsilon) \subseteq \C^{n-1} \times \C$, let
+$z_n = 0$ be a root of $f(0, z_n)$ of multiplicity $m \ge 1$, and assume
+that $f(0, z_n) \ne 0$ for $0 < |z_n| \le \epsilon$. Then there is a
+polydisc $\Delta_2 \subseteq \Delta_1$ about $0$ in $\C^{n-1}$, a
+function $u(z, z_n)$ holomorphic and non-vanishing in
+$\Delta' := \Delta_2 \times \Delta(0;\epsilon)$, and a Weierstrass
+polynomial $h(z, z_n)$ in $\Delta_2$, of the form~(2.1.6) (with
+$a_0 \equiv 1$), such that
+\begin{equation}
+f(z, z_n) = u(z, z_n) h(z, z_n)
+\tag{2.1.7}
+\end{equation}
+for all $(z, z_n) \in \Delta'$, and such that for each fixed
+$z \in \Delta_2$, all the $m$ roots of $h(z, z_n)$ are contained in the
+disc $\Delta(0;\epsilon)$.
+\end{theorem*}
+
+\textit{References for proof.} We refer the reader to the proof of the
+Weierstrass preparation theorem (Theorem 62) in Ch.~9 of [KAP66].
+(Although there are minor respects in which our statement of the
+Weierstrass preparation theorem differs from that of Kaplan, the careful
+reader will note that our theorem follows from the proof of Theorem 62
+of [KAP66].)
+
+\section{Submanifolds of Euclidean Space}
+
+In this section we develop the concept of a submanifold of real
+$n$-space $\R^n$.
+
+We first give a summary of the material presented in this section. An
+\emph{$s$-submanifold} of $\R^n$ is a set $S$ which ``looks locally like
+Euclidean $s$-space $\R^s$''; that is, for every point $p$ of $S$, there
+is an (analytic) coordinate system about $p$ with respect to which $S$
+is locally the intersection of some $n-s$ coordinate hyperplanes. For
+example, the $(n-1)$-sphere
+$S^{n-1} = \{ x = (x_1, \ldots, x_n) \in \R^n : \sum x_i^2 = 1 \}$ is an
+$(n-1)$-submanifold of $\R^n$. The first part of this section gives a
+rigorous definition of submanifold, and shows that it corresponds to the
+above intuitive notion.
+
+Nonempty open subsets of $\R^n$ are submanifolds~--- in fact, the
+nonempty open subsets are the $n$-dimensional submanifolds. But
+lower-dimensional submanifolds are not open. One can, however, define in
+a natural way the notion of an analytic function from an $s$-submanifold
+$S$ into $\R$, where $0 \le s \le n$. A function $f: S \to \R$ is said to
+be analytic if for every point $p$ of $S$, there is a coordinate system
+about $p$ with respect to which $S$ looks locally like $\R^s$, and with
+respect to which $f$ looks locally like an analytic function from $\R^s$
+to $\R$. The second part of this section gives a rigorous definition of
+an analytic function on a submanifold, and proves that the definition is
+independent of any particular coordinate system for the submanifold.
+
+The third and last part of this section gives a couple of results on the
+creation of new submanifolds from old. In particular, it is shown that
+the graph of an analytic function defined on a submanifold of $\R^n$ is
+a submanifold of $\R^{n+1}$.
+
+We now begin to look at the material described above in detail. Before
+giving a formal definition of submanifold we define the notion of a
+regular point of an analytic mapping.
+
+\begin{definition}
+Let $U \subseteq \R^n$ be open and let $F: U \to \R^m$, $m \le n$, be an
+analytic map. For $x = (x_1, \ldots, x_n) \in U$ let
+$F(x) = (F_1(x), \ldots, F_m(x))$. The point $p$ of $U$ is said to be a
+\emph{regular point} of $F$ if the rank of the Jacobian matrix
+$J_F(p) = \left(\dfrac{\partial F_i}{\partial x_j}(p)\right)$ of $F$ at
+$p$ is equal to $m$.
+\end{definition}
+
+\begin{example}
+Let $F: \R^3 \to \R$ be defined by $F(x, y, z) = x^2 + y^2 + z^2 - 1$.
+Then $J_F = (2x, 2y, 2z)$, so every point of $\R^3$ other than the
+origin is a regular point of $F$.
+\end{example}
+
+\begin{definition}
+The nonempty subset $S$ of $\R^n$ is an \emph{analytic $s$-dimensional
+submanifold of $\R^n$} (or \emph{$C^\omega$ $s$-submanifold}, or
+\emph{$C^\omega$ smooth}, for short), where $0 \le s \le n$, if for
+each point $p$ of $S$ there is a neighborhood $W \subseteq \R^n$ of $p$
+and an analytic map $F: W \to \R^{n-s}$ which has $p$ as a regular
+point, such that
+\[
+S \cap W = \{ x \in W : F(x) = 0 \}.
+\]
+\end{definition}
+
+We remark that there is a notion of an $s$-submanifold of $\R^n$ of
+class $C^r$, defined as above in terms of maps $F$ which are required
+to be of class $C^r$ (i.e.\ to possess continuous partial derivatives
+through the order $r$). Here, $r$ is allowed to be any non-negative
+integer, $\infty$, or $\omega$ (meaning analytic). The only kind of
+submanifold we shall consider is the analytic kind. Thus we shall
+henceforth omit the term `analytic' when referring to submanifolds: all
+submanifolds will be understood to be analytic.
+
+\begin{example}
+Let $S^2 = \{ (x, y, z) \in \R^3 : x^2 + y^2 + z^2 = 1 \}$ be the unit
+sphere in $\R^3$. For each point $p$ in $S^2$ we may take $W = \R^3$ and
+$F: W \to \R$ to be the map $F(x, y, z) = x^2 + y^2 + z^2 - 1$. As
+noted above, $F$ is regular at every point $p \ne 0$, and hence at
+every point $p$ of $S^2$. Thus $S^2$ is a 2-submanifold of $\R^3$.
+\end{example}
+
+\begin{definition}
+Let $U$ and $V$ be open subsets of $\R^n$. A homeomorphism
+$\Phi: U \to V$ such that both $\Phi$ and $\Phi^{-1}$ are analytic maps
+is called an \emph{analytic isomorphism}.
+\end{definition}
+
+\begin{definition}
+Let $U$ and $V$ be open subsets of $\R^n$ and let $\Phi: U \to V$ be an
+analytic isomorphism. Then $\Phi$ is called a \emph{coordinate system in
+$U$}. Suppose that $p \in U$, $0 \in V$, and $\Phi(p) = 0$. Then $\Phi$
+is called a \emph{coordinate system (in $U$) about $p$}.
+\end{definition}
+
+The next theorem expresses the intuitive idea that an $s$-submanifold of
+$\R^n$, $0 \le s \le n$, is a set which ``looks locally like Euclidean
+$s$-space''.
+
+\begin{theorem*}[2.2.1]
+The nonempty subset $S$ of $\R^n$ is an $s$-submanifold of $\R^n$,
+$0 \le s \le n$, if and only if for every point $p$ of $S$ there is a
+neighborhood $U \subseteq \R^n$ of $p$ and a coordinate system
+$\Phi: U \to V$, $\Phi = (\phi_1, \ldots, \phi_n)$, about $p$ such that
+\begin{equation}
+S \cap U = \{ x \in U : \phi_{s+1}(x) = 0, \ldots, \phi_n(x) = 0 \}.
+\tag{2.2.1}
+\end{equation}
+\end{theorem*}
+
+\begin{remarks}
+Let $0 \le s \le n$ and let $T$ be the $s$-dimensional linear subspace
+\begin{equation}
+T = \{ y = (y_1, \ldots, y_n) \in \R^n : y_{s+1} = 0, \ldots, y_n = 0 \}
+\tag{2.2.2}
+\end{equation}
+of $\R^n$. Then $\R^s$ may be identified with $T$ under the natural
+identification mapping
+$\iota(y_1, \ldots, y_s) = (y_1, \ldots, y_s, 0, \ldots, 0)$ (we write
+$\R^s \equiv T$). By Theorem 2.2.1, the nonempty subset $S$ of $\R^n$ is
+an $s$-submanifold of $\R^n$ if and only if $S$ ``looks locally like the
+subspace $T \equiv \R^s$ of $\R^n$'' (i.e.\ for each point $p$ of $S$
+there is a neighborhood $U \subseteq \R^n$ of $p$ and a coordinate system
+$\Phi: U \to V$ about $p$ such that $\Phi(S \cap U) = T \cap V$.)
+\end{remarks}
+
+\begin{proof}[Proof of 2.2.1]
+Suppose that $S$ is an $s$-submanifold of $\R^n$. Let $p$ be a point of
+$S$. Then there is a nbd $W \subseteq \R^n$ of $p$ and an analytic map
+$F: W \to \R^{n-s}$ having $p$ as a regular point such that
+$S \cap W = \{ x \in W : F(x) = 0 \}$. If $s = n$ then set $U = W$ and
+$\Phi(x) = x - p$: note that~(2.2.1) holds. Assume that $s < n$. Write
+$F(x) = (f_{s+1}(x), \ldots, f_n(x))$. As the Jacobian matrix $J_F(p)$
+of $F$ at $p$ has rank $n-s$, we may assume after a renumbering of the
+coordinates that the $(n-s) \times (n-s)$ submatrix
+\[
+\left( \frac{\partial f_i}{\partial x_j}(p) \right)_{\substack{s+1 \le i \le n \\ s+1 \le j \le n}}
+\]
+of $J_F(p)$ is invertible. Define $\Phi: W \to \R^n$,
+$\Phi = (\phi_1, \ldots, \phi_n)$, as follows:
+\[
+\phi_i(x) =
+\begin{cases}
+x_i - p_i, & 1 \le i \le s \\
+f_i(x), & s+1 \le i \le n.
+\end{cases}
+\]
+Then $\Phi$ is an analytic map, and the Jacobian matrix $J_\Phi(p)$ of
+$\Phi$ at $p$ is invertible. Hence, by the inverse mapping theorem
+(Theorem 2.1.6), there is a neighborhood $U \subseteq W$ of $p$ in which
+$\Phi$ is invertible (i.e.\ $V := \Phi(U)$ is open in $\R^n$, and the
+restriction of $\Phi$ to $U$ has an analytic inverse which maps $V$ onto
+$U$). By definition of $\Phi$, (2.2.1) holds. The other direction of the
+theorem is obvious.
+\end{proof}
+
+Now nonempty open subsets of $\R^n$ are submanifolds~--- in fact the
+nonempty open subsets are the $n$-dimensional submanifolds. But
+lower-dimensional submanifolds are not open. One can, however, define in
+a natural way the notion of an analytic function from an $s$-submanifold
+$S$ into $\R$, where $0 \le s \le n$. Having the notion of chart at
+one's disposal facilitates this definition. Let $S$ be a subset of
+$\R^n$. A \emph{chart for $S$} is a homeomorphism from an open subset of
+$S$ onto an open subset of $\R^s$, for some $s$, $0 \le s \le n$. Let
+$S$ now be an $s$-dimensional submanifold, $0 \le s \le n$, and let $p$
+be a point of $S$. Let $U \subseteq \R^n$ be a neighborhood of $p$, and
+let $\Phi: U \to V$, $\Phi = (\phi_1, \ldots, \phi_n)$, be a coordinate
+system about $p$ such that $\Phi(S \cap U) = T \cap V$, where $T$ is
+given by~(2.2.2). As remarked following the statement of Theorem 2.2.1,
+$T \equiv \R^s$ under the identification mapping $\iota: \R^s \to T$:
+let $T \cap V$ correspond to the neighborhood $W$ of $0$ in $\R^s$ under
+this identification (written $T \cap V \equiv W$). The mapping
+$\phi: S \cap U \to W$ given by
+\[
+\phi(x) = (\phi_1(x), \ldots, \phi_s(x))
+\]
+is a homeomorphism with analytic inverse $\phi^{-1}$\footnote{$\phi^{-1}$
+is the composite of $\Phi^{-1}$ and the restriction of $\iota$ to $W$.},
+and is called the \emph{chart for $S$ corresponding to $\Phi$}.
+
+\begin{definition}
+Let $S$ be an $s$-submanifold of $\R^n$, $0 \le s \le n$, let $T$ be
+given by~(2.2.2), and let $f: S \to \R$ be a function. Then $f$ is said
+to be \emph{analytic (in $S$)} if for each point $q$ of $S$ there is a
+neighborhood $U$ of $q$ and a coordinate system $\Phi: U \to V$ about
+some point $p$ of $S \cap U$, such that
+\begin{enumerate}
+\item[(a)] $\Phi(S \cap U) = T \cap V$; and
+\item[(b)] $f \circ \phi^{-1}: W \to \R$ is analytic, where $W$ is the
+neighborhood of $0$ in $\R^s$ for which $T \cap V \equiv W$, and
+$\phi: S \cap U \to W$ is the chart for $S$ corresponding to $\Phi$.
+\end{enumerate}
+\end{definition}
+
+Condition (b) in the above definition can be paraphrased, ``$f$ is
+analytic with respect to the coordinate system $\Phi$''. The following
+theorem states that if $f: S \to \R$ is analytic then, for each point
+$p$ of $S$, $f$ is analytic with respect to any coordinate system
+$\Phi$ about $p$ satisfying condition (a) of the above definition.
+
+\begin{theorem*}[2.2.2]
+Let $S$ be an $s$-submanifold of $\R^n$, $0 \le s \le n$, let $T$ be
+given by~(2.2.2), and let $f: S \to \R$ be an analytic function. Let $p$
+be a point of $S$ and let $\Phi: U \to V$ be a coordinate system about
+$p$ such that $\Phi(S \cap U) = T \cap V \equiv W$. Then
+$f \circ \phi^{-1}: W \to \R$ is analytic, where $\phi: S \cap U \to W$
+is the chart for $S$ corresponding to $\Phi$.
+\end{theorem*}
+
+\begin{proof}
+Let $w \in W$. Then $w = \phi(q)$ for some point $q$ of $S \cap U$. By
+definition there is a neighborhood $U'$ of $q$ and a coordinate system
+$\Psi: U' \to V'$ such that $\Psi(S \cap U') = T \cap V' \equiv W'$ and
+$f \circ \psi^{-1}: W' \to \R$ is analytic, where $\psi: S \cap U' \to W'$
+is the chart for $S$ corresponding to $\Psi$. Let $\pi: \R^n \to \R^s$
+be the projection $\pi(y_1, \ldots, y_n) = (y_1, \ldots, y_s)$. Then we
+have
+$f \circ \phi^{-1}(y_1, \ldots, y_s)
+= f \circ \psi^{-1}\bigl((\pi \circ \Psi \circ \phi^{-1})(y_1, \ldots, y_s)\bigr)$
+for every point $(y_1, \ldots, y_s)$ of the neighborhood
+$\phi(S \cap U \cap U')$ of $w$. Therefore, by the composition theorem
+(Theorem 2.1.5), $f \circ \phi^{-1}$ is analytic near $w$. Hence
+$f \circ \phi^{-1}$ is analytic in $W$.
+\end{proof}
+
+Finally, a couple of results on the creation of new submanifolds from
+old.
+
+\begin{theorem*}[2.2.3]
+Let $S$ be an $s$-submanifold of $\R^{n-1}$, $0 \le s \le n-1$, and let
+$f: S \to \R$ be an analytic function. Then the graph of $f$ is an
+$s$-submanifold of $\R^n$.
+\end{theorem*}
+
+\begin{proof}
+Let $G$ be the graph of $f$ and let $(p, p_n)$ be a point of $G$, where
+$p = (p_1, \ldots, p_{n-1})$. We shall find a coordinate system about
+$(p, p_n)$ in $\R^n$ with respect to which $G$ is locally the
+intersection of the last $n-s$ coordinate hyperplanes. By Theorem 2.2.1
+there is a neighborhood $U \subseteq \R^{n-1}$ of $p$ and a coordinate
+system $\Phi: U \to V$ about $p$ such that $\Phi(S \cap U) = T \cap V$,
+where $T$ is given by~(2.2.2). Let $W$ be the neighborhood of $0$ in
+$\R^s$ such that $W \equiv T \cap V$ and let $\phi: S \cap U \to W$ be
+the chart for $S$ corresponding to $\Phi$. Let $\pi: \R^{n-1} \to \R^s$
+be the projection $\pi(y_1, \ldots, y_{n-1}) = (y_1, \ldots, y_s)$. Then
+$\pi \circ \Phi$ is an analytic map from $U$ into $\R^s$. Hence, as $W$
+is a neighborhood of $0$ in $\R^s$, the set
+$U' := (\pi \circ \Phi)^{-1}(W)$ is a neighborhood of $p$ in $\R^{n-1}$
+with $U' \subseteq U$. Let $V' = \Phi(U')$ and define a map
+$\Psi: U' \times \R \to V' \times \R$ by
+\[
+\Psi(x, x_n) = \bigl( \Phi(x),\
+x_n - f \circ \phi^{-1}((\pi \circ \Phi)(x)) \bigr),
+\]
+for $(x, x_n) \in U' \times \R$. Then $\Psi$ is an analytic map (the
+$n$-th component of $\Psi$ is analytic because $f \circ \phi^{-1}$ is
+analytic in $W$ by Theorem 2.2.2). In fact, one can verify that $\Psi$
+is invertible, with analytic inverse $\Psi^{-1}$ given by
+\[
+\Psi^{-1}(y, y_n) = \bigl( \Phi^{-1}(y),\
+y_n + f \circ \phi^{-1}(y_1, \ldots, y_s) \bigr),
+\]
+for $y = (y_1, \ldots, y_{n-1}) \in V'$ and $y_n \in \R$. Thus $\Psi$ is
+a coordinate system about $(p, p_n)$. Where $\psi_1, \ldots, \psi_n$ are
+the components of $\Psi$, we have
+\[
+G \cap (U' \times \R) = \{ (x, x_n) \in U' \times \R :
+\psi_{s+1}(x, x_n) = 0, \ldots, \psi_n(x, x_n) = 0 \}.
+\]
+By Theorem 2.2.1, $G$ is an $s$-submanifold of $\R^n$.
+\end{proof}
+
+\begin{theorem*}[2.2.4]
+Let $S$ be an $s$-submanifold of $\R^{n-1}$, $0 \le s \le n-1$, and let
+$f$ and $g$ be continuous functions from $S$ into $\R$ (also allowed are
+$f \equiv -\infty$ or $g \equiv +\infty$) with $f < g$. Let
+$R = \{ (x, x_n) \in S \times \R : f(x) < x_n < g(x) \}$. Then $R$ is an
+$(s+1)$-submanifold of $\R^n$.
+\end{theorem*}
+
+\begin{proof}
+Let $(p, p_n)$ be a point of $R$. By Theorem 2.2.1 there is a
+neighborhood $U \subseteq \R^{n-1}$ of $p$ and a coordinate system
+$\Phi: U \to V$ about $p$, $\Phi = (\phi_1, \ldots, \phi_{n-1})$, such
+that
+\[
+S \cap U = \{ x \in U : \phi_{s+1}(x) = 0, \ldots, \phi_{n-1}(x) = 0 \}.
+\]
+Choose $\epsilon > 0$ such that $f(p) < p_n - \epsilon < p_n + \epsilon < g(p)$.
+By continuity of $f$ and $g$, there exists a neighborhood
+$U' \subseteq U$ of $p$ in $\R^{n-1}$ such that $f(x) < x_n < g(x)$ for
+every $x \in S \cap U'$ and every $x_n \in (p_n - \epsilon, p_n + \epsilon)$.
+Let $I = (p_n - \epsilon, p_n + \epsilon)$, let
+$J = (-\epsilon, +\epsilon)$, and let $V' = \Phi(U')$. Define
+$\Psi: U' \times I \to V' \times J$ by
+$\Psi(x, x_n) = (\Phi(x), x_n - p_n)$. Then $\Psi$ is an analytic map,
+with analytic inverse $\Psi^{-1}$ given by
+$\Psi^{-1}(y, y_n) = (\Phi^{-1}(y), y_n + p_n)$. Where
+$\psi_1, \ldots, \psi_n$ are the components of $\Psi$, we have
+\[
+R \cap (U' \times I) = \{ (x, x_n) \in U' \times I :
+\psi_{s+1}(x, x_n) = 0, \ldots, \psi_{n-1}(x, x_n) = 0 \}.
+\]
+Even though $\psi_n(x, x_n) = 0$ is not included amongst the local
+defining equations for $R$, by an obvious analogue of Theorem 2.2.1,
+$R$ is an $(s+1)$-submanifold of $\R^n$.
+\end{proof}
+
+\section{Miscellaneous Results}
+
+\begin{definition}
+Let $K = \R$ or $\C$. Let $U$ be an open subset of $K^n$ and let
+$f: U \to K$ be an analytic function. Let $p$ be a point of $U$. If some
+partial derivative of $f$ of non-negative order does not vanish at $p$
+then we say that $f$ has \emph{order $k$ at $p$}, and write
+$\ord_p f = k$, provided that $k$ is the least non-negative integer such
+that some partial derivative of $f$ of order $k$ does not vanish at $p$;
+we also say that $f$ has \emph{order $k_i$ at $p$ in $x_i$}, provided
+that $k_i$ is the least non-negative integer such that some partial
+derivative of $f$ of order $k_i$ in $x_i$ does not vanish at $p$. If,
+on the other hand, all partial derivatives of $f$ of all orders vanish
+at $p$, then we say that $f$ has \emph{order $\infty$ at $p$}, and write
+$\ord_p f = \infty$; we also say that $f$ has order $\infty$ at $p$ in
+each $x_i$.
+\end{definition}
+
+\begin{theorem*}[2.3.1]
+Let $K = \R$ or $\C$. Let $U \subseteq K^n$ and $V \subseteq K^m$ be
+open sets, let $G: U \to V$ be an analytic mapping, and let
+$f: V \to K$ be an analytic function. Then, for every point $p$ of $U$,
+\[
+\ord_{G(p)} f \le \ord_p f \circ G.
+\]
+\end{theorem*}
+
+\begin{proof}
+Let the coordinates of $K^n$ be $(x_1, \ldots, x_n)$ and let those of
+$K^m$ be $(y_1, \ldots, y_m)$. Let $h = f \circ G$. We prove by induction
+on $k$ that every partial derivative of $h$ of order $k$ is a finite sum
+of terms of the form
+\[
+(P \circ G) Q
+\]
+where $P = P(y_1, \ldots, y_m)$ is a partial derivative of
+$f = f(y_1, \ldots, y_m)$ of order $\le k$ and $Q$ is an analytic
+function. This is true for $k = 0$ by definition of $h$. Assume that the
+above proposition is true for $k \ge 0$. Let
+$R = \dfrac{\partial^{k+1} h}{\partial x_1^{i_1} \cdots \partial x_n^{i_n}}$
+be a partial derivative of $h$ of order $k+1$. As some $i_s > 0$, we
+have $R = \dfrac{\partial S}{\partial x_s}$, where $S$ is a partial
+derivative of $h$ of order $k$. By the induction hypothesis, $S$ is a
+finite sum of terms of the form $(P \circ G) Q$, where $P$ is a partial
+derivative of $f$ of order $\le k$. (Let $g_1, \ldots, g_m$ be the
+component functions of $G$.) As
+\[
+\frac{\partial (P \circ G) Q}{\partial x_s}
+= \frac{\partial (P \circ G)}{\partial x_s} \cdot Q
++ (P \circ G) \frac{\partial Q}{\partial x_s}
+\]
+and
+\[
+\frac{\partial (P \circ G)}{\partial x_s}
+= \left( \frac{\partial P}{\partial y_1} \circ G \right)
+\frac{\partial g_1}{\partial x_s} + \cdots
++ \left( \frac{\partial P}{\partial y_m} \circ G \right)
+\frac{\partial g_m}{\partial x_s},
+\]
+it follows that $\dfrac{\partial (P \circ G) Q}{\partial x_s}$ is a
+finite sum of terms of the form $(P' \circ G) Q'$, where $P'$ is a
+partial derivative of $f$ of order $\le k + 1$. Hence $R$ is such a
+sum. We have shown that the required proposition holds for $k + 1$.
+The proof by induction is complete.
+
+Let $p$ be a point of $U$ and let the order of $f$ at $G(p)$ be $l$. If
+$l = 0$ then clearly $\ord_p h \ge 0$, so assume $l > 0$. Let $R$ be a
+partial derivative of $h$ of order $k < l$. Then $R$ is a finite sum of
+terms of the form $(P \circ G) Q$, where $P$ is a partial derivative of
+$f$ of order $\le k$. But $P(G(p)) = 0$ for every partial derivative
+$P$ of $f$ of order $\le k$, as $\ord_{G(p)} f = l > k$. Hence
+$R(p) = 0$. It follows that $\ord_p h \ge l$.
+\end{proof}
+
+\begin{theorem*}[2.3.2 (Root continuity principle)]
+Let $f(z) = f_0 z^d + f_1 z^{d-1} + \cdots + f_d$ be a polynomial in
+$\C[z]$, with $f_0 = f_1 = \cdots = f_{l-1} = 0$ and $f_l \ne 0$, for
+some $l$, $0 \le l \le d$. Let $\alpha$ be a root of $f(z)$ of
+multiplicity $m$ and let $C$ be a circle in the complex plane centered
+at $\alpha$, of radius $\epsilon > 0$, such that $f \ne 0$ in the
+punctured disc $0 < |z - \alpha| \le \epsilon$. Then there is a number
+$\delta > 0$ such that if $g_0, g_1, \ldots, g_d \in \C$ and
+$|g_j - f_j| < \delta$ for $0 \le j \le d$, then the polynomial
+\begin{equation}
+g(z) = g_0 z^d + g_1 z^{d-1} + \cdots + g_d
+\tag{2.3.1}
+\end{equation}
+has exactly $m$ roots inside $C$.
+\end{theorem*}
+
+\begin{proof}
+There exists $\delta > 0$ such that if $g_0, \ldots, g_d \in \C$,
+$|g_j - f_j| < \delta$ for $0 \le j \le d$, and $g(z)$ is given
+by~(2.3.1), then $|g(z) - f(z)| < |f(z)|$ for $|z| = \epsilon$. Let
+$g_0, \ldots, g_d \in \C$ and let $|g_j - f_j| < \delta$ for
+$0 \le j \le d$. Let $g(z)$ be defined by~(2.3.1) and let
+$f_s(z) = f(z) + s(g(z) - f(z))$, for $0 \le s \le 1$. Now if
+$0 \le s \le 1$ then
+\[
+\begin{aligned}
+|f_s(z)| &= |f(z) + s(g(z) - f(z))| \ge \bigl| |f(z)| - |s(g(z) - f(z))| \bigr| \\
+&= \bigl| |f(z)| - s|g(z) - f(z)| \bigr| \\
+&> 0
+\end{aligned}
+\]
+for $|z| = \epsilon$. Hence, if $0 \le s \le 1$, then $f_s(z)$ has a
+total number $m_s$ of zeros inside $C$ given by
+\begin{equation}
+m_s = \frac{1}{2\pi i} \int_C \frac{f'_s(\zeta) \, d\zeta}{f_s(\zeta)}.
+\tag{2.3.2}
+\end{equation}
+But the integral on the right-hand side of~(2.3.2) is continuous in $s$
+and is integer-valued, and hence is constant. Therefore $m_0 = m_1$.
+\end{proof}
+
+Let $R$ be an integral domain and let
+\[
+\begin{aligned}
+A(x) &= a_0 x^m + a_1 x^{m-1} + \cdots + a_m, \\
+B(x) &= b_0 x^n + b_1 x^{n-1} + \cdots + b_n
+\end{aligned}
+\]
+be polynomials in $R[x]$, not both constant, of degrees $m$ and $n$
+respectively. The \emph{Sylvester matrix} of $A$ and $B$ is the
+$m+n$ by $m+n$ matrix
+\[
+M =
+\begin{pmatrix}
+a_0 & a_1 & \cdot & \cdot & \cdot & a_m & & & \\
+& a_0 & a_1 & \cdot & \cdot & \cdot & a_m & & \\
+& & \cdot & \cdot & \cdot & \cdot & \cdot & \cdot & \\
+& & & a_0 & a_1 & \cdot & \cdot & \cdot & a_m \\
+b_0 & b_1 & \cdot & \cdot & \cdot & b_n & & & \\
+& b_0 & b_1 & \cdot & \cdot & \cdot & b_n & & \\
+& & \cdot & \cdot & \cdot & \cdot & \cdot & \cdot & \\
+& & & b_0 & b_1 & \cdot & \cdot & \cdot & b_n
+\end{pmatrix}
+\]
+The \emph{resultant} of $A$ and $B$, $\res(A, B)$, is defined by
+\[
+\res(A, B) = \det(M).
+\]
+Suppose now that the characteristic of $R$ is zero and that $A$ is not
+constant. Then $m a_0 \ne 0$, and so the degree of the derivative
+\[
+A'(x) = m a_0 x^{m-1} + (m-1) a_1 x^{m-2} + \cdots + a_{m-1}
+\]
+of $A(x)$ is $m - 1$. Consider the Sylvester matrix of $A$ and $A'$.
+The first column has two nonzero entries, $a_0$ and $m a_0$. Hence we
+can factor out $a_0$ from $\res(A, A')$. The \emph{discriminant} of
+$A$, $\discr(A)$, is defined by the equation
+\[
+a_0 \discr(A) = (-1)^{m(m-1)/2} \res(A, A').
+\]
+Let $K$ be the quotient field of $R$ and let $\Omega$ be an algebraic
+closure of $K$. Then we can completely factor $A(x)$ and $B(x)$ into
+linear factors over $\Omega$ thus:
+\begin{align}
+A(x) &= a_0 (x - \alpha_1) \cdots (x - \alpha_m) \tag{2.3.3} \\
+B(x) &= b_0 (x - \beta_1) \cdots (x - \beta_n). \tag{2.3.4}
+\end{align}
+The following expressions for $\res(A, B)$ and $\discr(A)$ are
+well-known:
+\begin{align}
+\res(A, B) &= a_0^n b_0^m \prod_{i, j} (\alpha_i - \beta_j)
+\tag{2.3.5} \\
+\discr(A) &= a_0^{2m-2} \prod_{i < j} (\alpha_i - \alpha_j)^2.
+\tag{2.3.6}
+\end{align}
+
+\begin{theorem*}[2.3.3]
+Let $A(x)$ and $B(x)$ be non-constant polynomials over the integral
+domain $R$ of characteristic zero. Let $C(x) = A(x) B(x)$. Then
+\[
+\discr(C) = \discr(A) (\res(A, B))^2 \discr(B).
+\]
+\end{theorem*}
+
+\begin{proof}
+Let $K$ be the quotient field of $R$ and let $\Omega$ be an algebraic
+closure of $K$. Factor $A(x)$ and $B(x)$ completely over $\Omega$ as
+in~(2.3.3) and~(2.3.4). Let
+$\gamma_1 = \alpha_1, \ldots, \gamma_m = \alpha_m,\
+\gamma_{m+1} = \beta_1, \ldots, \gamma_{m+n} = \beta_n$. Let
+$c_0 = a_0 b_0$ and $l = m + n$. Then
+\[
+C(x) = c_0 (x - \gamma_1) \cdots (x - \gamma_l).
+\]
+Therefore
+\[
+\begin{aligned}
+\discr(C) &= c_0^{2l - 2} \prod_{1 \le i < j \le l} (\gamma_i - \gamma_j)^2 \\
+&= \left( a_0^{2m-2} \prod_{1 \le i < j \le m} (\alpha_i - \alpha_j)^2 \right)
+\cdot
+\left( a_0^{2n} b_0^{2m}
+\prod_{\substack{1 \le i \le m \\ 1 \le j \le n}} (\alpha_i - \beta_j)^2 \right) \\
+&\quad \cdot \left( b_0^{2n-2} \prod_{1 \le i < j \le n} (\beta_i - \beta_j)^2 \right) \\
+&= \discr(A) (\res(A, B))^2 \discr(B).
+\end{aligned}
+\]
+\end{proof}
+
+The \emph{sum-norm} (or just \emph{norm} for short) of an integral
+polynomial $A$ in $r$ variables is the sum of the absolute values of the
+integer coefficients of $A$. The \emph{max-norm} of such a polynomial is
+the maximum of the absolute values of the integer coefficients. We
+denote the sum-norm by $|A|_1$, and the max-norm by $|A|_\infty$. The
+following theorem leads to a bound for the coefficients of the factors
+of an $r$-variate integral polynomial.
+
+\begin{theorem*}[2.3.4 (Gelfond)]
+Let $A_1, \ldots, A_k$ be $r$-variate polynomials with complex
+coefficients, and let $A = A_1 \cdots A_k$. Let $n_i$ be the degree of
+$A$ in the $i$-th variable, assume $n_i > 0$ for all $i$, and let
+$m = \sum_{i=1}^{r} n_i$. Then
+\[
+\prod_{j=1}^{k} |A_j|_\infty \le 2^{m-r/2} |A|_1.
+\]
+\end{theorem*}
+
+\begin{proof}
+See [GEL60], pp 135--139.
+\end{proof}
+
+\begin{theorem*}[Corollary 2.3.5]
+Let $A$ be a non-zero integral polynomial in $r$ variables, and let $B$
+be a factor of $A$. Let $n$ be a bound for the degree of $A$ in each
+variable. Then
+\[
+|B|_1 \le (n+1)^r \, 2^{rn - r/2} |A|_1.
+\]
+\end{theorem*}
+
+\begin{proof}
+As $B$ has at most $(n+1)^r$ terms, we have
+\[
+|B|_1 \le (n+1)^r |B|_\infty.
+\]
+The corollary now follows from the theorem.
+\end{proof}
+
+\section*{Chapter Three: Reduced Projection Map for Cylindrical Algebraic Decomposition}
+
+In this chapter we launch the main thrust of the thesis. Section 1
+contains a review of the essential aspects of the cylindrical algebraic
+decomposition (cad) algorithm. The main focus of the review is the
+projection operation used in the cad algorithm. In Section 2 we
+introduce a new projection map, which is a reduced version of the
+original. Theorems are presented which suggest the usefulness of the
+reduced projection map in cad construction (algorithms for cad
+computation using the new projection are presented in Chapter 5).
+Section 3 contains mathematical details that substantiate the results
+in Section 2.
+
+\section{The Original Cad Algorithm and Its Projection Map}
+
+The purpose of this section is to provide a quick introduction to the
+cad algorithm. More detailed accounts appear in a number of sources,
+e.g.~[COL75], [ARN81], [ACM84a].
+
+Let $A$ be a finite set of $r$-variate polynomials, $r \ge 1$. An
+\emph{$A$-invariant cylindrical algebraic decomposition (cad) of $\R^r$}
+partitions $\R^r$ into a finite collection of semialgebraic cells in
+each of which every polynomial in $A$ is sign-invariant. A more precise
+definition of cad is given in [ACM84a]. An $A$-invariant cad of the
+plane, where
+\[
+A = \{ F(x, y) = y^4 - 2y^3 + y^2 - 3x^2 y + 2x^4 \},
+\]
+is depicted in Figure~3.1.1. Note that $F(x, y)$ vanishes in each of the
+0-cells and ``curved'' 1-cells, and is either positive or negative
+throughout each of the remaining cells.
+
+\begin{center}
+\textit{[Figure 3.1.1: illustration of an $A$-invariant cad of the plane
+for the polynomial $F(x,y) = y^4 - 2y^3 + y^2 - 3x^2 y + 2x^4$, showing
+0-cells, curved 1-cells along the zero locus of $F$, and the
+complementary 2-cells.]}
+\end{center}
+
+The cad algorithm accepts as input a finite set $A$ of integral
+polynomials in $r$ variables, and yields as output a description of an
+$A$-invariant cad $D$ of $\R^r$. The description of $D$ takes the form
+of a list of sample points and (if required) defining formulas for the
+cells of $D$. The algorithm consists of three phases: \emph{projection}
+(computing successive sets of polynomials in one fewer variables, the
+zeros of each set containing a projection of the ``critical zeros'' in
+the next higher dimensional space), \emph{base} (constructing a cad of
+$\R^1$), and \emph{extension} (successive extension of the cad of
+$\R^i$ to a cad of $\R^{i+1}$, $i = 1, 2, \ldots, r-1$). We shall
+describe each of the phases in turn.
+
+For a set $A$ of $r$-variate integral polynomials, we shall define a
+set $\PROJ(A)$ of $(r-1)$-variate polynomials whose zeros contain the
+projection of the ``critical locus'' of $A$. We shall show that for any
+$\PROJ(A)$-invariant $j$-cell $R$ in $\R^{r-1}$, the cylinder over $R$
+(i.e.\ $R \times \R$) is partitioned by the zeros of $A$ into a finite
+number of pairwise disjoint $j$-cells (the graphs of continuous
+functions defined on $R$) and their complementary $(j+1)$-cells. This
+property will enable us to carry out the extension of a
+$\PROJ(A)$-invariant cad of $\R^{r-1}$ to an $A$-invariant cad of
+$\R^r$.
+
+We introduce some terminology first. The \emph{reductum} of a polynomial
+$F$ is the polynomial $F - \ldt(F)$, where $\ldt(F)$ is the leading term
+of $F$, i.e.\ the term of highest degree. Let $\red^k(F)$ denote the
+$k$-th reductum of $F$. Let $F(x)$ and $G(x)$ be nonzero polynomials
+over an integral domain $D$, $F$ and $G$ not both constant. Let
+$n = \min(\deg(F), \deg(G))$. For $0 \le j \le n$, let $S_j(F, G)$
+denote the \emph{$j$-th subresultant polynomial} of $F$ and $G$, an
+element of $D[x]$ of degree $\le j$. (Each coefficient of $S_j(F, G)$
+is the determinant of a certain matrix of $F$ and $G$ coefficients;
+see [LOO82b], [BRT71], or [COL75] for the exact definition. Subresultant
+polynomials are intimately connected with polynomial remainder
+sequences: the fundamental theorem of polynomial remainder sequences
+[BRT71] makes the connections explicit. The fact concerning subresultant
+polynomials of chief importance to us is that if $D$ is a unique
+factorization domain, then where $k = \deg(\gcdop(F, G))$, we have
+$S_j(F, G) = 0$ for $0 \le j < k$, and $S_k(F, G) = \gcdop(F, G)$ modulo
+multiplication by elements of $D$.) For $0 \le j \le n$, the
+\emph{$j$-th subresultant} of $F$ and $G$, written $\subres_j(F, G)$,
+is the coefficient of $x^j$ in $S_j(F, G)$. Note that
+$\subres_0(F, G) = \res(F, G)$. Suppose now that the characteristic of
+$D$ is $0$. Let $\ldcf(F)$ denote the leading coefficient of $F$, and
+assume that $(n :=) \deg(F) > 0$. Then $n \ldcf(F) \ne 0$, and so the
+degree of $F'$, the derivative of $F$, is $n-1$. By considering the
+Sylvester matrix of $F$ and $F'$, it can be seen that, for
+$0 \le j \le n-1$, $\ldcf(F)$ is a divisor of $\subres_j(F, F')$. For
+$0 \le j \le n-1$, we define the \emph{$j$-th subdiscriminant} of $F$,
+written $\subdiscr_j(F)$, by the equation
+\[
+\ldcf(F) \cdot \subdiscr_j(F) = (-1)^{n(n-1)/2} \subres_j(F, F')
+\]
+(cf.\ definition of $\discr(F)$ in Sec.~2.3). Note that
+$\subdiscr_0(F) = \discr(F)$.
+
+Let $A$ be a set of integral polynomials in the $r$ variables
+$x_1, \ldots, x_r$. We regard the elements of $A$ as polynomials in
+$x_r$ over the ring of polynomials in $x_1, \ldots, x_{r-1}$. We now
+define several sets of $(r-1)$-variate polynomials. The \emph{reducta
+set of $A$}, written $\red(A)$, is the set
+\[
+\{ \red^k(F) : F \in A,\ 0 \le k \le \deg(F),\ \red^k(F) \ne 0 \}.
+\]
+The \emph{coefficient set of $A$}, written $\coeff(A)$, is the set
+\[
+\{ f(x_1, \ldots, x_{r-1}) : f \text{ is a non-zero coefficient of some }
+F \in A \}.
+\]
+The \emph{subdiscriminant set of $A$}, written $\subdiscr(A)$, is
+defined to be
+\[
+\{ \subdiscr_j(F) : F \in A,\ 0 \le j < \deg(F') \}.
+\]
+The \emph{subresultant set of $A$}, written $\subres(A)$, is defined to
+be
+\[
+\{ \subres_j(F, G) : F, G \in A,\ F \ne G,\
+0 \le j < \min(\deg(F), \deg(G)) \}.
+\]
+We can now define the projection of $A$. Suppose first that $A$ is a
+\emph{squarefree basis} (that is, the elements of $A$ have positive
+degree, and are primitive, squarefree and pairwise relatively prime).
+Then we define $\PROJ(A)$ to be the set
+\[
+\coeff(A) \cup \subdiscr(\red(A)) \cup \subres(\red(A)).
+\]
+Now let $A$ be any set of $r$-variate integral polynomials. Let
+$\cont(A)$ be the set of non-constant contents of elements of $A$, and
+let $\prm(A)$ be the set of primitive parts of positive degree of
+elements of $A$. Then where $B$ is the finest squarefree basis for
+$\prm(A)$ (that is, the set of irreducible divisors of elements of
+$\prm(A)$), we set
+\[
+\PROJ(A) = \cont(A) \cup \PROJ(B).
+\]
+
+The following concept is crucial:
+
+\begin{definition}
+A real polynomial $F(x, x_r)$ is said to be \emph{delineable} on a
+subset $S$ of $\R^{r-1}$ if
+\begin{enumerate}
+\item[(1)] the portion of the real variety of $F$ lying in the cylinder
+over $S$ consists of the union of the graphs of some $k \ge 0$
+continuous functions $\theta_1 < \cdots < \theta_k$ from $S$ to $\R$;
+and
+\item[(2)] there exist integers $m_1, \ldots, m_k \ge 1$ such that for
+every $\alpha \in S$, the multiplicity of the root $\theta_i(\alpha)$
+of $F(\alpha, x_r)$ is $m_i$.
+\end{enumerate}
+\end{definition}
+
+In the above definition, the graphs of the functions $\theta_i$ are
+called the \emph{$F$-sections} over $S$. The regions between successive
+$F$-sections are called \emph{$F$-sectors}.
+
+We can now state the main theorem about $\PROJ$:
+
+\begin{theorem*}[3.1.1]
+Let $A$ be a finite set of integral polynomials in $r$ variables and
+let $c \subseteq \R^{r-1}$ be a connected set in which every element of
+$\PROJ(A)$ is sign-invariant. Then every element of $A$ is either
+delineable or identically zero on $c$, and the sections of $A$ over $c$
+are pairwise disjoint.
+\end{theorem*}
+
+We briefly discuss the ideas involved in the proof. It is shown in
+[COL75] that for a polynomial $F(x, x_r)$ whose leading coefficient
+does not vanish on a set $c \subseteq \R^{r-1}$, the invariance of the
+number of distinct roots of $F(\alpha, x_r)$ as $\alpha$ varies within
+$c$ implies the delineability of $F$ on $c$. On the other hand, the
+number of distinct roots of $F(\alpha, x_r)$ is equal to $d - k$, where
+$d$ is the degree of $F$ in $x_r$ and $k$ is the least integer
+$j \ge 0$ such that $\subdiscr_j(F)(\alpha) \ne 0$ (this follows from
+the fundamental theorem of polynomial remainder sequences [BRT71]).
+
+Let us assume the hypotheses of the main theorem, and assume first that
+$A$ is a squarefree basis. Let $F$ be an element of $A$ which is not
+identically zero on $c$. Then as the elements of $\coeff(A)$ are
+sign-invariant on $c$, $F$ is identical with some reductum $G$ of $F$
+on $c$, such that $G$ has non-vanishing leading coefficient on $c$. As
+the elements of $\subdiscr(\red(A))$ are sign-invariant on $c$,
+$\subdiscr_j(G)$ is sign-invariant on $c$, for $0 \le j \le \deg(G')$.
+Thus, by the above remarks, the number of distinct roots of
+$G(\alpha, x_r)$ is invariant throughout $c$, hence $G$ (and therefore
+$F$) is delineable on $c$. The invariance of $\subres(\red(A))$ on $c$
+ensures that the various sections of elements of $A$ on $c$ are
+pairwise disjoint.
+
+If $A$ is an arbitrary set of polynomials, then we can apply the above
+argument to the basis $B$ for $\prm(A)$. The required conclusions for
+$A$ follow immediately. The reader can consult either [COL75] or
+[ACM84a] for a more detailed proof. $\square$
+
+Let $A$ be the input to the cad algorithm. Let us assume for the
+present that defining formula construction is not required. In the
+projection phase of the algorithm we compute $\PROJ(A)$,
+$\PROJ(\PROJ(A)) = \PROJ^2(A)$, and so on, until we compute
+$\PROJ^{r-1}(A)$. It is the task of the base phase to construct a
+$\PROJ^{r-1}(A)$-invariant cad of $\R^1$. We begin the base phase by
+constructing the set of all distinct irreducible factors of nonzero
+elements of $\PROJ^{r-1}(A)$. We then isolate the real roots of (the
+product of) these factors. We thus have an exact representation for
+each root consisting of its minimal polynomial and an isolating interval
+(see [LOO82a], Section 1 for more information on this). The cad of
+$\R^1$ consists of the collection of these roots (the 0-cells)
+together with the collection of complementary open intervals (the
+1-cells). Sample points for the 0-cells are the roots themselves
+represented as above, while rational sample points for the 1-cells can
+be readily chosen. Defining formulas for the 0-cells and 1-cells can be
+obtained in a straightforward manner (see p.~45 of [ARN81]).
+
+Let $D^*$ be the cad of $\R^1$ constructed as above. Let us first
+consider the extension of $D^*$ to a cad of $\R^2$. In the projection
+phase we computed a set $J = \PROJ^{r-2}(A)$. Let $c$ be a cell of
+$D^*$. Then by Theorem~3.1.1, the cylinder over $c$ is partitioned by
+the zeros of $J$ into a finite number of sections and sectors. These
+sections and sectors will be cells of our decomposition of $\R^2$. We
+now describe how to determine the number of these cells over $c$, as
+well as a sample point for each cell. Let $\alpha$ be the sample point
+for $c$, and let $J_\alpha$ be the product of all elements $G$ of $J$
+for which $G(\alpha, x_2) \ne 0$. Using algorithms for exact arithmetic
+in $\Q(\alpha)$ [LOO82a], we construct $J_\alpha(\alpha, x_2)$. We
+isolate the real roots of $J_\alpha(\alpha, x_2)$, which provides us
+with the number of sections and sectors of $J$ lying over $c$. Now
+$(\alpha, \beta)$ lies on a section of $J$ over $c$ if and only if
+$\beta$ is a root of $J_\alpha(\alpha, x_2)$. For each such $\beta$, we
+use the representation for $\alpha$, the isolating interval for
+$\beta$, and the algorithms \textsc{NORMAL} and \textsc{SIMPLE} of
+[LOO82a] to construct a primitive element $\gamma$ for
+$\Q(\alpha, \beta)$; we use $\gamma$ to construct an appropriate
+representation for the algebraic point $(\alpha, \beta)$, by expressing
+$\alpha$ and $\beta$ as polynomials in $\gamma$. We readily get sector
+sample points of the form $(\alpha, r)$, with $r$ rational. After
+processing each cell $c$ of $D^*$ in this way, we have determined a
+cad of $\R^2$ and constructed a sample point for each cell.
+
+Extension from $\R^{i-1}$ to $\R^i$ for $3 \le i \le r$ is essentially
+the same as from $\R^1$ to $\R^2$. The only difference is that a sample
+point in $\R^{i-1}$ has $i-1$, instead of just one, coordinates. But
+where $\alpha$ is the primitive element of an $\R^{i-1}$ sample point,
+and $F$ is a polynomial in $r$ variables, arithmetic in $\Q(\alpha)$
+still suffices for constructing the univariate polynomial over
+$\Q(\alpha)$ that results from substituting the coordinates
+$(\alpha_1, \ldots, \alpha_{i-1})$ for $(x_1, \ldots, x_{i-1})$ in $F$.
+
+We have also to define the \emph{augmented projection} $\APROJ(A)$ of
+$A$, which is used when defining formulas are to be constructed. First
+some notation:
+
+\begin{definition}
+Let us take the degree of the zero polynomial to be $-1$. Let
+\[
+f(x, x_r) = f_0(x) x_r^d + f_1(x) x_r^{d-1} + \cdots + f_d(x)
+\]
+be a polynomial in $\R[x, x_r]$ and let $S$ be a subset of $\R^{r-1}$.
+Say that $f$ is \emph{degree-invariant in $S$} if there exists $l$,
+$-1 \le l \le d$, called the \emph{degree of $f$ in $S$} (written
+$\deg_S(f)$), such that for every point $p$ of $S$, the univariate
+polynomial $f(p, x_r)$ has degree $l$. If $f$ is degree-invariant and
+of non-negative degree $l$ in $S$, then
+$f_0 = f_1 = \cdots = f_{d-l-1} = 0$ in $S$, while $f_{d-l} \ne 0$ in
+$S$ (the converse is also true).
+\end{definition}
+
+Let $F^{(j)}$ denote the $j$-th derivative of $F$. Define the
+\emph{derivative set} $\der(A)$ of $A$ to be the set
+\[
+\{ F^{(j)} : F \in A,\ 0 \le j < \deg(F) \}.
+\]
+Suppose first that $A$ is a squarefree basis. Then we define
+$\APROJ(A)$ to be the set
+\[
+\subdiscr(\der(\red(A))) \cup \PROJ(A).
+\]
+If $A$ is an arbitrary set of polynomials then where $B$ is the finest
+squarefree basis for $\prm(A)$, we set
+\[
+\APROJ(A) = \cont(A) \cup \APROJ(B).
+\]
+
+The role of the augmented projection in defining formula construction
+is indicated by the following two theorems:
+
+\begin{theorem*}[3.1.2]
+Let $A$ be a finite set of integral polynomials in $r$ variables and
+let $c \subseteq \R^{r-1}$ be a connected set in which every element of
+$\APROJ(A)$ is sign-invariant. Then for every $F \in A$, $F$ is
+degree-invariant on $c$, and $F^{(j)}$ is delineable on $c$, for every
+$j$, $0 \le j \le \deg_c(F)$.
+\end{theorem*}
+
+\begin{theorem*}[3.1.3]
+Let $F$ be an integral polynomial in $r$ variables. Let
+$c \subseteq \R^{r-1}$ be a connected set on which $F$ is
+degree-invariant and not identically zero, and on which $F^{(j)}$ is
+delineable for $0 \le j \le \deg_c(F)$. Then, given a sample point and
+a defining formula for $c$, we can construct defining formulas for the
+$F$-sections and $F$-sectors over $c$.
+\end{theorem*}
+
+For the proofs of these theorems one should consult Sec.~2.5 of
+[ARN81]. The following abstract algorithm indicates how augmented
+projections are used in the cad algorithm, and generally serves to
+summarize the discussion of this section.
+
+\bigskip
+\noindent \textbf{CAD}$(r, A, k; S, F)$
+
+\medskip
+[Cylindrical algebraic decomposition. $A$ is a set of integral
+polynomials in $r$ variables, $r \ge 1$. $k$ satisfies $0 \le k \le r$.
+$S$ is a list of sample points for an $A$-invariant cad $D$ of $\R^r$.
+If $k \ge 1$, $F$ is a list of defining formulas for the induced cad of
+$\R^k$, and if $k = 0$, $F$ is the empty list.]
+
+\begin{enumerate}
+\item[(1)] [Initialize.] Set $B \leftarrow$ the finest squarefree basis
+for $\prm(A)$. Set $S \leftarrow ()$ and $F \leftarrow ()$.
+
+\item[(2)] [$r = 1$.] If $r > 1$ then go to (3). Isolate the real roots
+of $B$. Construct sample points for the cells of $D$ and add them to
+$S$. If $k = 1$, then construct defining formulas for the cells of $D$
+and add them to $F$. Exit.
+
+\item[(3)] [$r > 1$.] If $k < r$ then set $P \leftarrow \PROJ(A)$ and
+$k' \leftarrow k$; otherwise set $P \leftarrow \APROJ(A)$ and
+$k' \leftarrow k - 1$. Call CAD recursively with inputs $r-1$, $P$, and
+$k'$ to obtain outputs $S'$ and $F'$ which specify a $P$-invariant cad
+$D'$ of $\R^{r-1}$. For each cell $c$ of $D'$, let $\alpha$ denote the
+sample point for $c$, and carry out the following sequence of steps:
+set $B^* \leftarrow$ the set of all $B_i(\alpha, x_r)$ such that
+$B_i \in B$ and $B_i(\alpha, x_r) \ne 0$; isolate the real roots of
+$B^*$; use $\alpha$ and the isolating intervals for the roots of $B^*$
+to construct sample points for the $B$-sections and $B$-sectors over
+$c$, adding them to $S$; if $k = r$, then, from the defining formula
+for $c$, construct defining formulas for the $B$-sections and
+$B$-sectors over $c$, adding them to $F$, and if $k < r$, set
+$F \leftarrow F'$. Exit. $\square$
+\end{enumerate}
+
+\section{A Reduced Projection Map and New Projection Theorem}
+
+In this section we introduce a new projection map $P$ which is a
+`reduced' version of the map $\PROJ$ discussed in Section~3.1. We state
+a theorem analogous to Theorem~3.1.1 which implies that under certain
+assumptions on a given set $A$ of polynomials, any cad of $\R^{r-1}$
+such that every element of $P(A)$ has constant \emph{order} (as
+opposed to sign~--- recall the definition of order given in
+Section~2.3) throughout every cell, can be lifted (or extended) to a
+cad of $\R^r$ such that every element of $A$ has constant order
+throughout every cell. The mathematical result underlying this
+analogue of Theorem~3.1.1 will be termed the \emph{lifting theorem},
+and is the main contribution of this thesis. In this section we state
+the lifting theorem and derive the important consequences for cad
+construction from it. We postpone the proof of the lifting theorem to
+the next section of this chapter. In Chapter~5, we present algorithms
+for cad construction based upon the lifting theorem.
+
+Before we can state the lifting theorem we need to make a few
+definitions.
+
+\begin{definition}
+Let $K = \R$ or $\C$. Let $U$ be an open subset of $K^r$ and let
+$f: U \to K$ be an analytic function. We say that $f$ is
+\emph{order-invariant in} a subset $S$ of $U$ provided that the order
+of $f$ is the same at every point of $S$.
+\end{definition}
+
+\begin{example}
+Let $f: \R^2 \to \R$ be given by $f(x, y) = x^2 - y^2$. Let $C_f$ be
+the curve defined by $f(x, y) = 0$ and let $S = C_f - \{0\}$. Then $f$
+is order-invariant in $S$ ($\ord_{(x_0, y_0)} f = 1$ for every point
+$(x_0, y_0)$ of $S$). However $f$ is not order-invariant in $C_f$
+($\ord_0 f = 2$).
+\end{example}
+
+\begin{remark}
+Let $U$ and $V$ be open subsets of $K^n$, let $G: U \to V$ be an
+analytic isomorphism, and let $f: V \to K$ be an analytic function. By
+Theorem~2.1.5 the composite function $f \circ G$ is analytic in $U$.
+It follows from Theorem~2.3.1 that, for every point $p$ of $U$,
+\[
+\ord_{G(p)} f = \ord_p f \circ G.
+\]
+Hence, if $S$ is a subset of $U$, then $f$ is order-invariant in
+$G(S)$ if and only if $f \circ G$ is order-invariant in $S$.
+\end{remark}
+
+Throughout the remainder of this section and the next, let $x$ denote
+the $(r-1)$-tuple $(x_1, \ldots, x_{r-1})$ and let $(x, x_r)$ denote
+$(x_1, \ldots, x_{r-1}, x_r)$.
+
+We now introduce the concept of analytic delineability.
+
+\begin{definition}
+Let $S$ be a connected submanifold of $\R^{r-1}$. We saw in Sec.~2.2
+that one can define the notion of an analytic function from $S$ into
+$\R$. If $f(x, x_r)$ is a real polynomial then we say $f$ is
+\emph{analytic delineable} on $S$ if $f$ is delineable on $S$ by means
+of some $k \ge 0$ analytic functions $\theta_1 < \cdots < \theta_k$
+from $S$ into $\R$.
+\end{definition}
+
+\begin{remark}
+Suppose that $f(x, x_r)$ is analytic delineable on the connected
+$s$-submanifold $S$ of $\R^{r-1}$. Then each $f$-section over $S$ is a
+connected $s$-submanifold of $\R^r$ (Theorem~2.2.3) and each $f$-sector
+over $S$ is a connected $(s+1)$-submanifold of $\R^r$ (Theorem~2.2.4).
+\end{remark}
+
+We can now state our main mathematical result.
+
+\begin{theorem*}[3.2.1 (Lifting theorem)]
+Let $f(x, x_r)$ be a squarefree polynomial in $\R[x, x_r]$ of positive
+degree in $x_r$ and with non-zero discriminant $D(x)$. Let $S$ be a
+connected submanifold of $\R^{r-1}$ in which $f$ is degree-invariant
+and of non-negative degree, and in which $D$ is order-invariant. Then
+$f$ is analytic delineable on $S$ and is order-invariant in each
+$f$-section over $S$.
+\end{theorem*}
+
+The proof of this theorem is quite long, and is supplied in the next
+section of this chapter. The theorem will enable us to show that our
+reduced projection map $P$, to be defined shortly, is essentially as
+good (for the purpose of cad construction) as its larger counterpart
+$\PROJ$.
+
+We now proceed to define the map $P$. Let $A$ be a set of $r$-variate
+integral polynomials. Recall the definition of the coefficient set
+$\coeff(A)$ from the previous section. We define the \emph{discriminant
+set of $A$}, written $\discr(A)$, to be the set
+\[
+\{ \discr(F) : F \in A,\ \deg(F) \ge 2 \},
+\]
+and the \emph{resultant set of $A$}, written $\res(A)$, to be the set
+\[
+\{ \res(F, G) : F, G \in A,\ F \ne G,\ \deg(F), \deg(G) \ge 1 \}.
+\]
+We can now define $P$. Suppose first that $A$ is a squarefree basis.
+We set
+\[
+P(A) = \coeff(A) \cup \discr(A) \cup \res(A).
+\]
+Now let $A$ be any set of $r$-variate polynomials. We set
+\[
+P(A) = \cont(A) \cup P(B),
+\]
+where $B$ is the finest squarefree basis for $\prm(A)$.
+
+Noting that the resultant of two polynomials $F$ and $G$ is equal to
+$\subres_0(F, G)$, and that the discriminant of $F$ is equal to
+$\subdiscr_0(F)$, we can compare the definitions of $\PROJ$ and $P$.
+It is clear that $P(A)$ is a subset of $\PROJ(A)$. There are two
+respects in which $\PROJ$ and $P$ differ. The first is that $\PROJ$
+forms resultants, etc.\ of elements of the reductum set of $B$, whereas
+$P$ forms resultants, etc.\ from just $B$ itself. The second is that
+$\PROJ$ constructs full sequences of $\subdiscr_j$'s and
+$\subres_j$'s, whereas $P$ constructs only the 0-th order $\subdiscr$'s
+and $\subres$'s (i.e.\ discriminants and resultants only).
+
+Before deriving a counterpart of Theorem~3.1.1, we give a useful lemma.
+
+\begin{lemma*}[3.2.2]
+Let $K = \R$ or $\C$. Let $F_1, \ldots, F_n$ be nonconstant analytic
+functions defined in an open subset $U$ of $K^r$, and let
+$f = F_1 \cdots F_n$. Let $S$ be a connected subset of $U$. Then $f$
+is order-invariant in $S$ if and only if each $F_i$ is order-invariant
+in $S$.
+\end{lemma*}
+
+The proof is straightforward. $\square$
+
+We now state our central result pertaining to $P$:
+
+\begin{theorem*}[3.2.3]
+Let $A$ be a finite squarefree basis consisting of $r$-variate integral
+polynomials, $r \ge 2$, and let $S$ be a connected submanifold of
+$\R^{r-1}$. Suppose that each element of $A$ is not identically zero
+on $S$, and that each element of $P(A)$ is order-invariant in $S$.
+Then each element of $A$ is degree-invariant and analytic-delineable
+on $S$, the sections of $A$ over $S$ are pairwise disjoint, and each
+element of $A$ is order-invariant in every section of $A$ over $S$.
+\end{theorem*}
+
+\begin{proof}
+Assume that some element of $A$ is nonconstant (otherwise the theorem
+is trivial) and let $F_1, \ldots, F_n$ be the nonconstant elements of
+$A$. Let $f = \prod_{i=1}^{n} F_i$. Then $f$ is squarefree, as the
+$F_i$ are squarefree and pairwise relatively prime. Let $D(x)$ be the
+discriminant of $f(x, x_r)$. By Theorem~2.3.3,
+\[
+D = \prod_{i=1}^{n} \discr(F_i) \cdot \prod_{i < j} \res(F_i, F_j)^2.
+\]
+By hypothesis, each $\discr(F_i)$ and each $\res(F_i, F_j)$ is
+order-invariant in $S$. Hence, by Lemma~3.2.2, $D$ is order-invariant
+in $S$. Furthermore, $f$ is not identically zero on $S$, and is
+degree-invariant on $S$. Hence, by the lifting theorem, $f$ is analytic
+delineable on $S$, and is order-invariant in each $f$-section over $S$.
+By Lemma~3.2.2, each $F_i$ is order-invariant in every such section.
+The conclusions of the theorem now follow.
+\end{proof}
+
+We shall also define a reduced augmented projection map $AP$, and
+establish a counterpart of Theorem~3.1.2. Let $A$ be a squarefree
+basis of integral polynomials in $\Z[x, x_r]$. We define a slight
+variant of the derivative set of $A$: where $\gsfd(P)$ denotes the
+greatest squarefree divisor of the polynomial $P$, let
+\[
+\der^*(A) = \{ \gsfd(\prm(F^{(j)})) : F \in A,\ 0 < j < \deg(F) \}.
+\]
+We set
+\[
+AP(A) = \discr(\der^*(A)) \cup P(A).
+\]
+For an arbitrary set $A$ we set
+\[
+AP(A) = \cont(A) \cup AP(B),
+\]
+where $B$ is the finest squarefree basis for $\prm(A)$.
+
+The following result is our counterpart of Theorem~3.1.2:
+
+\begin{theorem*}[3.2.4]
+Let $A$ be a finite squarefree basis of integral polynomials in $r$
+variables, where $r \ge 2$, and let $S$ be a connected submanifold of
+$\R^{r-1}$. Suppose that each element of $A$ is not identically zero
+on $S$, and that each element of $AP(A)$ is order-invariant in $S$.
+Then, for each $F \in A$, $F$ is degree-invariant on $S$, and
+$F^{(j)}$ is delineable on $S$, for every $j$, $0 \le j \le \deg_S(F)$.
+\end{theorem*}
+
+\begin{proof}
+Let $F \in A$. The degree-invariance of $F$ on $S$ is obvious. Let
+$0 \le j \le \deg_S(F)$. Then $F^{(j)}$ is degree-invariant and not
+identically zero on $S$ (as $F$ is). Let $G$ be the greatest squarefree
+divisor of the primitive part of $F^{(j)}$. Then, as $G$ is a divisor
+of $F^{(j)}$, $G$ is degree-invariant and not identically zero on $S$.
+By hypothesis, the discriminant of $G$ is order-invariant in $S$.
+Hence, by the lifting theorem, $G$ is delineable on $S$. As the content
+of $F^{(j)}$ is non-zero in $S$, it follows that $F^{(j)}$ is
+delineable on $S$.
+\end{proof}
+
+\section{Proof of the Lifting Theorem}
+
+The lifting theorem can be regarded as an adaptation to Euclidean space
+of certain aspects of O.\ Zariski's work on equisingularity over the
+complex field. In this section we give a straightforward proof of the
+lifting theorem based upon a recent result due to Zariski [ZAR75]. We
+do not, however, require the reader to consult Zariski's original paper
+and to attempt to see how the result stated therein is applicable.
+Instead, we provide in Chapter~4 a self-contained, and in some respects
+original, rendition of the relevant theorems due to Zariski.
+
+The proof presented in this section is quite detailed, and hence
+rather long. The main thread of the proof can be gleaned from the
+first few pages.
+
+\begin{notation}
+We denote by $Z(S)$ the cylinder over a subset $S$ of $\R^{r-1}$ (i.e.\
+$Z(S) = S \times \R$).
+\end{notation}
+
+\begin{proof}[Proof of 3.2.1]
+Let the dimension of $S$ be $s$, where $0 \le s \le r-1$. If $s = 0$
+then the theorem is trivial. For $1 \le s \le r-1$, the theorem follows
+from the following assertion as to the ``local delineability'' of $f$:
+
+\begin{assertion}[1]
+For each point $p$ of $S$ there is a neighborhood $N \subseteq \R^{r-1}$
+of $p$ such that $f$ is analytic delineable on $S \cap N$ and $f$ is
+order-invariant in each $f$-section over $S \cap N$.
+\end{assertion}
+
+We explain now how the theorem can be deduced from the above assertion.
+Let Assertion~1 hold. Then it follows by connectedness of $S$ that the
+number, say $k \ge 0$, of distinct real roots of the univariate
+polynomial $f(p, x_r)$ does not depend upon the particular point $p$ of
+$S$ (that this number is locally constant is an immediate consequence
+of Assertion~1). If $k = 0$ then the theorem is vacuously true, so let
+$k \ge 1$. Then one can define $k$ functions $\Theta_1, \ldots,
+\Theta_k$ from $S$ into $\R$ by setting $\Theta_i(p)$ equal to the
+$i$-th real root of $f(p, x_r)$, for $p$ in $S$ and $1 \le i \le k$.
+Clearly the graphs of the $\Theta_i$ comprise the portion of the real
+variety of $f$ lying in the cylinder over $S$. Let $p$ be a point of
+$S$. Then by Assertion~1 there is a neighborhood $N \subseteq \R^{r-1}$
+of $p$ and $k$ analytic functions from $S \cap N$ into $\R$, say
+$\theta_1 < \cdots < \theta_k$, whose graphs comprise the portion of
+the real variety of $f$ which lies in $Z(S \cap N)$, and such that $f$
+is order-invariant in the graph of each $\theta_i$. Let
+$1 \le i \le k$. As $\Theta_i(x) = \theta_i(x)$ for all $x$ in
+$S \cap N$, it follows that $\Theta_i$ is analytic near $p$, and hence
+in $S$. Thus $f$ is analytic delineable on $S$. By connectedness of
+$S$, $f$ is order-invariant in the graph of each $\Theta_i$. The
+conclusions of the lifting theorem have been verified.
+
+It remains to establish Assertion~1 (i.e., the local delineability of
+$f$). Let $p$ be a point of $S$, and let the degree of $f(p, x_r)$ be
+$l$. Then $l \ge 0$ by hypothesis. If $l = 0$ then Assertion~1 follows
+immediately by the degree-invariance of $f$ in $S$. Therefore, let us
+henceforth assume that $l > 0$. Let $\alpha_1 < \cdots < \alpha_k$,
+$k \ge 0$, be the distinct real roots of $f(p, x_r)$, let
+$\alpha_{k+1}, \ldots, \alpha_t$, $k \le t$, be the distinct non-real
+roots of $f(p, x_r)$, and let $m_i$ be the multiplicity of the root
+$\alpha_i$, for $1 \le i \le t$. Then $\sum_{i=1}^{t} m_i = l$. Let
+$\kappa$ be the minimum separation between the roots of $f(p, x_r)$:
+that is, $\kappa = \min\{ |\alpha_i - \alpha_j| : 1 \le i < j \le t \}$.
+Let $0 < \epsilon < \kappa/3$ and let $C_i$ be the circle in the
+complex plane of radius $\epsilon$ centred at $\alpha_i$. By the root
+continuity principle (Theorem~2.3.2) there is a neighborhood
+$N_0 \subseteq \R^{r-1}$ of $p$ such that for every $x \in N_0$, each
+$C_i$ contains exactly $m_i$ roots (multiplicities counted) of
+$f(x, x_r)$. Consider the following assertion, which implies that if
+$x$ is sufficiently close to $p$, and belongs to $S$, then all of the
+$m_i$ roots of $f(x, x_r)$ inside $C_i$ are coincident:
+
+\begin{assertion}[2]
+For each $i$, $1 \le i \le k$, there is a neighborhood
+$N_i \subseteq N_0$ of $p$ and an analytic function $\theta_i$ from
+$S \cap N_i$ into $(\alpha_i - \epsilon, \alpha_i + \epsilon)$ such
+that for every $x \in S \cap N_i$ and every
+$\alpha \in (\alpha_i - \epsilon, \alpha_i + \epsilon)$,
+\begin{equation}
+f(x, \alpha) = 0 \text{ if and only if } \alpha = \theta_i(x), \tag{3.3.1}
+\end{equation}
+and such that $f$ is order-invariant in the graph of $\theta_i$.
+\end{assertion}
+
+We say that the above statement asserts the \emph{nonsplitting} of the
+roots $\alpha_i$, as $x$ varies within $S$ near $p$.
+
+We shall now verify Assertion~1 on the strength of Assertion~2. Assume
+that Assertion~2 holds. Let $N = \bigcap_{i=0}^{k} N_i$, and consider
+the domain of each $\theta_i$ to be $S \cap N$. We shall show that the
+portion of the real variety of $f$ (denoted by $V(f)$) which lies in
+the cylinder over $S \cap N$ is the union of the graphs of the
+$\theta_i$: that is,
+\begin{equation}
+V(f) \cap Z(S \cap N) = \bigcup_{i=1}^{k} \operatorname{graph}(\theta_i), \tag{3.3.2}
+\end{equation}
+(where the right-hand side of the equation is understood to be the
+empty set in case $k = 0$). Let $(x, \alpha)$ be an element of the
+right-hand side of (3.3.2). Then $x \in S \cap N$ and
+$\alpha = \theta_i(x)$ for some $i$, $1 \le i \le k$. Hence, as the
+range of $\theta_i$ is $(\alpha_i - \epsilon, \alpha_i + \epsilon)$,
+$\alpha \in (\alpha_i - \epsilon, \alpha_i + \epsilon)$. Therefore, by
+(3.3.1), $f(x, \alpha) = 0$, and so $(x, \alpha)$ is contained in the
+left-hand side of (3.3.2). Conversely, let $(x, \alpha)$ be an element
+of $V(f) \cap Z(S \cap N)$. Then $x \in S \cap N$, $\alpha \in \R$, and
+$f(x, \alpha) = 0$. As $f$ is degree-invariant in $S$ and the degree
+of $f(p, x_r)$ is $l$, the degree of $f(x, x_r)$ is also $l$. As
+$x \in N_0$, the interior of each $C_i$, $1 \le i \le t$, contains
+exactly $m_i$ roots (multiplicities counted) of $f(x, x_r)$. Since
+$\sum_{i=1}^{t} m_i = l$, every root of $f(x, x_r)$ is contained within
+one of the $C_i$. Each $C_i$ with $k+1 \le i \le t$ contains no real
+points, however, as the non-real roots of $f(p, x_r)$ occur in
+conjugate pairs. Hence, as $\alpha$ is a real root of $f(x, x_r)$,
+$\alpha$ must lie inside a $C_i$ with $1 \le i \le k$. Hence, by
+(3.3.1), $\alpha = \theta_i(x)$, so $(x, \alpha)$ is contained in the
+graph of $\theta_i$. We have shown that (3.3.2) holds. This completes
+our proof of Assertion~1, on the strength of Assertion~2.
+
+It therefore remains to establish Assertion~2 (i.e., the nonsplitting
+of the roots $\alpha_i$ as $x$ varies within $S$ near $p$). We now
+give a point-by-point summary of the steps involved in proving the
+nonsplitting of the roots.
+
+\begin{enumerate}
+\item We fix on a particular $\alpha_i$, and observe that there is no
+loss of generality in assuming that $\alpha_i = 0$. We are able to
+dispose quite quickly of the case in which the dimension $s$ of $S$ is
+equal to $r-1$. In this case, $S$ is just an open subset of
+$\R^{r-1}$, and so both the discriminant of $f$ and the leading
+coefficient of $f$ are nonzero in $S$. Hence, the nonsplitting of the
+roots is obvious (all roots are simple), and the analytic function
+$\theta_i$ of Assertion~2 is given by the implicit function theorem.
+
+\item There remains the harder case $1 \le s \le r-2$. We choose
+coordinates $(y_1, \ldots, y_{r-1})$ about the point $p$, such that
+$S$ is defined locally by the equations $y_{s+1} = 0, \ldots,
+y_{r-1} = 0$ in the new coordinate system (by Theorem~2.2.1). Let
+$g(y, y_r)$ denote the function $f(x, x_r)$ transformed into the new
+coordinates. Then $g(y, y_r)$ is a polynomial in $y_r$ whose
+coefficients are analytic functions of $y$, defined near $0$ (the
+analyticity here comes from the analyticity of the coordinate change
+map). The discriminant $E(y)$ of $g(y, y_r)$ is analytic near $0$, and
+is order-invariant in the linear subspace $T$ defined by
+$y_{s+1} = 0, \ldots, y_{r-1} = 0$, near $0$ (as $D(x)$ is
+order-invariant in $S$).
+
+\item Each coefficient of $g(y, y_r)$ can be expanded in a convergent
+power series about $0$ (by definition of analyticity). Each such power
+series can be regarded as a complex power series in the complex
+variables $(z_1, \ldots, z_{r-1}) = z$, where $z_i = y_i + i v_i$,
+say. By the multivariate analogue (Theorem~2.1.2) of a well-known
+result on convergence, each of these power series is absolutely
+convergent in a neighborhood of $0$ in complex $(r-1)$-space
+$\C^{r-1}$. In this way, each coefficient of $g(y, y_r)$, and hence
+also $g(y, y_r)$, can be extended (uniquely) to complex space. We
+write $g(z, z_r)$ to denote this extension of $g(y, y_r)$:
+$g(z, z_r)$ is a pseudopolynomial near $0$ (see Section~2.1 for
+definition). We observe that the discriminant $E(z)$ of $g(z, z_r)$
+is order-invariant in the complex linear subspace $T^*$ defined by
+$z_{s+1} = 0, \ldots, z_{r-1} = 0$, near $0$.
+
+\item The next step is to focus our attention on the structure of the
+complex variety $g(z, z_r) = 0$ in a neighborhood of the origin. We use
+the Weierstrass Preparation Theorem (Theorem~2.1.10) from the theory
+of several complex variables to do this. This theorem gives us a monic
+pseudopolynomial $h(z, z_r)$ which has the same locus as $g(z, z_r)$
+near the origin. It is shown that the discriminant $F(z)$ of
+$h(z, z_r)$ is order-invariant in $T^*$, near $0$.
+
+\item We can now apply Zariski's theorem (Theorem~4.1.1) to $h$. This
+theorem implies the nonsplitting of the roots of $h(z, z_r)$, as $z$
+varies within $T^*$, near $0$. In fact, the theorem yields an analytic
+function $\psi(z_1, \ldots, z_s)$ defined near $0$ which gives the
+unique distinct root $\alpha$ of $h(z, z_r)$, for
+$z = (z_1, \ldots, z_s, 0, \ldots, 0)$ in $T^*$, sufficiently close to
+$0$. The theorem also asserts order-invariance of $h$ along the locus
+of this root.
+
+\item All that remains is to retrace our path. The nonsplitting of the
+roots of $g(y, y_r)$, as $y$ varies within $T$ near $0$, is immediate
+(as $T \subseteq T^*$). Taking the restriction of $\psi$ to a
+neighborhood of $0$ in real $s$-space $\R^s$ gives a real-valued
+analytic function $\eta(y_1, \ldots, y_s)$ which represents the $i$-th
+real root of $g(y, y_r)$ for $y$ in $T$, near $0$. Finally,
+transforming back to the $(x, x_r)$-variables, we deduce the
+nonsplitting of the roots of $f(x, x_r)$ as $x$ varies within $S$,
+near $p$. We obtain an analytic function $\theta_i$ defined in $S$
+near $p$, which represents the $i$-th real root of $f(x, x_r)$, for
+$x$ in $S$, near $p$. Order-invariance is preserved under the
+restriction and detransformation, and thus $f$ is order-invariant in
+the graph of $\theta_i$.
+\end{enumerate}
+
+This concludes our summary of the proof of Assertion~2 (the
+nonsplitting of the roots).
+
+We now fill in the details of the proof of Assertion~2 outlined
+above. Assume $k > 0$ ($k$ the number of real roots of $f(p, x_r)$)
+and let $1 \le i \le k$. There is no loss of generality in assuming
+that $\alpha_i = 0$. (For if $\alpha_i \ne 0$ then we can use a
+translation of the $x_r$-coordinate to obtain a polynomial
+$f'(x, x_r') = f(x, x_r' + \alpha_i)$ such that (a) $f'(p, x_r')$ has
+a root of multiplicity $m_i$ at $x_r' = 0$ and no other roots either
+inside or on the circle $C$ of radius $\epsilon$ about $0$; and (b)
+the discriminant of $f'(x, x_r')$ is the same as that of $f(x, x_r)$.
+Assuming that the required assertion has been proved for
+$\alpha_i = 0$, we obtain a neighborhood $N_i$ of $p$ and an analytic
+function $\theta_i' : S \cap N_i \to (-\epsilon, +\epsilon)$
+corresponding to $f'$. We need simply ``de-translate'' $\theta_i'$
+to find the desired
+\[
+\theta_i : S \cap N_i \to (\alpha_i - \epsilon, \alpha_i + \epsilon)
+\]
+corresponding to $f$.) Let $m = m_i$ and $C = C_i$: we seek a
+neighborhood $N = N_i$ of $p$ and an analytic function
+$\theta = \theta_i$ satisfying the required properties.
+
+Let us first dispose of the
+
+\medskip
+\noindent \textbf{Case $s = r-1$.}
+\medskip
+
+By definition of submanifold there exists a neighborhood
+$U \subseteq N_0$ of $p$ such that $U \subseteq S$. Let $f_0(x)$ be the
+leading coefficient of $f(x, x_r)$, and let $R(x)$ be the resultant of
+$f(x, x_r)$ and $\dfrac{\partial f}{\partial x_r}$. Recall that $D(x)$,
+the discriminant of $f(x, x_r)$, is defined by the equation
+\[
+(-1)^{m(m-1)/2} R(x) = f_0(x) D(x).
+\]
+As $f$ is degree-invariant and $D$ is order-invariant in $S$,
+$f_0 \ne 0$ and $D \ne 0$ in $U$ (since $f_0(x)$ and $D(x)$ are
+non-zero polynomials). Hence $R \ne 0$ in $U$ and in particular
+$R(p) \ne 0$. As $f_0(p) \ne 0$, $R(p)$ is equal to the resultant of
+the univariate polynomials $f(p, x_r)$ and
+$\dfrac{\partial f}{\partial x_r}(p, x_r)$. (Although this may seem
+like a restatement of the definition of resultant, it actually depends
+crucially on the fact that $f_0(p) \ne 0$. Recall that $R(x)$ is
+defined to be a certain determinant in the coefficients of $f(x, x_r)$
+and $\dfrac{\partial f}{\partial x_r}$. The only non-zero entries in
+the first column of this determinant are $f_0(x)$ and $d f_0(x)$,
+where $d$ is the degree of $f(x, x_r)$ (with respect to $x_r$). Hence
+if $f_0(q) = 0$ then $R(q) = 0$. However the resultant of the
+univariate polynomials $f(q, x_r)$ and $\dfrac{\partial f}{\partial x_r}
+(q, x_r)$ could be non-zero in spite of $f_0(q) = 0$.) Since
+$f(p, 0) = 0$, we must therefore have
+$\dfrac{\partial f}{\partial x_r}(p, 0) \ne 0$. Hence, by the implicit
+function theorem (obtained by taking $s = r-1$ in Theorem~2.1.7),
+there are neighborhoods $N' \subseteq U$ of $p$ and
+$W \subseteq (-\epsilon, +\epsilon)$ of $0$, and an analytic function
+$\theta : S \cap N' = N' \to \R$, such that for all $x \in N'$ and all
+$\alpha \in W$,
+\begin{equation}
+f(x, \alpha) = 0 \text{ if and only if } \alpha = \theta(x). \tag{3.3.3}
+\end{equation}
+By continuity of $\theta$, $N'$ may be refined to a neighborhood
+$N \subseteq N'$ of $p$ such that $\theta(N) \subseteq W$. Let
+$x \in S \cap N = N$ and let $\alpha \in (-\epsilon, +\epsilon)$. We
+shall check that (3.3.1) holds. Assume that $\alpha = \theta(x)$.
+Then $\alpha \in W$, so by (3.3.3), $f(x, \alpha) = 0$. Assume
+conversely that $f(x, \alpha) = 0$. Now $m = 1$ as
+$\dfrac{\partial f}{\partial x_r}(p, 0) \ne 0$. Hence we must have
+$\alpha = \theta(x)$ (otherwise $f(x, x_r)$ would have at least two
+distinct roots, $\alpha$ and $\theta(x)$, inside $C$, contradicting
+$m = 1$). So (3.3.1) has been verified. Let $x \in N$ and let
+$\alpha = \theta(x)$. As $m = 1$, $x_r = \alpha$ is a simple root of
+$f(x, x_r)$. Thus $\dfrac{\partial f}{\partial x_r}(x, \alpha) \ne 0$,
+and so $\ord_{(x, \alpha)} f = 1$. Hence $f$ is order-invariant in the
+graph of $\theta$. Assertion~2 has been established.
+
+There remains the
+
+\medskip
+\noindent \textbf{Case $1 \le s \le r-2$.}
+\medskip
+
+It will be convenient for us to use a coordinate system about $p$ with
+respect to which $S$ is locally an $s$-dimensional linear subspace of
+$\R^{r-1}$. By Theorem~2.2.1 there exists a neighborhood
+$U \subseteq N_0$ of $p$ and a coordinate system $\Phi : U \to V$
+about $p$, $\Phi = (\phi_1, \ldots, \phi_{r-1})$, such that
+\[
+S \cap U = \{ x \in U : \phi_{s+1}(x) = 0, \ldots, \phi_{r-1}(x) = 0 \}.
+\]
+By replacing $U$ by the connected component of $U$ containing $p$ we
+shall henceforth assume that $U$ is connected. Let $T$ be the
+$s$-dimensional linear subspace
+\[
+T = \{ y = (y_1, \ldots, y_{r-1}) \in \R^{r-1} :
+y_{s+1} = 0, \ldots, y_{r-1} = 0 \}
+\]
+of $\R^{r-1}$. Then the image of $S \cap U$ under $\Phi$ is
+$T \cap V$. Let
+\[
+f(x, x_r) = f_0(x) x_r^d + f_1(x) x_r^{d-1} + \cdots + f_d(x),
+\]
+where $f_0(x) \ne 0$. We shall denote by $g(y, y_r)$ the transform of
+$f(x, x_r)$ by $\Phi$. That is, if $y \in V$, then
+$g_j(y) = f_j(\Phi^{-1}(y))$ for $0 \le j \le d$, and
+\[
+g(y, y_r) = g_0(y) y_r^d + g_1(y) y_r^{d-1} + \cdots + g_d(y).
+\]
+As the analytic map $\Phi^{-1}$ is not in general a polynomial map,
+$g(y, y_r)$ is not in general a polynomial in $y$ and $y_r$. However
+we can regard $g(y, y_r)$ as a polynomial in $y_r$ whose coefficients
+$g_j(y)$ are analytic functions of $y$, defined in $V$ (so
+$g(y, y_r)$ is an instance of the real analogue of the
+pseudopolynomials introduced in Sec.~2.1). Note that $y_r = 0$ is a
+root of multiplicity $m$ of $g(0, y_r)$, that $g(0, \alpha) \ne 0$ for
+complex $\alpha$ satisfying $0 < |\alpha| \le \epsilon$, and that,
+for each fixed $y \in V$, $g(y, y_r)$ has exactly $m$ roots
+(multiplicities counted) inside $C$. Let $E(y)$ be the discriminant
+of $g(y, y_r)$. Then $E(y)$ is an analytic function in $V$ and
+$E(y) = D(\Phi^{-1}(y))$ for every $y \in V$. Recall that $D$ is
+order-invariant in $S$. Hence, by the remark following the definition
+of order-invariant in Section~3.2, $E$ is order-invariant in
+$T \cap V$.
+
+We should like to find a box $B = B(0; \delta) \subseteq V$ about $0$
+in $\R^{r-1}$, where $\delta = (\delta_1, \ldots, \delta_{r-1})$, and
+an analytic function $\eta(y_1, \ldots, y_s)$ from
+$B^{(s)} = \{ (y_1, \ldots, y_s) \in \R^s : |y_i| < \delta_i,\
+1 \le i \le s \}$ into $(-\epsilon, +\epsilon)$, such that for every
+$y = (y_1, \ldots, y_s, 0, \ldots, 0) \in T \cap B$ and every
+$\alpha \in (-\epsilon, +\epsilon)$,
+\begin{equation}
+g(y, \alpha) = 0 \text{ if and only if } \alpha = \eta(y_1, \ldots, y_s) \tag{3.3.4}
+\end{equation}
+and such that $g$ is order-invariant in the set
+\begin{equation}
+\begin{aligned}
+G = \{ (y, y_r) \in \R^r :\ &y = (y_1, \ldots, y_s, 0, \ldots, 0) \in T \cap B \\
+&\text{and } y_r = \eta(y_1, \ldots, y_s) \}.
+\end{aligned}
+\tag{3.3.5}
+\end{equation}
+(Note that as $B^{(s)} \equiv T \cap B$ we can think of $\eta$ as a map
+from $T \cap B$ into $(-\epsilon, +\epsilon)$, and the set $G$ as the
+graph of $\eta$.) We shall make an excursion into the complex domain
+from which we shall return with the box $B$ and the function $\eta$.
+Upon detransforming $B$ and $\eta$ via $\Phi$ we shall have our
+desired $N$ and $\theta$.
+
+Choose $\rho = (\rho_1, \ldots, \rho_{r-1}) \in V$, with $\rho_i > 0$
+for all $i$, such that $B_1 := B(0; \rho) \subseteq V$ and the power
+series expansion about $0$ of every $g_j$ is absolutely convergent at
+$y = \rho$. By Theorem~2.1.2, the power series expansion about $0$ of
+every $g_j$, considered as a complex power series in the complex
+variables $z_1, \ldots, z_{r-1}$, is absolutely convergent in the
+polydisc $\Delta_1 := \Delta(0; \rho) \subseteq \C^{r-1}$ and the sum
+of the series, $g_j(z) = g_j(z_1, \ldots, z_{r-1})$, is holomorphic in
+$\Delta_1$. For $z \in \Delta_1$, set
+\[
+g(z, z_r) = g_0(z) z_r^d + g_1(z) z_r^{d-1} + \cdots + g_d(z)
+\]
+(so $g(z, z_r)$ is a pseudopolynomial in $\Delta_1$) and let $E(z)$
+be the discriminant of $g(z, z_r)$. Let
+\begin{equation}
+E(y) = \sum_{i_1, \ldots, i_{r-1} \ge 0}
+e_{i_1, \ldots, i_{r-1}} y_1^{i_1} \cdots y_{r-1}^{i_{r-1}} \tag{3.3.6}
+\end{equation}
+be the power series expansion for $E(y)$ about $0$. Then the power
+series expansion for $E(z)$ about $0$, which is absolutely convergent
+in $\Delta_1$, is obtained by substituting $z_1, \ldots, z_{r-1}$ for
+$y_1, \ldots, y_{r-1}$ in (3.3.6).
+
+Let $T^*$ be the $s$-dimensional linear subspace
+\[
+\{ z = (z_1, \ldots, z_{r-1}) \in \C^{r-1} :
+z_{s+1} = 0, \ldots, z_{r-1} = 0 \}
+\]
+of $\C^{r-1}$ (note that $s$ is the dimension of $T^*$ considered as a
+complex subspace of the complex vector space $\C^{r-1}$). We claim
+that, after refining $\Delta_1$ suitably, we can assume that $E(z)$ is
+order-invariant in $T^* \cap \Delta_1$. We prove this claim now. Let
+$\ord_0 E = \mu$. Then every partial derivative of $E(z)$ of order
+less than $\mu$ vanishes at $0$. Let
+\[
+P(z) = \frac{\partial^{i_1 + \cdots + i_{r-1}}}
+{\partial z_1^{i_1} \cdots \partial z_{r-1}^{i_{r-1}}} E(z)
+\]
+be a partial derivative of $E(z)$ of order
+$\sum_{j=1}^{r-1} i_j < \mu$. By Theorem~2.1.2, $P(z)$ is holomorphic
+in $\Delta_1$ and its power series expansion about $0$, which is
+absolutely convergent in $\Delta_1$, is obtained by differentiating
+(3.3.6) (with the $y_i$'s replaced by $z_i$'s) term-by-term. Let
+\[
+Q(y) = \frac{\partial^{i_1 + \cdots + i_{r-1}}}
+{\partial y_1^{i_1} \cdots \partial y_{r-1}^{i_{r-1}}} E(y).
+\]
+By Theorem~2.1.2, $Q(y)$ is analytic in $B_1$, and its power series
+expansion about $0$, which is absolutely convergent in $B_1$, is
+obtained by differentiating (3.3.6) term-by-term. Hence the power
+series for $P(z)$ can be obtained by substituting
+$z_1, \ldots, z_{r-1}$ for $y_1, \ldots, y_{r-1}$ in the power series
+for $Q(y)$. Recall that $E(y)$ is order-invariant in $T \cap V$.
+Hence, as $\ord_0 E = \mu$, $Q(y)$ vanishes throughout $T \cap B_1$.
+It follows that substituting $y_{s+1} = 0, \ldots, y_{r-1} = 0$ in
+the power series for $Q(y)$ yields the zero power series in
+$y_1, \ldots, y_s$. Hence substituting $z_{s+1} = 0, \ldots,
+z_{r-1} = 0$ in the power series for $P(z)$ yields the zero power
+series in $z_1, \ldots, z_s$. It follows that $P(z)$ vanishes
+throughout $T^* \cap \Delta_1$. We have shown that every partial
+derivative of $E(z)$ of order less than $\mu$ vanishes throughout
+$T^* \cap \Delta_1$. As $\ord_0 E = \mu$, some partial derivative of
+$E(z)$ of order $\mu$, say $R(z)$, does not vanish at $0$. Let
+$\Delta_2 \subseteq \Delta_1$ be a polydisc about $0$ in which
+$R \ne 0$. Then $\ord_z E = \mu$ for every $z \in T^* \cap \Delta_2$,
+so $E(z)$ is order-invariant in $T^* \cap \Delta_2$. Replacing
+$\Delta_1$ by $\Delta_2$ we may assume that $E(z)$ is order-invariant
+in $T^* \cap \Delta_1$.
+
+We wish to study the structure of the zero set of $g(z, z_r)$ near
+the origin. An application of the Weierstrass preparation theorem will
+facilitate this study. Recall that $g(z, z_r)$ is holomorphic in the
+polydisc $\Delta_1 \times \Delta(0; \epsilon)$, that $z_r = 0$ is a
+root of $g(0, z_r)$ of multiplicity $m$, and that $g(0, z_r) \ne 0$
+for $0 < |z_r| \le \epsilon$. By the Weierstrass preparation theorem
+(Theorem~2.1.10), there is a polydisc
+$\Delta_2 \subseteq \Delta_1$, a function $u(z, z_r)$ holomorphic and
+non-vanishing in $\Delta' := \Delta_2 \times \Delta(0; \epsilon)$,
+and a Weierstrass polynomial
+\[
+h(z, z_r) = z_r^m + a_1(z) z_r^{m-1} + \cdots + a_m(z)
+\]
+in $\Delta_2$, such that
+\begin{equation}
+g(z, z_r) = u(z, z_r) h(z, z_r) \tag{3.3.7}
+\end{equation}
+for all $(z, z_r) \in \Delta'$, and such that for each fixed
+$z \in \Delta_2$, all the $m$ roots of $h(z, z_r)$ are contained in
+the disc $\Delta(0; \epsilon)$. By (3.3.7), as $u \ne 0$ in $\Delta'$,
+the zero set of $g(z, z_r)$ is the same as that of $h(z, z_r)$, in
+$\Delta'$.
+
+We claim that $u(z, z_r)$ is in fact a pseudopolynomial in $\Delta_2$.
+We prove this claim now. Let $z$ be a fixed point of $\Delta_2$. Let
+$z_r = \xi$ be a root of $h(z, z_r)$. Then $\xi \in \Delta(0; \epsilon)$.
+Hence, as (3.3.7) holds near $z_r = \xi$ in the $z_r$-plane, and as
+$u(z, z_r) \ne 0$ near $z_r = \xi$, $g(z, \xi) = 0$ and the
+multiplicity of the zero $\xi$ of $h(z, z_r)$ is equal to the
+multiplicity of the zero $\xi$ of $g(z, z_r)$. We have shown that
+every root of $h(z, z_r)$ is a root of $g(z, z_r)$, and moreover has
+the same multiplicity in $g(z, z_r)$ as it has in $h(z, z_r)$. Thus
+$h(z, z_r) \mid g(z, z_r)$ in $\C[z_r]$ and the quotient of
+$g(z, z_r)$ by $h(z, z_r)$ is clearly equal to $u(z, z_r)$. Let $d$
+be the degree of $g(z, z_r)$. Then $m \le d$, and the degree of
+$u(z, z_r)$ is $d - m$. Let us write
+\[
+u(z, z_r) = u_0(z) z_r^d + u_1(z) z_r^{d-1} + \cdots + u_d(z),
+\]
+where $u_0(z) = \cdots = u_{m-1}(z) = 0$, and $u_{d-m}(z) \ne 0$.
+Letting $z$ now be a variable point of $\Delta_2$, the coefficients
+$u_j(z)$ of $u(z, z_r)$ can be regarded as functions defined in
+$\Delta_2$. That these functions are in fact holomorphic in $\Delta_2$
+is seen by equating coefficients in (3.3.7). We have established our
+claim that $u(z, z_r)$ is a pseudopolynomial in $\Delta_2$.
+
+Let $F(z)$ be the discriminant of $h(z, z_r)$. We shall find a
+function $Q(z)$ holomorphic in $\Delta_2$ such that
+\begin{equation}
+E(z) = Q(z) F(z) \tag{3.3.8}
+\end{equation}
+for all $z$ in $\Delta_2$. If $d > m$ in which case $u(z, z_r)$ has
+positive degree in $z_r$, then set
+\[
+Q(z) = G(z) R(z)^2,
+\]
+where $G(z)$ is the discriminant of $u(z, z_r)$ and $R(z)$ is the
+resultant of $u(z, z_r)$ and $h(z, z_r)$. Equation (3.3.8) holds by
+Theorem~2.3.3. If $d = m$ in which case $u(z, z_r)$ has degree zero
+in $z_r$, then set
+\[
+Q(z) = (u_0(z))^{2m - 2}.
+\]
+Equation (3.3.8) holds by Equation (2.3.6).
+
+By Lemma~3.2.2, $F(z)$ is order-invariant in $T^* \cap \Delta_2$.
+Hence, by Zariski's 1975 theorem (Theorem~4.1.1), there exists a
+polydisc $\Delta_3 \subseteq \Delta_2$ about $0$, and a holomorphic
+function $\psi(z_1, \ldots, z_s)$ from $\Delta_3^{(s)}$ into
+$\Delta(0; \epsilon)$ such that for all
+$z = (z_1, \ldots, z_s, 0, \ldots, 0) \in T^* \cap \Delta_3$ and all
+$\alpha \in \Delta(0; \epsilon)$,
+\begin{equation}
+h(z, \alpha) = 0 \text{ if and only if } \alpha = \psi(z_1, \ldots, z_s) \tag{3.3.9}
+\end{equation}
+and such that $h$ is order-invariant in the set
+\[
+\begin{aligned}
+G^* = \{ (z, z_r) \in \C^r :\
+&z = (z_1, \ldots, z_s, 0, \ldots, 0) \in T^* \cap \Delta_3 \\
+&\text{and } z_r = \psi(z_1, \ldots, z_s) \}.
+\end{aligned}
+\]
+As remarked following the statement of Zariski's theorem in Sec.~4.1,
+$\Delta_3^{(s)}$ can be identified with $T^* \cap \Delta_3$, and
+$\psi$ regarded as a map from $T^* \cap \Delta_3$ into
+$\Delta(0; \epsilon)$, with graph $G^*$.
+
+Let the power series expansion for $\psi(z_1, \ldots, z_s)$ about $0$
+be absolutely convergent at the point
+$(z_1, \ldots, z_s) = (\beta_1, \ldots, \beta_s)$ of
+$\Delta_3^{(s)}$, where $\beta_i > 0$ for each $i$. Choose
+$\beta_{s+1}, \ldots, \beta_{r-1} > 0$ so that, if
+$\delta = (\beta_1, \ldots, \beta_s, \beta_{s+1}, \ldots, \beta_{r-1})$,
+then the polydisc $\Delta_4 := \Delta(0; \delta)$ in $\C^{r-1}$ is
+contained in $\Delta_3$. Let $B = B(0; \delta)$ in $\R^{r-1}$ and let
+$\eta$ be the restriction of $\psi$ to $B^{(s)}$. Then $B \subseteq V$
+and we claim that $\eta$ is a real-valued analytic function, that for
+every $y = (y_1, \ldots, y_s, 0, \ldots, 0) \in T \cap B$ and every
+$\alpha \in (-\epsilon, +\epsilon)$, (3.3.4) holds, and that
+$g(y, y_r)$ is order-invariant in ``the graph of $\eta$'' (i.e.,
+strictly speaking, in the set $G$ defined by (3.3.5)). We prove these
+claims now. Let $(y_1, \ldots, y_s) \in B^{(s)}$ and let
+$y = (y_1, \ldots, y_s, 0, \ldots, 0)$ be the corresponding element of
+$T \cap B$. By (3.3.9), $\alpha := \psi(y_1, \ldots, y_s)$ is a root
+of $h(y, y_r)$ inside $\Delta(0; \epsilon)$. Hence, by (3.3.7),
+$\alpha$ is a root of $g(y, y_r)$ inside $\Delta(0; \epsilon)$. But
+$g(y, y_r)$ is a real polynomial in $y_r$. Hence $\bar{\alpha}$ is a
+root of $g(y, y_r)$ inside $\Delta(0; \epsilon)$, and so by (3.3.7),
+$h(y, \bar{\alpha}) = 0$. But (3.3.9) implies that $\bar{\alpha} =
+\alpha$, and hence $\alpha$ is a real number. Thus $\eta$ is a
+real-valued function, and $\eta : B^{(s)} \to (-\epsilon, +\epsilon)$.
+Let
+\begin{equation}
+\psi(z_1, \ldots, z_s) = \sum_{j \ge 0} d_j z_1^{j_1} \cdots z_s^{j_s}, \tag{3.3.10}
+\end{equation}
+where $j$ denotes the multi-index $(j_1, \ldots, j_s)$, be the power
+series expansion for $\psi(z_1, \ldots, z_s)$ about $0$. Then
+(3.3.10) is absolutely convergent in $\Delta_4^{(s)}$, by
+Theorem~2.1.2. Let $d_j = b_j + i c_j$, where $b_j$ and $c_j$ are
+real numbers, for each multi-index $j$. By Theorem 48 of Chap.~6,
+[KAP52],
+\[
+\psi(\beta_1, \ldots, \beta_s) = \sum_{j \ge 0} b_j \beta_1^{j_1} \cdots \beta_s^{j_s}
++ i \left( \sum_{j \ge 0} c_j \beta_1^{j_1} \cdots \beta_s^{j_s} \right),
+\]
+where both the real and imaginary parts of the right-hand side are
+absolutely convergent. By Theorem~2.1.2, each of the series
+\[
+\sum_{j \ge 0} b_j y_1^{j_1} \cdots y_s^{j_s}, \quad
+\sum_{j \ge 0} c_j y_1^{j_1} \cdots y_s^{j_s}
+\]
+is absolutely convergent in $B^{(s)}$, and the sum of each series is
+an analytic function in $B^{(s)}$. But for
+$(y_1, \ldots, y_s) \in B^{(s)}$,
+\[
+\begin{aligned}
+\psi(y_1, \ldots, y_s) = \eta(y_1, \ldots, y_s)
+&= \sum_{j \ge 0} d_j y_1^{j_1} \cdots y_s^{j_s} \\
+&= \sum_{j \ge 0} b_j y_1^{j_1} \cdots y_s^{j_s}
++ i \left( \sum_{j \ge 0} c_j y_1^{j_1} \cdots y_s^{j_s} \right) \\
+&= \sum_{j \ge 0} b_j y_1^{j_1} \cdots y_s^{j_s}, \quad
+\text{as $\eta$ is real-valued.}
+\end{aligned}
+\]
+Hence $\eta$ is analytic in $B^{(s)}$. It is straightforward to verify
+the remaining claims about $\eta$.
+
+Finally, set $N = \Phi^{-1}(B)$ and define
+$\theta : S \cap N \to (-\epsilon, +\epsilon)$ by
+$\theta(x) = (\eta \circ \phi)(x)$, where $\phi : S \cap N \to B^{(s)}$
+is the chart for $S$ corresponding to $\Phi$. As
+$\theta \circ \phi^{-1} = \eta$ is analytic in $B^{(s)}$, $\theta$ is
+analytic in $S \cap N$. Clearly (3.3.1) holds for every
+$x \in S \cap N$ and every $\alpha \in (-\epsilon, +\epsilon)$, and
+the order-invariance of $f$ in the graph of $\theta$ follows from that
+of $g$ in the graph of $\eta$, by the remark following the definition
+of order-invariance in Section~3.2. This completes the proof of
+Assertion~2 and hence of the lifting theorem.
+\end{proof}
+
+\newpage
+
+\section*{Chapter Four: The Zariski Theorem}
+
+This chapter presents an exposition of Zariski's 1975 theorem on
+equisingularity over the complex field [ZAR75]. Our presentation of
+this result is self-contained and in many respects quite different
+from Zariski's. Our basic tools are analytic functions of several
+complex variables, and elementary topology (covering spaces in
+particular). Puiseux series (or fractional power series) enter into
+one aspect of the argument.
+
+The proof is divided into two cases: the codimension one case, and the
+remaining case. The codimension one case was established by Zariski in
+1965 [ZAR65] (the essential ideas were known earlier [ZAR35]).
+Section~2 contains an exposition of this result. The remaining case
+is proved by reduction to the codimension one case. This reduction is
+the essential content of [ZAR75]. Section~1 provides our version of
+the reduction.
+
+Throughout this chapter we shall denote the $(n-1)$-tuple
+$(z_1, \ldots, z_{n-1})$ by $z$.
+
+\section{The General Theorem}
+
+The following theorem is an adaptation of a result published by
+Zariski in 1975 [ZAR75]:
+
+\begin{theorem*}[4.1.1]
+Let $h(z, z_n)$ be a Weierstrass polynomial of positive degree in the
+polydisc $\Delta_1$ about $0$ in $\C^{n-1}$, and assume that for every
+fixed $z$ in $\Delta_1$, all the roots of $h(z, z_n)$ are contained in
+the disc $\Delta(0; \epsilon)$ about $0$ in $\C$. Let $F(z)$ be the
+discriminant of $h(z, z_n)$ and assume that $F(z)$ does not vanish
+identically. Let $1 \le s \le n-2$, let
+\[
+T^* = \{ z = (z_1, \ldots, z_{n-1}) \in \C^{n-1} :
+z_{s+1} = 0, \ldots, z_{n-1} = 0 \},
+\]
+and assume that $F$ is order-invariant in $T^* \cap \Delta_1$. Then
+there exists a polydisc $\Delta_2 \subseteq \Delta_1$ about $0$, and
+a holomorphic function $\psi(z_1, \ldots, z_s)$ from $\Delta_2^{(s)}$
+into $\Delta(0; \epsilon)$, such that for all
+$z = (z_1, \ldots, z_s, 0, \ldots, 0)$ in $T^* \cap \Delta_2$ and all
+$\alpha$ in $\Delta(0; \epsilon)$,
+\[
+h(z, \alpha) = 0 \text{ if and only if } \alpha = \psi(z_1, \ldots, z_s),
+\]
+and such that $h$ is order-invariant in the set
+\[
+\begin{aligned}
+G^* = \{ (z, z_n) \in \C^{n-1} \times \C :\
+&z = (z_1, \ldots, z_s, 0, \ldots, 0) \in T^* \cap \Delta_2 \\
+&\text{and } z_n = \psi(z_1, \ldots, z_s) \}.
+\end{aligned}
+\]
+\end{theorem*}
+
+\textit{Remark 1.} As $\Delta_2^{(s)}$ can be identified with
+$T^* \cap \Delta_2$ under the mapping
+$\iota(z_1, \ldots, z_s) = (z_1, \ldots, z_s, 0, \ldots, 0)$, we can
+think of $\psi$ as a map from $T^* \cap \Delta_2$ into
+$\Delta(0; \epsilon)$, and the set $G^*$ as the graph of $\psi$.
+
+\textit{Remark 2.} Zariski's theorem itself actually allows in place
+of the particular $s$-dimensional linear subspace $T^*$ of $\C^{n-1}$
+an arbitrary $s$-dimensional submanifold $S^*$ of $\C^{n-1}$
+(containing $0$). We shall not need to formulate this slightly more
+general theorem here, however.
+
+\begin{proof}[Proof of 4.1.1]
+Our proof of the theorem is given in numbered stages.
+
+\begin{enumerate}
+\item Let $\ord_0 F = r$. We may assume without loss of generality
+that $\dfrac{\partial^r F}{\partial z_{n-1}^r}(0) \ne 0$. (If this is
+not the case then we can find an invertible linear transformation $L$
+of $\C^{n-1}$ fixing $T^*$ pointwise such that if $F' := F \circ L^{-1}$
+is the transform of $F$ by $L$ then
+$\dfrac{\partial^r F'}{\partial z_{n-1}^r}(0) \ne 0$.)
+
+\item For the remainder of this section we shall denote the $s$-tuple
+of variables $(y_1, \ldots, y_s)$ by $y$. Let the power series
+expansion for $F(z)$ about $0$ be
+\begin{equation}
+\sum_{i_1, \ldots, i_{n-1} \ge 0} f_{i_1, \ldots, i_{n-1}}
+z_1^{i_1} \cdots z_{n-1}^{i_{n-1}}. \tag{4.1.1}
+\end{equation}
+Then $f_{i_1, \ldots, i_{n-1}} = 0$ for all
+$(i_1, \ldots, i_{n-1})$ with $\sum_{j=1}^{n-1} i_j < r$, and
+$f_{0, \ldots, 0, r} \ne 0$ (by (1)). The series is absolutely
+convergent in $\Delta_1$.
+
+\item The series (4.1.1) can be arranged as an iterated series thus:
+\begin{equation}
+\sum_{i_{s+1}, \ldots, i_{n-1} \ge 0}
+\left( \sum_{i_1, \ldots, i_s \ge 0}
+f_{i_1, \ldots, i_{n-1}} z_1^{i_1} \cdots z_s^{i_s} \right)
+z_{s+1}^{i_{s+1}} \cdots z_{n-1}^{i_{n-1}}. \tag{4.1.2}
+\end{equation}
+For each fixed $i_{s+1}, \ldots, i_{n-1} \ge 0$, the inner series in
+(4.1.2) is absolutely convergent in $\Delta_1^{(s)}$. Let
+$p_{i_{s+1}, \ldots, i_{n-1}}(z)$ denote the sum of this inner series.
+Let $\delta = (\delta_1, \ldots, \delta_{n-1})$ be the polyradius of
+$\Delta_1$. Then the outer series
+\begin{equation}
+\sum_{i_{s+1}, \ldots, i_{n-1} \ge 0}
+p_{i_{s+1}, \ldots, i_{n-1}}(z)
+z_{s+1}^{i_{s+1}} \cdots z_{n-1}^{i_{n-1}} \tag{4.1.3}
+\end{equation}
+is absolutely convergent in the polydisc
+$|z_{s+1}| < \delta_{s+1}, \ldots, |z_{n-1}| < \delta_{n-1}$.
+
+\item For $z \in \Delta_1^{(s)}$ and $k \ge 0$, let
+\[
+P_k(z, z_{s+1}, \ldots, z_{n-1}) = \sum_{i_{s+1} + \cdots + i_{n-1} = k}
+p_{i_{s+1}, \ldots, i_{n-1}}(z)
+z_{s+1}^{i_{s+1}} \cdots z_{n-1}^{i_{n-1}}.
+\]
+Then $P_0 = \cdots = P_{r-1} = 0$, by order-invariance of $F$ in
+$T^* \cap \Delta_1$. Hence, for each fixed $z \in \Delta_1^{(s)}$, and
+for $|z_{s+1}| < \delta_{s+1}, \ldots, |z_{n-1}| < \delta_{n-1}$,
+\[
+F(z, z_{s+1}, \ldots, z_{n-1}) = P_r(z, z_{s+1}, \ldots, z_{n-1})
++ P_{r+1}(z, z_{s+1}, \ldots, z_{n-1}) + \cdots
+\]
+(grouping terms in the series (4.1.3)).
+
+\item \textbf{Case I: $s = n - 2$.}
+
+We have
+\[
+F(z, z_{n-1}) = p_r(z) z_{n-1}^r + p_{r+1}(z) z_{n-1}^{r+1} + \cdots.
+\]
+Hence $F(z, z_{n-1}) = z_{n-1}^r N(z, z_{n-1})$, where
+\[
+N(z, z_{n-1}) = p_r(z) + p_{r+1}(z) z_{n-1} + \cdots,
+\]
+for $(z, z_{n-1}) \in \Delta_1$. It can be shown that $N$ is
+holomorphic. Now $N(0, 0) = p_r(0) = f_{0, \ldots, 0, r} \ne 0$ (from
+(2)). Hence, there exists $\Delta_2 \subseteq \Delta_1$ such that
+$N \ne 0$ in $\Delta_2$. We can therefore apply Theorem~4.2.1 to
+obtain the required function $\psi$.
+
+\item \textbf{Case II: $1 \le s \le n - 3$.}
+
+Our essential strategy is to reduce Case II to Case I. We use a
+quadratic transformation (or ``blowing-up map'') to bring about the
+reduction to the codimension~1 case. Define the map
+$Q : \C^{n-1} \to \C^{n-1}$ by
+\[
+Q(z, z_{s+1}, \ldots, z_{n-1}) = (z, z_{s+1} z_{n-1}, \ldots,
+z_{n-2} z_{n-1}, z_{n-1}).
+\]
+$Q$ is called a quadratic transformation, as each of its components
+has degree at most two, and some component has degree exactly two.
+$Q$ maps the entire hyperplane $H^* : z_{n-1} = 0$ to the
+$s$-dimensional linear subspace $T^*$ of $\C^{n-1}$. Even though
+strictly speaking $Q^{-1}$ does not exist, one can think of a ``map''
+$Q^{-1}$ which sends a point
+$z = (z, z_{s+1}, \ldots, z_{n-1})$, with $z_{n-1} \ne 0$, to the
+point
+\[
+Z = \left( z, \frac{z_{s+1}}{z_{n-1}}, \ldots,
+\frac{z_{n-2}}{z_{n-1}}, z_{n-1} \right)
+\]
+(for which $Q(Z) = z$), and which sends a point $z \in T^*$ to the
+\emph{set} of points $Z \in \C^{n-1}$ for which $Q(Z) = z$. Points in
+$\{ z_{n-1} = 0 \} - T^*$ would have no image under $Q^{-1}$, however.
+We say that $T^*$ is \emph{blown-up} by $Q^{-1}$ to $H^*$, and call
+$Q^{-1}$ a \emph{blowing-up map}.
+
+Where $\delta_i' = \delta_i$ for $1 \le i \le s$ and $i = n-1$, and
+$\delta_i' = \delta_i / \delta_{n-1}$ for $s+1 \le i \le n-2$, and
+$\delta' = (\delta_1', \ldots, \delta_{n-1}')$, let
+$\Delta_1' = \Delta(0; \delta')$. We have that
+$Q(\Delta_1') \subseteq \Delta_1$. Hence if we set
+$h'(Z, Z_n) = h(Q(Z), Z_n)$ for $Z \in \Delta_1'$, then $h'$ is a
+Weierstrass polynomial in $\Delta_1'$. Let $F'(Z)$ be the discriminant
+of $h'(Z, Z_n)$.
+
+\item \textbf{Case II (continued).}
+
+We show that $F'$ satisfies the hypotheses of Theorem~4.2.1 (and
+equivalently that $F'$ is order-invariant in $H^*$, near $0$). Let
+$Z = (z, Z_{s+1}, \ldots, Z_{n-1})$ be an element of $\Delta_1'$, and
+let
+\[
+N(Z) = P_r(z, Z_{s+1}, \ldots, Z_{n-2}, 1)
++ Z_{n-1} P_{r+1}(z, Z_{s+1}, \ldots, Z_{n-2}, 1) + \cdots.
+\]
+Then
+\[
+\begin{aligned}
+F'(Z) = F(Q(Z)) &= F(z, Z_{s+1} Z_{n-1}, \ldots, Z_{n-2} Z_{n-1}, Z_{n-1}) \\
+&= P_r(z, Z_{s+1} Z_{n-1}, \ldots, Z_{n-2} Z_{n-1}, Z_{n-1}) \\
+&\quad + P_{r+1}(z, Z_{s+1} Z_{n-1}, \ldots, Z_{n-2} Z_{n-1}, Z_{n-1}) + \cdots \\
+&= Z_{n-1}^r N(Z),
+\end{aligned}
+\]
+as
+\[
+P_k(z, Z_{s+1} Z_{n-1}, \ldots, Z_{n-2} Z_{n-1}, Z_{n-1}) =
+Z_{n-1}^k P_k(z, Z_{s+1}, \ldots, Z_{n-1}, 1).
+\]
+It can be shown that $N$ is holomorphic; further, we have
+\[
+N(0) = P_r(0, 0, \ldots, 0, 1) = p_{0, \ldots, 0, r}(0) =
+f_{0, \ldots, 0, r} \ne 0,
+\]
+by (2). Hence there exists $\Delta_2' \subseteq \Delta_1'$ such that
+$N \ne 0$ in $\Delta_2'$.
+
+\item \textbf{Case II (conclusion).}
+
+By Theorem~4.2.1, there exists a polydisc $\Delta_3'$ contained in
+$\Delta_2'$ and a holomorphic function $\psi'(Z_1, \ldots, Z_{n-2})$
+from $\Delta_3'^{(n-2)}$ into $\Delta(0; \epsilon)$ such that for all
+$Z = (Z_1, \ldots, Z_{n-2}, 0)$ in $H^* \cap \Delta_3'$ and all $Z_n$
+in $\Delta(0; \epsilon)$,
+\[
+h'(Z, Z_n) = 0 \text{ if and only if }
+Z_n = \psi'(Z_1, \ldots, Z_{n-2})
+\]
+and such that $h'$ is order-invariant in the set
+\[
+\begin{aligned}
+K^* = \{ (Z, Z_n) \in \C^n :\
+&Z = (Z_1, \ldots, Z_{n-2}, 0) \in H^* \cap \Delta_3' \\
+&\text{and } Z_n = \psi'(Z_1, \ldots, Z_{n-2}) \}.
+\end{aligned}
+\]
+Let $\nu'$ be the polyradius of $\Delta_3'$, let $\nu = Q(\nu')$,
+and let $\Delta_3 = \Delta(0; \nu)$. Define
+$\psi : \Delta_3^{(s)} \to \Delta(0; \epsilon)$ by
+$\psi(z) = \psi'(z, 0, \ldots, 0)$. We shall show that $\psi$
+satisfies the properties asserted of it in the conclusion of
+Theorem~4.1.1.
+
+It is clearly the case that for all $z = (z, 0, \ldots, 0)$ in
+$T^* \cap \Delta_3$ and all $z_n$ in $\Delta(0; \epsilon)$,
+\[
+h(z, z_n) = 0 \text{ if and only if } z_n = \psi(z).
+\]
+It remains to show that $h$ is order-invariant in the set $G^*$
+defined in the statement of the theorem (with `$\Delta_2$' replaced
+by `$\Delta_3$').
+
+Let $(w, w_n) \in G^*$ and let $t = \ord_{(w, w_n)} h$. We shall prove
+that $t \ge \ord_{(w, w_n)} h'$. The order-invariance of $h$ in $G^*$
+will then follow by the order-invariance of $h'$ in $K^*$. We have
+$t \ge \ord_{(w, w_n)} h'$, by Theorem~2.3.1. We shall prove that
+there exists a point $(w'', w_n) \in K^*$, with
+$w'' = (w, w_{s+1}'', \ldots, w_{n-2}'', 0)$ an element of
+$H^* \cap \Delta_3'$, such that $t \ge \ord_{(w'', w_n)} h'$. This
+will show, by order-invariance of $h'$ in $K^*$, that
+$t \ge \ord_{(w, w_n)} h'$.
+
+Now $w$ is an element of $T^* \cap \Delta_3$, and so
+$w = (\tilde{w}, 0, \ldots, 0)$, where $\tilde{w} \in \Delta_3^{(s)}$.
+As $\ord_{(w, w_n)} h = t$, there is a term
+\[
+c (z_1 - w_1)^{e_1} \cdots (z_s - w_s)^{e_s}
+z_{s+1}^{e_{s+1}} \cdots z_{n-1}^{e_{n-1}} (z_n - w_n)^{e_n},
+\]
+with $\sum_{j=1}^{n} e_j = t$ and $c \ne 0$, in the power series
+expansion of $h$ about $(w, w_n)$. This term gives rise to the
+non-zero term
+\[
+c (Z_1 - w_1)^{e_1} \cdots (Z_s - w_s)^{e_s}
+Z_{s+1}^{e_{s+1}} \cdots Z_{n-2}^{e_{n-2}} Z_{n-1}^m
+(Z_n - w_n)^{e_n}
+\]
+where $m = \sum_{j=s+1}^{n-1} e_j$, in the power series expansion of
+$h'$ about $(w, w_n)$ (since $h'(Z, Z_n) = h(Q(Z), Z_n)$).
+
+Let the power series expansion of $h'$ about $(w, w_n)$ be arranged
+as an iterated series thus:
+\[
+\sum_{i_{s+1}, \ldots, i_n \ge 0}
+q_{i_{s+1}, \ldots, i_n}(Z_{s+1}, \ldots, Z_{n-2})
+(Z_1 - w_1)^{i_1} \cdots (Z_s - w_s)^{i_s}
+Z_{n-1}^{i_{n-1}} (Z_n - w_n)^{i_n}
+\]
+(cf.\ stage~3 of the proof of Theorem~4.1.1). Now
+$q_{e, m, e_n}$ is not identically zero, as it contains the non-zero
+term $c Z_{s+1}^{e_{s+1}} \cdots Z_{n-2}^{e_{n-2}}$. Hence, there
+exist $w_{s+1}'', \ldots, w_{n-2}''$, with
+$w'' = (w, w_{s+1}'', \ldots, w_{n-2}'', 0)$ an element of
+$H^* \cap \Delta_3'$, such that
+\[
+q := q_{e, m, e_n}(w_{s+1}'', \ldots, w_{n-2}'')
+\]
+is non-zero.
+
+Now the power series expansion of $h'$ about $(w'', w_n)$ contains
+the term
+\[
+q (Z_1 - w_1)^{e_1} \cdots (Z_s - w_s)^{e_s}
+(Z_{s+1} - w_{s+1}'')^{e_{s+1}} \cdots (Z_{n-2} - w_{n-2}'')^{e_{n-2}}
+Z_{n-1}^m (Z_n - w_n)^{e_n}.
+\]
+Hence, as $q \ne 0$ and the total degree of this term is
+\[
+e_1 + \cdots + e_s + m + e_n = t,
+\]
+we have $t \ge \ord_{(w'', w_n)} h'$. Hence, by the order-invariance
+of $h'$ in $K^*$, we have $t \ge \ord_{(w, w_n)} h'$.
+
+We have now shown that $t \ge \ord_{(w, w_n)} h'$. The
+order-invariance of $h$ in $G^*$ now follows by the order-invariance
+of $h'$ in $K^*$.
+\end{enumerate}
+\end{proof}
+
+\section{Special Case (Codimension One)}
+
+We present in this section a theorem established by Zariski in 1965
+[ZAR65]. This theorem is essentially the special case $s = n-2$ of
+Theorem~4.1.1. Our formulation of the result is adapted to our needs
+and is somewhat different from Zariski's formulation. Our proof is
+also different from the one Zariski gave. Throughout this section we
+shall adopt the notational convention that $z = (z_1, \ldots, z_{n-2})$:
+thus $z = (z, z_{n-1})$. Let $H^*$ be the hyperplane
+$\{ z = (z, z_{n-1}) \in \C^{n-1} : z_{n-1} = 0 \}$ in $\C^{n-1}$. The
+theorem can be stated as follows:
+
+\begin{theorem*}[4.2.1 (Zariski)]
+Let $n \ge 3$ and let $h(z, z_n)$ be a Weierstrass polynomial of
+positive degree in the polydisc $\Delta_1$ about $0$ in $\C^{n-1}$,
+and assume that for every fixed $z$ in $\Delta_1$, all the roots of
+$h(z, z_n)$ are contained in the disc $\Delta(0; \epsilon)$ about $0$
+in $\C$. Let $F(z)$ be the discriminant of $h(z, z_n)$ and suppose
+that there exists a function $N(z)$, holomorphic and non-vanishing in
+$\Delta_1$, and an integer $r \ge 0$, such that
+\[
+F(z) = z_{n-1}^r N(z)
+\]
+for all $z = (z, z_{n-1})$ in $\Delta_1$. Then there exists a polydisc
+$\Delta_2 \subseteq \Delta_1$ about $0$, and a holomorphic function
+$\psi(z)$ from $\Delta_2^{(n-2)}$ into $\Delta(0; \epsilon)$, such
+that for every fixed $z = (z, 0)$ in $H^* \cap \Delta_2$ and every
+$z_n$ in $\Delta(0; \epsilon)$,
+\[
+h(z, z_n) = 0 \text{ if and only if } z_n = \psi(z),
+\]
+and such that $h$ is order-invariant in the set
+\begin{equation}
+G^* = \{ (z, 0, z_n) \in \C^n : z \in \Delta_2^{(n-2)} \text{ and }
+z_n = \psi(z) \}. \tag{4.2.1}
+\end{equation}
+\end{theorem*}
+
+Note that the hypothesis on $F(z)$ that it be associated to the
+function $z_{n-1}^r$ is essentially equivalent to the hypothesis that
+$F(z)$ be order-invariant in $H^*$, near the origin. Thus the above
+theorem is essentially the special case $s = n-2$ of Theorem~4.1.1:
+that is, the case in which the linear subspace $T^*$ of $\C^{n-1}$
+has codimension one.
+
+This result of Zariski is equivalent to the following two theorems
+taken together. The first theorem (4.2.2) asserts the ``nonsplitting''
+of the locus $G^*$ of $h$ over $H^*$, and the second (4.2.3) asserts
+the order-invariance of $h$ in $G^*$.
+
+\begin{theorem*}[4.2.2]
+Let $h(z, z_n)$ be a Weierstrass polynomial of positive degree in the
+polydisc $\Delta_1$ about $0$ in $\C^{n-1}$, and assume that $h$
+satisfies the hypotheses of Theorem~4.2.1. (In particular, assume
+that for every fixed $z$ in $\Delta_1$, all the roots of $h(z, z_n)$
+are contained in the disc $\Delta(0; \epsilon)$ in $\C$.) Then there
+exists a holomorphic function $\psi(z)$ from $\Delta_1^{(n-2)}$ into
+$\Delta(0; \epsilon)$ such that for every fixed
+$z = (z, 0) \in H^* \cap \Delta_1$ and every $z_n \in \Delta(0; \epsilon)$,
+\[
+h(z, z_n) = 0 \text{ if and only if } z_n = \psi(z).
+\]
+\end{theorem*}
+
+\begin{theorem*}[4.2.3]
+Let $h(z, z_n)$ be a Weierstrass polynomial of degree $m \ge 1$ in the
+polydisc $\Delta_1$ about $0$ in $\C^{n-1}$, and assume that $h$
+satisfies the hypotheses of Theorem~4.2.1. Assume further that
+$h(z, 0, z_n) = z_n^m$ for all $z \in \Delta_1^{(n-2)}$. Then there
+exists a polydisc $\Delta_2 \subseteq \Delta_1$ about $0$ such that
+$h$ is order-invariant in the set
+$\Delta_2^{(n-2)} \times \{ (0, 0) \}$.
+\end{theorem*}
+
+\begin{proof}[Proof that 4.2.1 $\Leftrightarrow$ (4.2.2 \& 4.2.3)]
+Clearly 4.2.1 implies 4.2.2 and 4.2.3. Assume conversely that 4.2.2
+and 4.2.3 hold. Let $h(z, z_n)$ be a Weierstrass polynomial of degree
+$m \ge 1$ in the polydisc $\Delta_1$ about $0$ in $\C^{n-1}$, and
+assume that $h$ satisfies the hypotheses of Theorem~4.2.1.
+Theorem~4.2.2 gives us the required function $\psi$, defined in
+$\Delta_1^{(n-2)}$. It remains to establish that there is a polydisc
+$\Delta_2 \subseteq \Delta_1$ about $0$ such that $h$ is
+order-invariant in the set $G^*$ defined by equation~(4.2.1). For
+$z = (z, z_{n-1}) \in \Delta_1$, let $h'(z, z_n) = h(z, z_n + \psi(z))$.
+Then $h'(z, z_n)$ is a Weierstrass polynomial in $\Delta_1$ and
+$h'(z, 0, z_n) = z_n^m$ for $z \in \Delta_1^{(n-2)}$. Moreover, by
+root continuity, there exists a polydisc $\Delta_1' \subseteq \Delta_1$
+about $0$ such that for every fixed $z \in \Delta_1'$, all the roots
+of $h'(z, z_n)$ are contained in $\Delta(0; \epsilon)$. Hence, by
+Theorem~4.2.3, there exists a polydisc $\Delta_2 \subseteq \Delta_1'$
+about $0$ such that $h'$ is order-invariant in
+$\Delta_2^{(n-2)} \times \{ (0, 0) \}$. Now the map
+$(z, z_n) \mapsto (z, z_n + \psi(z))$ is an analytic isomorphism of
+$\Delta_1 \times \C$ onto itself. Hence, by Theorem~2.3.1, the order
+of $h'$ at $(z, 0, 0)$ is equal to the order of $h$ at
+$(z, 0, \psi(z))$, for every $z \in \Delta_1^{(n-2)}$. Therefore $h$
+is order-invariant in the set $G^*$ defined by equation~(4.2.1). We
+have shown that Theorem~4.2.1 holds.
+\end{proof}
+
+It remains, therefore, to establish Theorems~4.2.2 and 4.2.3. We will
+first need to study irreducible Weierstrass polynomials and
+factorization. Let $R$ be an integral domain. A non-constant element
+of the polynomial ring $R[z_n]$ is said to be \emph{reducible} if it
+is a product of non-constant polynomials of lower degree, and is
+otherwise said to be \emph{irreducible}. Let $R$ now be the ring of
+all holomorphic functions in the polydisc $\Delta_1$ about $0$ in
+$\C^{n-1}$. As $\Delta_1$ is connected, $R$ is an integral domain (by
+the identity theorem, Theorem~2.1.4). Let $h(z, z_n)$ be a Weierstrass
+polynomial in $\Delta_1$. Then $h$ can be regarded as a polynomial in
+$z_n$ over the ring $R$, i.e.\ as an element of $R[z_n]$. It follows
+by induction on the degree of $h$ that $h$ may be factored as a
+product of irreducible Weierstrass polynomials thus:
+\[
+h = h_1 \cdots h_k.
+\]
+It will follow from Lemma~4.2.5 below that the $h_i$ are uniquely
+determined, provided that the discriminant of $h$ does not vanish
+identically.
+
+Let $U$ be an open subset of $\C^n$. A continuous function
+$\Gamma : [0, 1] \to U$, with $\Gamma(0) = w_0$ and $\Gamma(1) = w_1$,
+is called a \emph{path} in $U$ from $w_0$ to $w_1$. Let $\Gamma$ and
+$\Gamma'$ be paths in $U$, from $w_0$ to $w_1$, and from $w_1$ to
+$w_2$, respectively. Then the composite path $\Gamma' * \Gamma$ from
+$w_0$ to $w_2$ is defined as follows:
+\[
+(\Gamma' * \Gamma)(t) =
+\begin{cases}
+\Gamma(2t) & \text{if } 0 \le t \le 1/2 \\
+\Gamma'(2t - 1) & \text{if } 1/2 \le t \le 1.
+\end{cases}
+\]
+The \emph{reverse path} $\bar{\Gamma}$ of $\Gamma$ is defined by
+$\bar{\Gamma}(t) = \Gamma(1 - t)$, $0 \le t \le 1$.
+
+\begin{lemma*}[4.2.4]
+Let $\Delta_1$ be a polydisc about $0$ in $\C^{n-1}$ and let
+$h(z, z_n)$ be a Weierstrass polynomial of positive degree in
+$\Delta_1$. Let $U$ be an open subset of $\Delta_1$ in which the
+discriminant of $h$ does not vanish. Let $w$ and $w'$ be points of
+$U$, not necessarily distinct, and let $\Gamma$ be a path in $U$
+from $w$ to $w'$. Let $\alpha$ be a root of $h(w, z_n)$. Then there
+is a unique path $\phi$ in $\C^1$ such that $\phi(0) = \alpha$ and
+$h(\Gamma(t), \phi(t)) = 0$ for all $t \in [0, 1]$.
+\end{lemma*}
+
+\begin{proof}
+Let the degree of $h$ be $m \ge 1$, let
+$V = \{ (z, z_n) \in U \times \C : h(z, z_n) = 0 \}$, and let $w_0$ be
+a point of $U$. By $m$ applications of the implicit function theorem,
+there exists a neighbourhood $W \subseteq U$ of $w_0$ such that the
+portion of $V$ contained in $W \times \C$ consists of the disjoint
+graphs of $m$ holomorphic functions from $W$ into $\C$. Hence
+([MUN75], Chapter~8) $V$ is an $m$-fold covering of $U$, with
+covering map $\pi : V \to U$ given by $\pi(z, z_n) = z$. The existence
+and uniqueness of $\phi$ then follows by the path lifting property
+(Lemma~4.1 in Ch.~8 of [MUN75]).
+\end{proof}
+
+\textit{Remark.} With the notations of the above lemma, we set
+$\Gamma_h[\alpha] := \phi(1)$ and say $\Gamma$ carries $\alpha$ into
+$\phi(1)$ (via $h$).
+
+The following is an important lemma about irreducible Weierstrass
+polynomials:
+
+\begin{lemma*}[4.2.5]
+Let $\Delta_1$ be a polydisc about $0$ in $\C^{n-1}$ and let
+$h(z, z_n)$ be an irreducible Weierstrass polynomial in $\Delta_1$.
+Let $G(z)$ be the discriminant of $h(z, z_n)$, let $F(z)$ be a
+holomorphic function in $\Delta_1$, not identically zero, such that
+$G(z) = 0 \Rightarrow F(z) = 0$ for all $z$ in $\Delta_1$, and let
+$U = \{ z \in \Delta_1 : F(z) \ne 0 \}$. Let $w \in U$ and let
+$\alpha$ be a root of $h(w, z_n)$. Then for every $w' \in U$ and
+every root $\alpha'$ of $h(w', z_n)$, there exists a path $\Gamma$ in
+$U$ from $w$ to $w'$ such that $\Gamma_h[\alpha] = \alpha'$.
+\end{lemma*}
+
+\begin{proof}
+A proof of this result, using slightly different notation and
+terminology, is given in [BMA48], Ch.~9, Sec.~3, pp 194--198.
+\end{proof}
+
+\textit{Remark.} The above lemma implies that the irreducible factors
+of a Weierstrass polynomial whose discriminant does not vanish
+identically are uniquely determined.
+
+We can now give the
+
+\begin{proof}[Proof of Theorem 4.2.2]
+Factor $h$ into a product of irreducible Weierstrass polynomials
+$h_1 \cdots h_k$. Let $1 \le i \le k$, and let $G(z)$ be the
+discriminant of $h_i(z, z_n)$. Recall that the discriminant $F(z)$ of
+$h(z, z_n)$ has the form $F(z) = z_{n-1}^r N(z)$ for all
+$z \in \Delta_1$, where $N(z)$ is holomorphic and non-vanishing in
+$\Delta_1$. Now the zero set of $G$ is contained in that of $F$ by
+Lemma~2.3.4, and is hence a subset of $H^* \cap \Delta_1$. But if
+$G(w, 0) = 0$ for some $w \in \Delta_1^{(n-2)}$, then $G(z, 0) = 0$
+for all $z \in \Delta_1^{(n-2)}$ by zero system continuity (see
+[WHI72], Ch.~1, Lemma~5E). Hence the zero set of $G$ is either
+empty, or the entire region $H^* \cap \Delta_1$.
+
+We shall show that, for each point $w = (w, 0)$ in $H^* \cap \Delta_1$,
+there exists exactly one distinct root of $h_i(w, z_n)$. This is
+clearly true if $G \ne 0$ in $\Delta_1$, as in this case the degree of
+$h_i$ is $1$. Suppose, on the other hand, that $G \equiv 0$ in
+$H^* \cap \Delta_1$, and that, for some
+$w = (w, 0) \in H^* \cap \Delta_1$, $h_i(w, z_n)$ has some $l \ge 2$
+distinct roots, say $\alpha_1, \ldots, \alpha_l$, with multiplicities
+$m_1, \ldots, m_l$ respectively. Choose disjoint open discs
+$D_1, \ldots, D_l$ about $\alpha_1, \ldots, \alpha_l$, respectively.
+By root continuity of the bivariate Weierstrass polynomial
+$h_i(w, z_{n-1}, z_n)$, there exists a disc $D'$ about $0$ in the
+plane of the $z_{n-1}$-coordinate such that
+$\{w\} \times D' \subseteq \Delta_1$ and such that, for every fixed
+$w_{n-1}$ in $D'$, there are exactly $m_j$ roots (counted according
+to multiplicity) of $h_i(w, w_{n-1}, z_n)$ in $D_j$, $1 \le j \le l$.
+
+Let $w_{n-1}'$ be a non-zero point of $D'$, let $w' = (w, w_{n-1}')$
+and let $\alpha$ and $\beta$ be roots of $h(w', z_n)$ in $D_1$ and
+$D_2$ respectively. Let $U = \{ z \in \Delta_1 : G(z) \ne 0 \}$.
+Then $U = \Delta_1 - H^*$. By Lemma~4.2.5, there is a path
+$\Gamma(t) = (\Gamma(t), \Gamma_{n-1}(t))$ in $U$ from $w'$ to
+itself such that $\Gamma_{h_i}[\alpha] = \beta$. Let
+$r = (r, r_{n-1})$ be the polyradius of $\Delta_1$. We can deform
+$\Gamma$ in $U$ to a path $\Gamma'$ in the set defined by $z = w$,
+$|z_{n-1}| < r_{n-1}$, by means of the path homotopy ([MUN75], Ch.~8)
+\[
+H(s, t) = ((1 - s) \Gamma(t) + s w, \Gamma_{n-1}(t))
+\]
+(for which $H(0, t) = \Gamma(t)$ and $H(1, t) = (w, \Gamma_{n-1}(t))$).
+Furthermore, we can deform $\Gamma'$ in $U$ to a path $\Gamma''$
+along the circle defined by $z = w$, $|z_{n-1}| = |w_{n-1}'|$ by
+means of the path homotopy
+\[
+K(s, t) = \left( w, (1 - s) \Gamma_{n-1}(t)
++ s \frac{\Gamma_{n-1}(t) |w_{n-1}'|}{|\Gamma_{n-1}(t)|} \right).
+\]
+Let $\phi''$ be the path in $\C^1$ such that $\phi''(0) = \alpha$ and
+$h_i(\Gamma''(t), \phi''(t)) = 0$ for all $t \in [0, 1]$, given by
+Lemma~4.2.4. By Theorem~4.3 of Ch.~8 of [MUN75], $\phi''(1) = \beta$
+(which implies $\Gamma''_{h_i}[\alpha] = \beta$). Yet, as $\phi''(t)$
+is a root of $h_i(\Gamma''(t), z_n)$, we must have that
+$\phi''(t) \in \bigcup_{j=1}^{l} D_j$, for all $t$. Hence, as
+$\phi''$ is continuous, the $D_j$ are disjoint, and
+$\phi''(0) \in D_1$, we must have that $\phi''(t) \in D_1$ for all
+$t$. This contradicts $\phi''(1) = \beta$, as $\beta$ is an element
+of $D_2$. Hence our assumption that $h_i(w, z_n)$ has more than one
+distinct root must be false. Thus $h_i(w, z_n)$ has exactly one
+distinct root, for each fixed $w$ in the set $H^* \cap \Delta_1$.
+
+We can now show that $h(w, z_n)$ has exactly one distinct root, for
+each fixed $w \in H^* \cap \Delta_1$. There is nothing further to
+prove if $k = 1$, so assume $k > 1$. Let
+$w \in H^* \cap \Delta_1$, let $1 \le i < j \le k$, and let
+$\alpha_i$ and $\alpha_j$ be the roots of $h_i(w, z_n)$ and
+$h_j(w, z_n)$ respectively, and assume that $\alpha_i \ne \alpha_j$.
+Then the resultant $R(z)$ of $h_i(z, z_n)$ and $h_j(z, z_n)$ does
+not vanish at $z = w$. However, the zero set of $R$ contains $0$, is
+contained in $H^* \cap \Delta_1$ (as $R(z) = 0 \Rightarrow F(z) = 0$),
+and is hence equal to the entire region $H^* \cap \Delta_1$ (by
+zero system continuity), contradicting $R(w) \ne 0$. Therefore, we
+must have $\alpha_i = \alpha_j$ after all. Hence $h(w, z_n)$ has
+exactly one distinct root, say $\alpha$.
+
+For $w \in \Delta_1^{(n-2)}$, let $\psi(w)$ denote the unique root
+$\alpha$ of $h(w, 0, z_n)$. Then, where $m$ is the degree of $h$, we
+have
+\[
+h(w, 0, z_n) = (z_n - \psi(w))^m.
+\]
+Thus, where $a_1(z)$ is the coefficient of $z_n^{m-1}$ in
+$h(z, z_n)$, we have $a_1(w, 0) = -m \psi(w)$. Hence $\psi$ is
+holomorphic in $\Delta_1^{(n-2)}$.
+\end{proof}
+
+We turn now to establishing Theorem~4.2.3. The theorem will follow
+from three lemmas on parametrizing an irreducible Weierstrass
+polynomial which satisfies the hypotheses of the theorem. The first
+lemma asserts the existence of a parametrization for such a
+Weierstrass polynomial.
+
+\begin{lemma*}[4.2.6]
+Let $h(z, z_n)$ be an irreducible Weierstrass polynomial of degree
+$m \ge 1$ in the polydisc $\Delta_1 = \Delta(0; \delta)$ in
+$\C^{n-1}$, and assume that $h$ satisfies the hypotheses of
+Theorem~4.2.3. (In particular, assume that for every fixed $z$ in
+$\Delta_1$, all the roots of $h(z, z_n)$ are contained in the disc
+$\Delta(0; \epsilon)$ in $\C$.) Let $\rho = \delta$, let
+$\rho_{n-1} = \delta_{n-1}^{1/m}$, let $\rho = (\rho, \rho_{n-1})$,
+and let $\Delta_1' = \Delta(0; \rho)$. Then there is a holomorphic
+function $\phi : \Delta_1' \to \Delta(0; \epsilon)$ such that for
+every fixed $z = (z, z_{n-1}) \in \Delta_1$ and every $z_n$ in
+$\Delta(0; \epsilon)$,
+\[
+h(z, z_n) = 0 \text{ if and only if there exists } u,\ |u| < \rho_{n-1},
+\text{ such that}
+\]
+\[
+\begin{cases}
+z_{n-1} = u^m \\
+z_n = \phi(z, u).
+\end{cases}
+\]
+\end{lemma*}
+
+\begin{proof}
+Even though the hypotheses of Theorem~4.2.1 specify $n \ge 3$, the
+hypotheses of the theorem, as indeed the present lemma, can be stated
+for $n = 2$ as well. The case $n = 2$ of the present lemma is
+Theorem~10A of [WHI72], Ch.~1. The hypotheses of Theorem~4.2.1
+permit the extension of the result to higher dimensions.
+\end{proof}
+
+With the notation of the above lemma, we shall say that the pair of
+equations
+\[
+\begin{cases}
+z_{n-1} = u^m \\
+z_n = \phi(z, u)
+\end{cases}
+\]
+defines a \emph{parametrization} for $h$ (in $\Delta_1$). In such a
+parametrization let $m_1$ denote the order of $\phi$ at $0$ in $u$.
+Then we shall see (Lemma~4.2.8 below) that for all $z$ sufficiently
+close to $0$,
+\[
+\ord_{(z, 0, 0)} h = \min(m, m_1).
+\]
+That $h$ is order-invariant in the set
+$\Delta_2^{(n-2)} \times \{ (0, 0) \}$ (near the origin) will follow
+from this. The next result will be used in proving Lemma~4.2.8.
+
+Let $K$ be an algebraically closed field of characteristic zero. We
+shall denote by $K\{x\}$ the field of all fractional power series in
+the indeterminate $x$ with coefficients in $K$ (see [WAL50], Ch.~4,
+Sec.~3, in which the notation $K(x)^*$ is used). That is, $K\{x\}$
+consists of all elements $\theta$ of the form
+\begin{equation}
+\theta = a_h x^{h/m} + a_{h+1} x^{(h+1)/m} + \cdots \tag{4.2.2}
+\end{equation}
+where $m \ge 1$ and $h$ is an integer (possibly negative). If
+$\theta$ is an element of $K\{x\}$ given by (4.2.2) and $a_h \ne 0$,
+then we define the \emph{order} of $\theta$, denoted by $O(\theta)$,
+to be $h/m$. Puiseux' theorem (Theorem~3.1 of [WAL50], Ch.~4) states
+that the field $K\{x\}$ is algebraically closed. Thus every
+nonconstant polynomial $g(x, y)$ over $K\{x\}$ can be factored into
+linear factors over $K\{x\}$ thus:
+\[
+g(x, y) = \prod_{i=1}^{l} (y - \theta_i);
+\]
+$\{ \theta_1, \ldots, \theta_l \}$ is called the set of
+\emph{Puiseux roots} of $g(x, y)$. We can now state and prove our
+next result.
+
+\begin{lemma*}[4.2.7]
+Let $h(z, z_n)$ be an irreducible Weierstrass polynomial of degree
+$m \ge 1$ in the polydisc $\Delta_1$ about $0$ (in $\C^{n-1}$), and
+assume that $h$ satisfies the hypotheses of Theorem~4.2.3. Let
+\[
+\begin{cases}
+z_{n-1} = u^m \\
+z_n = \phi(z, u)
+\end{cases}
+\]
+be a parametrization for $h$ and assume that $\phi$ is not
+identically zero. Assume that the power series expansion for $\phi$
+about $0$ is absolutely convergent in $\Delta_1'$ (using the notation
+of the previous lemma) and let this power series be arranged as
+follows:
+\[
+c_1(z) u^{m_1} + c_2(z) u^{m_2} + \cdots
+\]
+where $0 < m_1 < m_2 < \cdots$ and the $c_i$ are not identically
+zero. Assume $m > m_1$. Then there is a polydisc
+$\Delta_2 \subseteq \Delta_1$ about $0$ such that $c_1(z) \ne 0$ for
+all $z \in \Delta_2^{(n-2)}$.
+\end{lemma*}
+
+\begin{proof}
+Let $z$ be a fixed element of $\Delta_1^{(n-2)}$ and set
+$g_z(z_{n-1}, z_n) = h(z, z_{n-1}, z_n)$. Regard $g_z$ as a polynomial
+in $z_n$ over the field $\C\{z_{n-1}\}$ by replacing each coefficient
+of $g_z$ by its power series expansion about $0$. Let $\zeta$ be a
+primitive $m$-th root of unity and for $1 \le i \le m$, let
+$\theta_i(z)$ denote the element
+\[
+c_1(z) \zeta^{(i-1) m_1} z_{n-1}^{m_1/m}
++ c_2(z) \zeta^{(i-1) m_2} z_{n-1}^{m_2/m} + \cdots
+\]
+of $\C\{z_{n-1}\}$. As the power series in $u$ obtained by expanding
+\[
+g_z(u^m, c_1(z) u^{m_1} + c_2(z) u^{m_2} + \cdots)
+\]
+is identically zero, we have, setting
+$u = \zeta^{(i-1)} z_{n-1}^{1/m}$, that
+$g_z(z_{n-1}, \theta_i(z)) = 0$. Thus $\theta_i(z)$ is a Puiseux root
+of $g_z(z_{n-1}, z_n)$. But the $\theta_i(z)$, $1 \le i \le m$, are
+distinct. (For suppose $1 \le i < j \le m$, and
+$\zeta^{(i-1) m_k} = \zeta^{(j-1) m_k}$, $k = 1, 2, \ldots$. Let
+$|u_1| < \rho_{n-1}$, $u_1 \ne 0$. Then the $m$ distinct roots of
+$h(z, u_1^m, z_n)$ are the numbers
+\[
+\phi(z, u_1),\ \phi(z, \zeta u_1),\ \ldots,\ \phi(z, \zeta^{m-1} u_1).
+\]
+However,
+\[
+\begin{aligned}
+\phi(z, \zeta^{i-1} u_1) &= c_1(z) \zeta^{(i-1) m_1} u_1^{m_1}
++ c_2(z) \zeta^{(i-1) m_2} u_1^{m_2} + \cdots \\
+&= c_1(z) \zeta^{(j-1) m_1} u_1^{m_1}
++ c_2(z) \zeta^{(j-1) m_2} u_1^{m_2} + \cdots \\
+&= \phi(z, \zeta^{j-1} u_1),
+\end{aligned}
+\]
+a contradiction.) Hence the $\theta_i(z)$, $1 \le i \le m$,
+constitute the complete set of Puiseux roots of
+$g_z(z_{n-1}, z_n)$. For $1 \le i < j \le m$, let
+$\eta_{i, j}(z) = \theta_i(z) - \theta_j(z)$. Then
+\[
+\eta_{i, j}(z) = d_1^{(i, j)}(z) z_{n-1}^{m_1/m}
++ d_2^{(i, j)}(z) z_{n-1}^{m_2/m} + \cdots,
+\]
+where
+\[
+d_k^{(i, j)}(z) = c_k(z) \zeta^{(i-1) m_k} - c_k(z) \zeta^{(j-1) m_k}
+= c_k(z) \left( \zeta^{(i-1) m_k} - \zeta^{(j-1) m_k} \right).
+\]
+Let $1 \le i < j \le m$, and let $k_{i, j}$ be the least positive
+integer $k$ such that $d_k^{(i, j)}(0) \ne 0$ (the number
+$k_{i, j}$ certainly exists as $\theta_i(0) \ne \theta_j(0)$, and
+hence $\eta_{i, j}(0) \ne 0$). Then
+$O(\eta_{i, j}(0)) = m_{k_{i, j}} / m$. By continuity of the
+functions $d_k^{(i, j)}$, there exists a polydisc
+$\Delta_2 \subseteq \Delta_1$ about $0$ such that for every pair
+$(i, j)$ with $1 \le i < j \le m$,
+\[
+d_{k_{i, j}}^{(i, j)}(z) \ne 0
+\]
+for every $z \in \Delta_2^{(n-2)}$. Thus, for all $(i, j)$,
+\[
+O(\eta_{i, j}(z)) \le m_{k_{i, j}} / m,
+\]
+for every $z$ in $\Delta_2^{(n-2)}$. We shall show that in fact we
+have equality here.
+
+For fixed $z$ in $\Delta_1^{(n-2)}$, let
+$D_z(z_{n-1}) = F(z, z_{n-1})$ ($F$ the discriminant of $h$). Then as
+$F(z, z_{n-1}) = z_{n-1}^r N(z, z_{n-1})$ by hypothesis,
+\begin{equation}
+\ord_0 D_z = r. \tag{4.2.3}
+\end{equation}
+On the other hand, $D_z(z_{n-1})$ can be regarded as the discriminant
+of the polynomial $g_z(z_{n-1}, z_n) \in \C\{z_{n-1}\}[z_n]$ and
+hence as an element of $\C\{z_{n-1}\}$. As
+$\theta_1(z), \ldots, \theta_m(z)$ are the roots of
+$g_z(z_{n-1}, z_n)$ in $\C\{z_{n-1}\}$, we have
+\[
+D_z = \prod_{1 \le i < j \le m} (\theta_i(z) - \theta_j(z))^2
+= \prod_{1 \le i < j \le m} \eta_{i, j}(z)^2.
+\]
+Hence, by (4.2.3), we have
+\begin{equation}
+r = 2 \sum_{1 \le i < j \le m} O(\eta_{i, j}(z)). \tag{4.2.4}
+\end{equation}
+As (4.2.4) holds with $z = 0$, and as
+$O(\eta_{i, j}(z)) \le O(\eta_{i, j}(0))$ for all $(i, j)$, it
+follows that
+\begin{equation}
+O(\eta_{i, j}(z)) = O(\eta_{i, j}(0)), \tag{4.2.5}
+\end{equation}
+for all $(i, j)$.
+
+Now there exists some $z'$ in $\Delta_2^{(n-2)}$ such that
+$c_1(z') \ne 0$, as $c_1$ is not identically zero. Note that
+$\zeta^{m_1} \ne 1$, as $0 < m_1 < m$ and $\zeta$ is a primitive
+$m$-th root of $1$. Thus $\zeta^0 - \zeta^{m_1} \ne 0$ and hence by
+(4.2.5), $O(\eta_{1, 2}(0)) = m_1/m$. Therefore, by (4.2.5),
+$O(\eta_{1, 2}(z)) = m_1/m$, for all $z$ in $\Delta_2^{(n-2)}$: that
+is, $d_1^{(1, 2)}(z) \ne 0$, for all $z \in \Delta_2^{(n-2)}$. As
+\[
+d_1^{(1, 2)}(z) = c_1(z) (\zeta^0 - \zeta^{m_1}),
+\]
+it follows that $c_1(z) \ne 0$ for all $z \in \Delta_2^{(n-2)}$.
+This completes the proof of the lemma.
+\end{proof}
+
+\begin{lemma*}[4.2.8]
+Let $h(z, z_n)$ be an irreducible Weierstrass polynomial of degree
+$m \ge 1$ in the polydisc $\Delta_1$ about $0$ (in complex
+$(n-1)$-space), and assume that $h$ satisfies the hypotheses of
+Theorem~4.2.3. Let
+\[
+\begin{cases}
+z_{n-1} = u^m \\
+z_n = \phi(z, u)
+\end{cases}
+\]
+be a parametrization for $h$, and let $m_1$ be the order of $\phi$
+at $0$ in $u$. Then there is a polydisc $\Delta_2 \subseteq \Delta_1$
+about $0$ such that
+\[
+\ord_{(z, 0, 0)} h = \min(m, m_1)
+\]
+for all $z \in \Delta_2^{(n-2)}$.
+\end{lemma*}
+
+\begin{proof}
+Suppose first of all that $\phi \equiv 0$. Then $m = 1$ and
+$h(z, z_n) = z_n$. Thus $\ord_{(z, 0, 0)} h = 1$ for all
+$z \in \Delta_1^{(n-2)}$. Suppose on the other hand that $\phi$ is
+not identically zero. Using the notation of Lemma~4.2.6 we may
+assume, by refining $\Delta_1'$ suitably, that the power series
+expansion for $\phi$ about $0$ is absolutely convergent in
+$\Delta_1'$. Let this power series be arranged as follows:
+\[
+c_1(z) u^{m_1} + c_2(z) u^{m_2} + \cdots
+\]
+where $0 < m_1 < m_2 < \cdots$ and the $c_i$ are not identically
+zero. Let $\C\{z\}$ be the field of all fractional power series in
+$z_1, \ldots, z_{n-2}$. That is, inductively, $\C\{z\}$ consists of
+all elements of the form
+\[
+a_h(z_1, \ldots, z_{n-3}) z_{n-2}^{h/m}
++ a_{h+1}(z_1, \ldots, z_{n-3}) z_{n-2}^{(h+1)/m} + \cdots
+\]
+where $m \ge 1$, $h$ is an integer (possibly negative), and
+$a_k(z_1, \ldots, z_{n-3}) \in \C\{z_1, \ldots, z_{n-3}\}$. We can
+show by induction on $n-2$, using Puiseux' theorem, that $\C\{z\}$
+is algebraically closed. Let $K = \C\{z\}$, and regard
+$h(z, z_{n-1}, z_n)$ as a polynomial in $z_n$ over the field
+$K\{z_{n-1}\}$ by replacing each coefficient of $h$ by its power
+series expansion about the origin (suitably arranged). Let $\zeta$
+be a primitive $m$-th root of unity and for $1 \le i \le m$, let
+$\theta_i$ be the element
+\[
+c_1(z) \zeta^{(i-1) m_1} z_{n-1}^{m_1/m}
++ c_2(z) \zeta^{(i-1) m_2} z_{n-1}^{m_2/m} + \cdots
+\]
+of $K\{z_{n-1}\}$. Now the power series in $z$ and $u$ obtained by
+expanding
+\[
+h(z, u^m, c_1(z) u^{m_1} + c_2(z) u^{m_2} + \cdots)
+\]
+is identically zero. Hence, setting
+$u = \zeta^{(i-1)} z_{n-1}^{1/m}$, we obtain
+$h(z, z_{n-1}, \theta_i) = 0$. Thus $\theta_i$ is a Puiseux root of
+$h(z, z_{n-1}, z_n)$. But the $\theta_i$ are distinct (cf.\ proof of
+Lemma~4.2.7) and hence constitute the complete set of Puiseux roots
+of $h(z, z_{n-1}, z_n)$. Thus
+\[
+h(z, z_{n-1}, z_n) = \prod_{i=1}^{m} (z_n - \theta_i)
+\]
+and so, where
+\[
+h(z, z_{n-1}, z_n) = z_n^m + a_1(z, z_{n-1}) z_n^{m-1}
++ \cdots + a_m(z, z_{n-1}),
+\]
+we have
+\[
+\begin{aligned}
+a_1(z, z_{n-1}) &= -(\theta_1 + \cdots + \theta_m), \\
+a_2(z, z_{n-1}) &= + \sum_{1 \le i < j \le m} \theta_i \theta_j, \\
+&\vdots \\
+a_m(z, z_{n-1}) &= (-1)^m \theta_1 \cdots \theta_m.
+\end{aligned}
+\]
+
+We shall consider separately the two cases $m \le m_1$ and $m > m_1$.
+
+\medskip
+\noindent \textbf{Case I: $m \le m_1$.}
+\medskip
+
+We have $O(\theta_i) = m_1 / m \ge 1$, for $1 \le i \le m$. Hence
+$O(a_j) \ge j$, for $1 \le j \le m$. This implies that, for
+$1 \le j \le m$, the order (say $t_j$) in $z_{n-1}$ of the
+holomorphic functions $a_j$ at the origin is at least $j$. Let
+$\Delta_2 \subseteq \Delta_1$ be a polydisc about $0$ in which the
+power series expansion about $0$ of each $a_j$ is absolutely
+convergent. Then it follows that, for each point $z'$ in
+$\Delta_2^{(n-2)}$, the order in $z_{n-1}$ of $a_j$ at $(z', 0)$ is
+at least $j$. (This is clearly true if $a_j \equiv 0$, so assume
+that $a_j$ is not identically zero, and let the power series
+expansion for $a_j$ about $(0, 0)$ be arranged thus:
+\[
+a_{j, t_j}(z) z_{n-1}^{t_j} + a_{j, t_j + 1}(z) z_{n-1}^{t_j + 1} + \cdots
+\]
+where the $a_{j, k}$ are not identically zero. Then, where
+$a_{j, k}'(z - z')$ denotes the power series expansion for $a_{j, k}$
+about $z'$, we have that
+\[
+a_{j, t_j}'(z - z') z_{n-1}^{t_j}
++ a_{j, t_j + 1}'(z - z') z_{n-1}^{t_j + 1} + \cdots
+\]
+is the power series expansion for $a_j$ about $(z', 0)$. Thus the
+order in $z_{n-1}$ of $a_j$ is $t_j$ ($\ge j$) at $(z', 0)$.)
+Therefore, for each point $z'$ of $\Delta_2^{(n-2)}$, we have
+$\ord_{(z', 0)} a_j \ge j$, hence
+\[
+\ord_{(z', 0, 0)} (a_j(z, z_{n-1}) z_n^{m-j}) \ge j + m - j = m.
+\]
+It follows that
+\[
+\ord_{(z', 0, 0)} h = m = \min(m, m_1)
+\]
+for every $z' \in \Delta_2^{(n-2)}$.
+
+\medskip
+\noindent \textbf{Case II: $m > m_1$.}
+\medskip
+
+By Lemma~4.2.7, there is a polydisc $\Delta_2 \subseteq \Delta_1$
+about $0$ such that $c_1(z) \ne 0$ for all
+$z \in \Delta_2^{(n-2)}$. As in Case~I, $O(\theta_i) = m_1 / m$.
+Thus $O(a_j) \ge j m_1 / m$, for $1 \le j \le m$. Therefore, for
+$1 \le j \le m$, the order in $z_{n-1}$ of the holomorphic function
+$a_j$ at the origin is greater than or equal to $j m_1 / m$. Assume,
+by refining $\Delta_2$ if necessary, that the power series expansion
+about $0$ of each $a_j$ is absolutely convergent. Then it follows
+that, for $1 \le j \le m$, and for each point $z' \in
+\Delta_2^{(n-2)}$, the order in $z_{n-1}$ of $a_j$ at $(z', 0)$ is
+greater than or equal to $j m_1 / m$. Therefore, for $1 \le j < m$
+and for $z' \in \Delta_2^{(n-2)}$, we have
+$\ord_{(z', 0)} a_j \ge j m_1 / m$, hence
+\[
+\begin{aligned}
+\ord_{(z', 0, 0)} (a_j(z, z_{n-1}) z_n^{m-j})
+&\ge j m_1 / m + m - j \\
+&= m - j (1 - m_1 / m) \\
+&> m - m (1 - m_1 / m) \\
+&= m_1.
+\end{aligned}
+\]
+Now $a_m(z, z_{n-1}) = (-1)^m \theta_1 \cdots \theta_m$ and
+\[
+\theta_1 \cdots \theta_m = d_{m_1}(z) z_{n-1}^{m_1}
++ d_{m_1 + 1}(z) z_{n-1}^{m_1 + 1} + \cdots,
+\]
+where $d_{m_1}(z) = (-1)^{m-1} c_1(z)^m$. Thus, as
+$c_1(z') \ne 0$ for each $z' \in \Delta_2^{(n-2)}$, we have that
+$\ord_{(z', 0)} a_m = m_1$ for each $z' \in \Delta_2^{(n-2)}$.
+Hence
+\[
+\ord_{(z', 0, 0)} h = m_1 = \min(m, m_1)
+\]
+for every $z' \in \Delta_2^{(n-2)}$.
+\end{proof}
+
+We can give at last the
+
+\begin{proof}[Proof of Theorem 4.2.3]
+Factor $h$ into a product of irreducible Weierstrass polynomials
+$h_1 \cdots h_k$. Let $1 \le i \le k$ and let $G(z)$ be the
+discriminant of $h_i(z, z_n)$. Recall that the discriminant $F(z)$
+of $h(z, z_n)$ has the form
+\[
+F(z) = z_{n-1}^r N(z),
+\]
+where $N(z)$ is holomorphic and non-vanishing in $\Delta_1$. Let
+$\delta = (\delta_1, \ldots, \delta_{n-1})$ be the polyradius of
+$\Delta_1$. Now $F(z) = G(z) H(z)$, for some holomorphic $H(z)$, by
+Theorem~2.3.3. Hence, for every fixed $z \in \Delta_1^{(n-2)}$, we
+must have
+\[
+G(z, z_{n-1}) = z_{n-1}^s \cdot U(z, z_{n-1})
+\]
+for some $s$, $0 \le s \le r$, and some $U(z, z_{n-1})$, holomorphic
+and non-vanishing in the disc $|z_{n-1}| < \delta_{n-1}$. By zero
+system continuity, $s$ does not depend on $z$. In fact,
+$U(z, z_{n-1})$ is holomorphic in the variables
+$z_1, \ldots, z_{n-2}$, as well as $z_{n-1}$, as the expression
+\[
+U(z, z_{n-1}) = \frac{1}{2 \pi i} \int_C \frac{U(z, t) \, dt}
+{t - z_{n-1}}
+\]
+holds for $z \in \Delta_1^{(n-2)}$ and $z_{n-1}$ inside $C$, for any
+circle $C$ about $0$ in the disc $|z_{n-1}| < \delta_{n-1}$. Thus
+$h_i$ satisfies the hypotheses of Theorem~4.2.3. Let $p$ be the
+degree of $h_i$. By Lemma~4.2.6 there exists a parametrization
+\[
+\begin{cases}
+z_{n-1} = u^p \\
+z_n = \phi_i(z, u)
+\end{cases}
+\]
+for $h_i$ in $\Delta_1$. Let $p_1$ be the order of $\phi_i$ at $0$
+in $u$. By Lemma~4.2.8 there exists a polydisc
+$\Delta_2^{(i)} \subseteq \Delta_1$ about $0$ such that
+\[
+\ord_{(z', 0, 0)} h_i = \min(p, p_1)
+\]
+for all $z'$ in $\Delta_2^{(i)(n-2)}$. Thus $h_i$ is order-invariant
+in $\Delta_2^{(i)(n-2)} \times \{ (0, 0) \}$. Let
+$\Delta_2 = \bigcap_{i=1}^{k} \Delta_2^{(i)}$. Then
+$h \left( = \prod_{i=1}^{k} h_i \right)$ is order-invariant in
+$\Delta_2^{(n-2)} \times \{ (0, 0) \}$.
+\end{proof}
+
+\end{document}
