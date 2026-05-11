@@ -3,15 +3,12 @@ import Lean.Elab.Tactic.Basic
 import Qq
 
 import CompPoly
-import Cad.AlgebraicNumbers.Defs
-import Cad.SturmBasu.Tactic.Order
+import Cad.AlgebraicNumbers.AlgNum
+import Cad.AlgebraicNumbers.Order
+import Cad.Univariate.Utils
 
-open Qq Lean Elab Tactic ToExpr
+open Qq Lean Elab Tactic ToExpr Meta
 open AlgebraicNumber
-
-def runGrind (mv : MVarId) : MetaM Unit := do
-  let params ← Meta.Grind.mkDefaultParams {}
-  let _ ← Meta.Grind.main mv params
 
 -- takes an expression with exactly one real free variable and bounds it with a lambda
 def bound_var (e : Expr) : Expr :=
@@ -198,16 +195,12 @@ theorem in_component_prop {P : ℝ → Prop} (l : List ℝ) (sl : l.SortedLT) (h
 -- given the list of roots and a proof that `P x` produces a proof
 -- that `∃ p ∈ decomp roots, x ∈ p ∧ P x`, where `decomp roots` is the decomposition
 -- of the real line into intervals separated at the roots.
-def getDecompPf (x : Q(Real)) (roots_list : List Q(Real)) (wds : List Expr) (h : Expr) : MetaM Expr := do
-  let roots_sorted_pf ← genPfSortedLT roots_list wds
-  let roots_list_real ← roots_list.mapM (fun a => Meta.mkAppM `AlgebraicNumber.Raw.toReal #[a])
-  let roots := toListExpr q(Real) roots_list_real
+def getDecompPf (x : Q(Real)) (roots: Q(List Real)) (roots_sorted_pf : Expr) : MetaM Expr := do
   let roots_not_empty : Q(Prop) := q($roots ≠ [])
   let roots_not_empty_pf ← Meta.mkFreshExprMVar roots_not_empty
-  runGrind roots_not_empty_pf.mvarId!
-  let hType ← Meta.inferType h
-  let P := bound_var hType
-  Meta.mkAppOptM ``in_component_prop #[some P, roots, roots_sorted_pf, roots_not_empty_pf, x, h]
+  let ok ← runGrind roots_not_empty_pf.mvarId!
+  if !ok then throwError "grind failed 8"
+  Meta.mkAppOptM ``in_component #[x, roots, roots_sorted_pf, roots_not_empty_pf]
 
 def collectDisjuncts (e: Expr) : List Expr :=
   match e with
@@ -231,81 +224,17 @@ def go (imps: List Expr) (or_pf: Expr) : MetaM Expr := do
         Meta.mkAppM `Or.elim #[or_pf, e, rhs_lam]
     | _ => throwError ""
 
--- Solves one of the intervals for univ_cad. Returns `some mv` if it is not supported yet
-def solveCase (mv : MVarId) (idx : Nat) : MetaM (Option MVarId) := do
-  if idx % 2 = 0 then -- interval
-    return mv
-  else
-    return mv
+namespace foo
 
-syntax (name := univ_cad) "univ_cad" term "," term "," ("[" term,* "]") "," ("[" term,* "]") : tactic
+syntax (name := univ_cad) "univ_cad" term "," term "," ("[" term,* "]") : tactic
 
 -- Nat for now because its easier, later we have to instrument lean-smt to parse algebraic numbers to real numbers
-def parseUnivCad : Syntax → TacticM (Expr × Expr × List Expr × List Expr)
-  | `(tactic| univ_cad $x, $h, [ $[$as],* ], [ $[$hs],* ]) => do
+def parseUnivCad : Syntax → TacticM (Expr × Expr × List Expr)
+  | `(tactic| univ_cad $x, $h, [ $[$as],* ]) => do
       let as ← as.toList.mapM (elabTerm · none)
-      let hs ← hs.toList.mapM (elabTerm · none)
       let x' ← elabTerm x none
       let h' ← elabTerm h none
-      return (x', h', as, hs)
+      return (x', h', as)
   | _ => throwError "[univ_cad]: wrong usage"
 
-@[tactic univ_cad] unsafe def evalUnivCad : Tactic := fun stx => withMainContext do
-  let (x, h, roots, wds) ← parseUnivCad stx
-  let decompPf ← getDecompPf x roots wds h
-  let decompType ← Meta.inferType decompPf
-  let mainMv ← getMainGoal
-  let (fv_decomp, mainMv) ← MVarId.intro1P $ ← mainMv.assert .anonymous decompType decompPf
-  let ctx ← Meta.Simp.Context.mkDefault
-  -- simp on the decomp hypothesis so it becomes a finite disjunction instead of an existential
-  let (some (fv_decomp, mainMv), _) ← Lean.Meta.simpLocalDecl mainMv fv_decomp ctx | throwError "impossible"
-  mainMv.withContext do
-    let t ← fv_decomp.getType
-    let disjuncts := collectDisjuncts t
-    let disjunctsToFalse ← disjuncts.mapM (mkArrow · q(False))
-    let disjunctsToFalseMvs ← disjunctsToFalse.mapM (fun e => Meta.mkFreshExprMVar e)
-    /- let T ← Meta.inferType (.fvar fv_decomp) -/
-    let answer ← go disjunctsToFalseMvs (.fvar fv_decomp)
-    mainMv.assign answer
-    let indexedGoals := disjunctsToFalseMvs.zipIdx
-    let unsolvedMvs ← indexedGoals.mapM (fun (e, i) => solveCase e.mvarId! i)
-    let unsolvedMvs := unsolvedMvs.foldr (fun o acc => match o with | some x => x :: acc | _ => acc) []
-    replaceMainGoal unsolvedMvs
-
-open CompPoly
-
-def p := CPolynomial.C ((1 : Rat) / 2) * CPolynomial.X ^ 2 - CPolynomial.C 1
-
-def r1 : Raw := ⟨CPolynomial.X + CPolynomial.C 3, -10, 0, by native_decide⟩
-def r2 : Raw := ⟨p, -2, -1, by native_decide⟩
-def r3 : Raw := ⟨p, 1, 2, by native_decide⟩
-
-axiom wd_r1 : r1.wellDefined
-axiom wd_r2 : r2.wellDefined
-axiom wd_r3 : r3.wellDefined
-
-#check Set
-
-lemma set_eq (x : Real) (y : Real) : (x ∈ setOf (fun z => z = y)) -> x = y := by
-  intro h
-  finiteness
-
-
-example (a b : Real) : ¬ (a < b) → False := by
-  intro h
-  push_neg at h
-
-example (x : Real) (h : x + 3 < 0 ∧ (1/2) * x ^ 2 - 1 < 0) : False := by
-  /- have := in_component_prop (P := fun y => y + 3 < 0 ∧ (1/2) * y ^ 2 - 1 < 0) [1, 3, 4] (by grind) (by grind) x h -/
-  univ_cad x, h, [r1, r2, r3], [wd_r1, wd_r2, wd_r3]
-  · admit
-  · rintro ⟨h1, h2⟩
-    have := set_eq _ _ h1
-    rw [this] at h2
-    simp [wd_r1] at h2
-    admit
-  · admit
-  · admit
-  · admit
-  · admit
-  · admit
+end foo

@@ -1,4 +1,4 @@
-import Cad.SturmBasu.Utils
+import Cad.Univariate.SturmTarski.Utils
 
 open Polynomial Set Filter Classical
 

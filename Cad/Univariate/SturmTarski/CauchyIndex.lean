@@ -1,4 +1,4 @@
-import Cad.SturmBasu.JumpPoly
+import Cad.Univariate.SturmTarski.JumpPoly
 import Mathlib.RingTheory.Polynomial.Content
 
 noncomputable section

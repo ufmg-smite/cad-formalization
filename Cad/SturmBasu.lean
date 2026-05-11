@@ -1,1 +1,0 @@
-import Cad.SturmBasu.Theorem
