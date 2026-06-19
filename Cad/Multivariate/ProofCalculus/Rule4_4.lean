@@ -24,11 +24,11 @@ private lemma sgn_mul (x y : ℝ) : sgn (x * y) = sgn x * sgn y := by
 
 theorem nalbach_4_4_part1
     (i : Nat)
-    (S : Set (Fin i → ℝ))
+    (R : Set (Fin i → ℝ))
     (p : MvPolynomial (Fin i) ℝ)
     (Q : List (MvPolynomial (Fin i) ℝ))
     (hQ : Q.prod = p) :
-    (∀ q ∈ Q, ord_inv i S q) → ord_inv i S p := by
+    (∀ q ∈ Q, ord_inv i R q) → ord_inv i R p := by
   subst hQ
   induction Q with
   | nil =>
@@ -45,11 +45,11 @@ theorem nalbach_4_4_part1
 
 theorem nalbach_4_4_part2
     (i : Nat)
-    (S : Set (Fin i → ℝ))
+    (R : Set (Fin i → ℝ))
     (p : MvPolynomial (Fin i) ℝ)
     (Q : List (MvPolynomial (Fin i) ℝ))
     (hQ : Q.prod = p) :
-    (∀ q ∈ Q, sgn_inv i S q) → sgn_inv i S p := by
+    (∀ q ∈ Q, sgn_inv i R q) → sgn_inv i R p := by
   subst hQ
   induction Q with
   | nil =>
