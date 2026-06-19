@@ -1,5 +1,7 @@
 import Cad.Multivariate.ProofCalculus.Defs
 
+namespace ProofCalculus
+
 private lemma eq_zero_of_sgn_eq_zero {r : ℝ} (h : sgn r = 0) : r = 0 := by
   unfold sgn at h
   split_ifs at h with hlt heq
@@ -99,3 +101,5 @@ theorem nalbach_4_2_part2
     exact Ne.elim hj1 this
   have := hj2 a ha s h1
   simp_all only [ne_eq, not_true_eq_false]
+
+end ProofCalculus

@@ -1,5 +1,7 @@
 import Cad.Multivariate.ProofCalculus.Defs
 
+namespace ProofCalculus
+
 -- Note that MvPolynomial (Fin 0) ℝ is isomorphic to ℝ:
 /- variable (p : MvPolynomial (Fin 0) ℝ) -/
 
@@ -19,3 +21,5 @@ theorem nalbach_4_3_part2 (p : MvPolynomial (Fin 0) ℝ) : ord_inv 0 Set.univ p 
   intros a ha b hb
   have : a = b := List.ofFn_inj.mp rfl
   rw [this]
+
+end ProofCalculus

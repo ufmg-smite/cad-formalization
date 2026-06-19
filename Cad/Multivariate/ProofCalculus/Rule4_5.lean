@@ -1,5 +1,7 @@
 import Cad.Multivariate.ProofCalculus.Defs
 
+namespace ProofCalculus
+
 private lemma eq_zero_of_sgn_eq_zero {r : ℝ} (h : sgn r = 0) : r = 0 := by
   unfold sgn at h
   split_ifs at h with hlt heq
@@ -44,3 +46,5 @@ theorem nalbach_4_5
     exact sgn_eq_zero_of_eq_zero rfl
   -- hence `p = Q.prod` vanishes at every point of `R`, so its sign is constantly `0`.
   rw [key a j hja, key b j hjb]
+
+end ProofCalculus

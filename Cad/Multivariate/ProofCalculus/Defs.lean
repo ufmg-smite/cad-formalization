@@ -2,9 +2,14 @@ import Cad.Multivariate.ProjectionTheorem
 import Cad.Multivariate.ProjectionTheorem.DiscrNonzero
 import Cad.Multivariate.Brown01
 
+namespace ProofCalculus
+
 def an_sub (i : Nat) (S: Set (Fin i → ℝ)) : Prop := IsAnalyticSubmanifold S
 
-def an_del (i : Nat) (S : Set (Fin i → ℝ)) (f : Polynomial (MvPolynomial (Fin i) ℝ)) : Prop := AnalyticDelineable f S
+def an_del (i : Nat) (S : Set (Fin i → ℝ)) (f : Polynomial (MvPolynomial (Fin i) ℝ)) : Prop :=
+  AnalyticDelineable f S ∧
+    (∀ (θ : (Fin i → ℝ) → ℝ), ContinuousOn θ S → IsRootFunction f θ S →
+      OrderInvariantFull f (SectionGraph θ S))
 
 def connected (i : Nat) (S : Set (Fin i → ℝ)) : Prop := IsConnected S
 
@@ -20,3 +25,5 @@ def sgn_inv (i : Nat) (S : Set (Fin i → ℝ)) (f : MvPolynomial (Fin i) ℝ) :
   ∀ a ∈ S, ∀ b ∈ S, sgn (f.eval a) = sgn (f.eval b)
 
 def sample (i : Nat) (s : Fin i → ℝ) (S : Set (Fin i → ℝ)) : Prop := s ∈ S
+
+end ProofCalculus

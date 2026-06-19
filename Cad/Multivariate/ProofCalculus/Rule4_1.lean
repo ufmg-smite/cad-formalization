@@ -1,5 +1,7 @@
 import Cad.Multivariate.ProofCalculus.Defs
 
+namespace ProofCalculus
+
 theorem nalbach_4_1
     (i : Nat)
     (R : Set (Fin i → ℝ))
@@ -21,8 +23,8 @@ theorem nalbach_4_1
     rw [← map_natCast (MvPolynomial.C : ℝ →+* MvPolynomial (Fin i) ℝ) f.natDegree]
     exact RingHom.isUnit_map _ (isUnit_iff_ne_zero.mpr (Nat.cast_ne_zero.mpr (by omega)))
   have discr_in_elim := Brown.discr_mem_span f hf_i hunit
-  have := lifting_theorem_generalized S f h_sub h_conn deg_inv h_non_null f.discr discr_ne_zero discr_in_elim h_ord_inv
-  exact this.1
+  have := lifting_theorem_generalized R f h_sub h_conn deg_inv h_non_null f.discr discr_ne_zero discr_in_elim h_ord_inv
+  exact this
 
 #print axioms nalbach_4_1
 
@@ -45,6 +47,8 @@ theorem nalbach_4_1_generalized
   have h_deg_inv :=
     brown_generalized i f P hP hP_mem₁ hf_deg R h_sub h_conn h_ord_inv h_ord_lc_inv h_non_null
   have := lifting_theorem_generalized R f h_sub h_conn h_deg_inv h_non_null P hP hP_mem₁ h_ord_inv
-  exact this.1
+  exact this
 
 #print axioms nalbach_4_1_generalized
+
+end ProofCalculus

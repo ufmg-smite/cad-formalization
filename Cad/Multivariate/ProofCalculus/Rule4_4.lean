@@ -1,5 +1,7 @@
 import Cad.Multivariate.ProofCalculus.Defs
 
+namespace ProofCalculus
+
 private lemma sgn_neg {x : ℝ} (h : x < 0) : sgn x = -1 := by
   unfold sgn; rw [if_pos h]
 
@@ -62,3 +64,5 @@ theorem nalbach_4_4_part2
     simp only [map_mul, sgn_mul]
     rw [hQinv q (List.mem_cons.mpr (Or.inl rfl)) a ha b hb,
         ih (fun r hr => hQinv r (List.mem_cons.mpr (Or.inr hr))) a ha b hb]
+
+end ProofCalculus
