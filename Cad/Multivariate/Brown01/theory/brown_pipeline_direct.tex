@@ -1,0 +1,461 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.7cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{lmodern}
+\usepackage{enumitem}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue]{hyperref}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{example}[theorem]{Example}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\xb}{\bar{x}}
+\newcommand{\lc}{\operatorname{lc}}
+\newcommand{\disc}{\operatorname{disc}}
+\newcommand{\rev}{\operatorname{rev}}
+\newcommand{\ord}{\operatorname{ord}}
+\newcommand{\mult}{\operatorname{mult}}
+\newcommand{\divX}{\operatorname{divX}}
+\newcommand{\E}{\mathcal{E}}
+\newcommand{\ideal}[1]{\langle #1\rangle}
+\newcommand{\code}[1]{{\ttfamily\spaceskip=.5em plus .25em minus .1em\relax #1}}
+\emergencystretch=1.5em
+
+\title{A Direct Proof of the Pipeline Form of\\ the Generalized Brown Projection}
+\author{Notes for the \code{mccalum} formalization project}
+\date{June 19, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+These notes give a self-contained, direct proof of the \emph{pipeline form} of
+the generalized Brown reduced projection: if $P$ is a nonzero element of the
+elimination ideal $\E(f) = \ideal{f,f_z}\cap R$, and both $P$ and $\lc f$ are
+order-invariant on a connected analytic submanifold $S$ (with $f$ vanishing
+identically nowhere on $S$), then $f$ is degree-invariant on $S$. This is
+Corollary~5.3 of the companion notes \emph{Generalizing Brown's Reduced
+McCallum Projection to Elimination Ideals}, where it is deduced from a general
+theorem (proved through a bivariate homogenization layer) together with an
+explicit B\'ezout ``certificate transfer'' lemma. Here we bypass both. The only
+role the second elimination ideal $\E(\rev f)$ plays in the argument is to
+supply a single \emph{membership} --- $\lc(f)^M P \in \E(\rev f)$ --- and
+membership, as opposed to an explicit certificate, has a three-line proof:
+reflect through the Laurent automorphism $z \mapsto 1/z$, then clear the
+spurious factor $z^M$ by a one-line congruence rather than a binomial
+expansion. Inlining this into Brown's pointwise reversal argument removes the
+homogenization layer entirely, leaving a proof that rests only on the
+already-formalized generalized lifting theorem and on elementary, cofactor-free
+polynomial algebra.
+\end{abstract}
+
+\section{Setting and notation}\label{sec:setting}
+
+Throughout, $R := \R[x_1,\dots,x_k] = \R[\xb]$ and $f \in R[z]$ is a polynomial
+of positive degree $n := \deg_z f$, written $f = \sum_{i=0}^{n} a_i z^i$ with
+$a_i \in R$ and $a_n \neq 0$. We write $f_z := \partial f/\partial z$ and
+$\lc f := a_n$ for the leading coefficient. For $q \in \R^k$ we write
+$f(q,\cdot) \in \R[z]$ for the specialization. The central object is the
+\emph{elimination ideal}
+\[
+  \E(f) \;:=\; \ideal{f,\, f_z} \cap R ,
+\]
+the ideal of $R$ consisting of polynomials in $\xb$ alone expressible as
+$A f + B f_z$ with $A, B \in R[z]$.
+
+For a nonzero $g \in R$ and $p \in \R^k$, $\ord_p g$ denotes the order of
+vanishing of $g$ at $p$ (the least total degree of a nonvanishing partial
+derivative). $g$ is \emph{order-invariant} on $S \subseteq \R^k$ if
+$p \mapsto \ord_p g$ is constant on $S$, and \emph{sign-invariant} on $S$ if
+$p \mapsto \operatorname{sign} g(p) \in \{-1,0,+1\}$ is constant on $S$.
+Analytic submanifolds of $\R^k$ and analytic delineability are as in McCallum
+\cite{McCallum98}; we emphasize that the formalized notion of delineability
+(\code{AnalyticDelineable}) carries \emph{constant multiplicities}: the real
+roots of $f(q,\cdot)$ over $S$ are given by finitely many analytic sections
+$\theta_1 < \cdots < \theta_s$ on $S$, the $\theta_j(q)$ exhaust the real roots
+of $f(q,\cdot)$ for every $q\in S$, and the multiplicity of $\theta_j(q)$ as a
+root of $f(q,\cdot)$ is a constant $m_j \geq 1$.
+
+The single analytic input is the following theorem, already proved in the
+repository (Lean: \code{lifting\_theorem\_generalized}, in
+\code{Mccalum/Generalized/Projection.lean}). It generalizes McCallum's
+Theorem~2 \cite{McCallum98} by replacing the discriminant with an arbitrary
+nonzero element of $\E(f)$.
+
+\begin{theorem}[Generalized lifting theorem, Theorem 3.2.1$'$; proved in Lean]
+\label{thm:lifting}
+Let $S$ be a connected analytic submanifold of $\R^k$, and let $f \in R[z]$ be
+degree-invariant on $S$ with $f(q,\cdot) \not\equiv 0$ for every $q \in S$.
+Suppose there is $P \in R$, $P \neq 0$, with $P \in \E(f)$, such that $P$ is
+order-invariant on $S$. Then $f$ is analytically delineable on $S$ and is
+order-invariant in each $f$-section over $S$.
+\end{theorem}
+
+Everything below uses Theorem~\ref{thm:lifting} exactly once, applied not to
+$f$ itself but to an auxiliary polynomial built from $f$.
+
+\section{Brown's theorem and its naive generalization}\label{sec:brown}
+
+McCallum's projection of $f$ contains \emph{all} coefficients $a_n,\dots,a_0$
+(to secure degree-invariance on cells), together with the discriminant and
+pairwise resultants. Brown's contribution \cite[Theorem~3.1]{Brown01} is that
+the non-leading coefficients are redundant:
+
+\begin{theorem}[Brown, 2001]\label{thm:brown}
+Let $f \in \R[\xb][z]$ have positive degree $n$ in $z$, with discriminant
+$D(\xb) \neq 0$. Let $S$ be a connected analytic submanifold of $\R^k$ on which
+$D$ is order-invariant and $\lc f$ is sign-invariant, and such that $f$
+vanishes identically at no point of $S$. Then $f$ is degree-invariant on $S$.
+\end{theorem}
+
+Degree-invariance is exactly the hypothesis Theorem~\ref{thm:lifting} needs;
+combining the two yields Brown's \emph{reduced} projection: leading
+coefficients, discriminants, and resultants only. Given the repository's
+generalization of McCallum's theorem, the natural candidate statement is:
+
+\begin{conjecture}[Naive generalization --- \textbf{false}]\label{conj:naive}
+Let $f \in \R[\xb][z]$ have positive degree $n$ in $z$. Let $P \in \E(f)$,
+$P \neq 0$. Let $S$ be a connected analytic submanifold of $\R^k$ on which $P$
+is order-invariant and $\lc f$ is sign-invariant, and such that $f$ vanishes
+identically at no point of $S$. Then $f$ is degree-invariant on $S$.
+\end{conjecture}
+
+The hypothesis already implies $D \neq 0$: if $f$ had a repeated factor over
+$\R(\xb)$, then $\gcd(f,f_z)$ would have positive $z$-degree and divide every
+element of $\ideal{f,f_z}$ in $\R(\xb)[z]$, forcing $\E(f) = 0$. So
+Conjecture~\ref{conj:naive} genuinely only relaxes the \emph{order-invariance}
+hypothesis from $D$ to a general $P\in\E(f)$, in exact analogy with the proved
+Theorem~\ref{thm:lifting}.
+
+\section{A counterexample}\label{sec:counterexample}
+
+\begin{proposition}\label{prop:counterexample}
+Conjecture~\ref{conj:naive} is false. Let $k = 2$, $\xb = (x,y)$, and
+\[
+  f \;=\; -x y^2 z^2 + y z + 1, \qquad n = 2, \qquad \lc f = -xy^2 ,
+\]
+let $S = \{(0,t) : t \in \R\}$ be the $y$-axis, and let $P = 1 + 4x$. Then all
+hypotheses of Conjecture~\ref{conj:naive} hold, but $f$ is not degree-invariant
+on $S$.
+\end{proposition}
+
+\begin{proof}
+First, $P \in \E(f)$, with the explicit certificate
+\begin{equation}\label{eq:certificate}
+  1 + 4x \;=\; \bigl(1 - 2xyz + 4x\bigr)\cdot f \;+\;
+               \bigl(-z\,(1 + 2x - xyz)\bigr)\cdot f_z ,
+\end{equation}
+verified by direct expansion. Clearly $P \neq 0$. $S$ is a connected analytic
+submanifold of $\R^2$. On $S$ we have $P(0,t) = 1$, so $P$ is nowhere zero on
+$S$ and hence order-invariant (constant order $0$). The leading coefficient
+$-xy^2$ vanishes identically on $S$, hence is sign-invariant (constant
+sign~$0$). Finally $f(0,t,z) = tz + 1$ is never the zero polynomial. Yet
+$\deg_z (tz+1)$ equals $1$ for $t \neq 0$ and $0$ for $t = 0$: the degree jumps
+at the origin.
+\end{proof}
+
+\begin{remark}[Why the corrected hypothesis excludes it]\label{rem:cex}
+The degree drop at the origin is a collision of roots \emph{at infinity}
+($tz+1$ has its root $-1/t \to \infty$ as $t \to 0$), invisible to
+$\ideal{f,f_z} \cap R$; indeed $V_\C(\E(f)) = \{x = -1/4\}$, disjoint from the
+complexification of $S$, which is why a unit such as $1+4x$ can lie in $\E(f)$
+along $S$. The theorem of this note (Theorem~\ref{thm:main}) excludes
+Proposition~\ref{prop:counterexample} not through the witness $P$ --- which
+\emph{is} order-invariant on $S$ --- but through the additional hypothesis that
+$\lc f$ be order-invariant. On $S$ the leading coefficient $-xy^2$ has
+\[
+  \ord_{(0,t)}(-xy^2) = 1 \quad (t \neq 0), \qquad
+  \ord_{(0,0)}(-xy^2) = 3 ,
+\]
+since $-xy^2 = -t^2 x - 2tx(y-t) - x(y-t)^2$ near $(0,t)$ has lowest-degree
+part $-t^2 x$ (degree $1$) when $t\neq0$, but is the pure degree-$3$ monomial
+at the origin. So $\lc f$ is \emph{not} order-invariant on $S$, and
+Theorem~\ref{thm:main} correctly refuses the configuration.
+\end{remark}
+
+\section{Reversal and the witness transfer}\label{sec:transfer}
+
+The proof in Section~\ref{sec:main} is Brown's pointwise reversal argument. Its
+one nontrivial ingredient is a witness in the elimination ideal of the reversed
+auxiliary polynomial. This section produces it from $P \in \E(f)$ by elementary
+means: a reflection step and a clearing step, neither of which requires
+exhibiting B\'ezout cofactors.
+
+\begin{definition}\label{def:rev}
+For $g = \sum_{i=0}^{m} c_i z^i \in R[z]$ with $\deg g \leq m$, the
+\emph{degree-$m$ reverse} is
+$\rev_m g := \sum_{i=0}^{m} c_i z^{m-i} = z^m\, g(1/z)$
+(Mathlib: \code{Polynomial.reflect m g}; for $m = \deg g$ this is
+\code{Polynomial.reverse}). For $f$ as in Section~\ref{sec:setting} we write
+$\rev f := \rev_n f = a_0 z^n + \cdots + a_n$; note its constant coefficient is
+$a_n = \lc f$.
+\end{definition}
+
+We will use the Euler-type identity relating $\rev_{n-1}(g_z)$ to the
+derivative of $\rev_n g$ (reversal and $d/dz$ do not commute).
+
+\begin{lemma}[Euler]\label{lem:euler}
+For $g \in R[z]$ with $\deg g \leq n$,
+\[
+  \rev_{n-1}(g_z) \;=\; n \cdot \rev_n g \;-\; z\,(\rev_n g)' .
+\]
+\end{lemma}
+
+\begin{proof}
+Write $g = \sum_{i=0}^n c_i z^i$. Both sides equal $\sum_{i=0}^n i\,c_i z^{n-i}$:
+the left side because $g_z = \sum_i i c_i z^{i-1}$ reverses at degree $n-1$ to
+$\sum_i i c_i z^{(n-1)-(i-1)}$; the right side because
+$(\rev_n g)' = \sum_i (n-i) c_i z^{n-i-1}$, so
+$n\,\rev_n g - z (\rev_n g)' = \sum_i \bigl(n-(n-i)\bigr) c_i z^{n-i}$.
+\end{proof}
+
+\subsection{Reflection}
+
+\begin{lemma}[Reflection]\label{lem:reflect}
+Let $g \in R[z]$ with $\deg g \leq n$ and put $\rho := \rev_n g$. If
+$P \in \ideal{g,\, g_z}$ (the ideal in $R[z]$), then there is an integer
+$M \geq 0$ with
+\[
+  z^{M}\,P \;\in\; \ideal{\rho,\ \rho'} \qquad (\text{ideal in } R[z]).
+\]
+\end{lemma}
+
+\begin{proof}
+Work in the Laurent ring $R[z^{\pm 1}]$, in which $z$ is a unit, and let
+$\iota : R[z^{\pm1}] \to R[z^{\pm1}]$ be the $R$-algebra automorphism
+$z \mapsto z^{-1}$ (an involution fixing $R$ pointwise). From
+$\rho = z^n g(1/z)$ we get $\iota(g) = g(1/z) = z^{-n}\rho$, and by
+Lemma~\ref{lem:euler}, $\rev_{n-1}(g_z) = z^{n-1} g_z(1/z) = z^{n-1}\iota(g_z)$
+equals $n\rho - z\rho'$, so $\iota(g_z) = z^{1-n}\,(n\rho - z\rho')$. Since $z$
+is a unit,
+\[
+  \iota\bigl(\ideal{g, g_z}\bigr)
+    = \ideal{\iota(g),\, \iota(g_z)}
+    = \ideal{\rho,\ n\rho - z\rho'}
+    = \ideal{\rho,\ \rho'} \qquad\text{in } R[z^{\pm1}].
+\]
+Now $P \in \ideal{g, g_z}$ in $R[z]$, hence in $R[z^{\pm1}]$. Applying $\iota$
+and using $\iota(P) = P$ (as $P \in R$),
+\[
+  P = \iota(P) \in \iota\bigl(\ideal{g,g_z}\bigr) = \ideal{\rho,\rho'}
+  \qquad\text{in } R[z^{\pm1}] .
+\]
+Write $P = \alpha\rho + \beta\rho'$ with $\alpha,\beta \in R[z^{\pm1}]$, and let
+$M$ be larger than the largest negative power of $z$ occurring in $\alpha$ or
+$\beta$. Then $z^M\alpha,\ z^M\beta \in R[z]$, so
+$z^M P = (z^M\alpha)\rho + (z^M\beta)\rho' \in \ideal{\rho,\rho'}$ in $R[z]$.
+\end{proof}
+
+\subsection{Clearing the spurious power}
+
+\begin{lemma}[Clearing]\label{lem:clear}
+Let $\rho \in R[z]$ with constant coefficient $c := \rho(0) \in R$, and write
+$\rho = z\,h + c$ (so $h = \divX \rho$). If $z^M P \in \ideal{\rho,\rho'}$ in
+$R[z]$, then
+\[
+  c^{M}\,P \;\in\; \ideal{\rho,\ \rho'} \qquad (\text{ideal in } R[z]).
+\]
+\end{lemma}
+
+\begin{proof}
+Work modulo $\ideal{\rho}$ in $R[z]$. From $\rho = zh + c$ we get
+$z h \equiv -c$, hence $z^M h^M \equiv (-c)^M = (-1)^M c^M \pmod{\ideal{\rho}}$.
+Multiplying the hypothesis $z^M P \in \ideal{\rho,\rho'}$ by $h^M \in R[z]$
+gives $z^M h^M P \in \ideal{\rho,\rho'}$, and since
+$z^M h^M P \equiv (-1)^M c^M P \pmod{\ideal{\rho}}$, also
+$(-1)^M c^M P \in \ideal{\rho,\rho'}$. Multiply by $(-1)^M$.
+\end{proof}
+
+Conceptually, Lemma~\ref{lem:clear} says: inverting the constant coefficient
+$c$ makes $z$ a unit modulo $\rho$ (its inverse is $-h/c$), so the
+$z^M$ produced by reflection can be divided away, at the cost of a power of
+$c$. The factor is unavoidable in general (see Remark~\ref{rem:price}).
+
+\subsection{The transfer proposition}
+
+\begin{proposition}[Witness transfer]\label{prop:transfer}
+Let $g \in R[z]$ have degree exactly $n \geq 1$ in $z$, leading coefficient
+$\lc g$, and put $\rho := \rev_n g$ (so $\rho(0) = \lc g$). If
+$P \in \E(g) = \ideal{g,g_z}\cap R$, then there is $M \geq 0$ with
+\[
+  \lc(g)^{M}\,P \;\in\; \E(\rho) = \ideal{\rho,\ \rho'}\cap R .
+\]
+\end{proposition}
+
+\begin{proof}
+By Lemma~\ref{lem:reflect}, $z^M P \in \ideal{\rho,\rho'}$ for some $M$. The
+constant coefficient of $\rho = \rev_n g$ is the coefficient of $z^n$ in $g$,
+namely $\lc g$. By Lemma~\ref{lem:clear} (with $c = \lc g$),
+$\lc(g)^M P \in \ideal{\rho,\rho'}$; and $\lc(g)^M P \in R$ since $\lc g$ and
+$P$ both lie in $R$.
+\end{proof}
+
+\begin{remark}[Verification]\label{rem:verify}
+Both steps were checked symbolically on the data of
+Proposition~\ref{prop:counterexample} ($g = f$, $n = 2$, and the certificate
+\eqref{eq:certificate} with $\deg_z A = 1$, $\deg_z B = 2$, giving $M = 3$):
+the reflection identity $z^3 P = U\rho + V\rho'$ holds with zero residual, and
+$\lc(f)^3 P = -4x^4y^6 - x^3y^6 \in \ideal{\rev f, (\rev f)'}$ with the
+cofactors produced by the congruence in Lemma~\ref{lem:clear}, again with zero
+residual.
+\end{remark}
+
+\section{The direct proof}\label{sec:main}
+
+Brown's argument is local on $S$ and passes through a point-dependent shift.
+We need his local connectivity-refinement lemma, an easy consequence of the
+straightening chart already formalized
+(\code{IsAnalyticSubmanifold.straightening\_chart}).
+
+\begin{lemma}[Refinement]\label{lem:refine}
+Let $S$ be a connected analytic submanifold of $\R^k$, $p \in S$, and $N_0$ an
+open neighborhood of $p$. There is an open $N$ with $p \in N \subseteq N_0$
+such that $S \cap N$ is a connected analytic submanifold of $\R^k$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+Take a straightening chart $\Phi$ at $p$ carrying $S$ locally onto a piece of
+$\R^s \times \{0\}$, shrink its source into $N_0$, and pull back a small open
+ball $B$ around $\Phi(p)$; then $\Phi(S \cap N) = B \cap (\R^s \times \{0\})$ is
+convex, hence connected, and the submanifold property is local. (The same
+argument appears inline in \code{Mccalum/Generalized/Delineable.lean}.)
+\end{proof}
+
+We also record the shift transport, which is immediate from the chain rule.
+
+\begin{lemma}[Shift]\label{lem:shift}
+Let $\gamma \in \R$ and $\bar f := f(\xb,\, z + \gamma)$. Then
+$\deg_z \bar f = n$, $\lc \bar f = \lc f$, and $\E(f) \subseteq \E(\bar f)$; in
+particular $P \in \E(f) \Rightarrow P \in \E(\bar f)$.
+\end{lemma}
+
+\begin{proof}
+The $R$-algebra automorphism $\tau : R[z] \to R[z]$, $z \mapsto z + \gamma$,
+fixes $R$ pointwise, has $\tau(f) = \bar f$, and commutes with $d/dz$, so
+$\tau(f_z) = (\bar f)_z$. It preserves $z$-degree and the leading coefficient.
+Applying $\tau$ to a representation $P = Af + Bf_z$ and using $\tau(P) = P$
+gives $P = \tau(A)\bar f + \tau(B)(\bar f)_z \in \ideal{\bar f, (\bar f)_z}$.
+\end{proof}
+
+\begin{theorem}[Generalized Brown, pipeline form]\label{thm:main}
+Let $f \in \R[\xb][z]$ have positive degree $n$ in $z$. Let $P \in \E(f)$,
+$P \neq 0$, and let $S$ be a connected analytic submanifold of $\R^k$ on which
+\emph{both} $P$ \emph{and} $\lc f$ are order-invariant, with
+$f(q,\cdot) \not\equiv 0$ for every $q \in S$. Then $f$ is degree-invariant on
+$S$.
+\end{theorem}
+
+\begin{proof}
+\emph{Reduction.} On the connected set $S$, order-invariance of $a_n = \lc f$
+forces a dichotomy: if its constant order is $0$ then $a_n$ vanishes nowhere on
+$S$, and then $\deg_z f(q,\cdot) = n$ for all $q\in S$ and we are done; if the
+constant order is $\geq 1$ then $a_n \equiv 0$ on $S$. Assume the latter, so
+$\deg_z f(q,\cdot) \leq n - 1$ on $S$. Since $q \mapsto \deg_z f(q,\cdot)$ is
+integer-valued on the connected $S$, it suffices to show it is locally constant
+on $S$, i.e.\ constant within $S$ near each $p \in S$.
+
+\emph{Pointwise setup.} Fix $p \in S$. As $f(p,\cdot) \not\equiv 0$ has
+finitely many roots, choose $\gamma \in \R$ with $f(p,\gamma) \neq 0$; by
+continuity of $q \mapsto f(q,\gamma)$ there is an open $N_0 \ni p$ with
+$f(q,\gamma) \neq 0$ for all $q \in N_0$. Put $\bar f := f(\xb, z+\gamma)$ and
+$f^* := \rev_n \bar f$, and write $\bar f = \sum_{i=0}^n \bar a_i z^i$, so that
+$\bar a_n = \lc \bar f = a_n$, $\bar a_0 = \bar f(\xb,0) = f(\xb,\gamma)$, and
+$f^* = \sum_{i=0}^n \bar a_i z^{\,n-i}$. We record three facts.
+
+\begin{enumerate}[label=(\arabic*)]
+\item \emph{$f^*$ is degree-invariant of degree $n$ on $N_0$:} the coefficient
+  of $z^n$ in $f^*$ is $\bar a_0 = f(\xb,\gamma)$, nonzero on $N_0$. In
+  particular $f^*(q,\cdot) \not\equiv 0$ on $N_0$.
+\item \emph{Multiplicity of $0$ records the degree drop:} for $q \in N_0$,
+  \[
+    \mult_0\, f^*(q,\cdot)
+      = n - \max\{ i : \bar a_i(q) \neq 0\}
+      = n - \deg_z \bar f(q,\cdot)
+      = n - \deg_z f(q,\cdot),
+  \]
+  the last step because shifting $z$ preserves degree. The constant
+  coefficient of $f^*$ is $\bar a_n = a_n$; so for $q \in S$ (where
+  $a_n \equiv 0$), $0$ is a root of $f^*(q,\cdot)$, of multiplicity
+  $n - \deg_z f(q,\cdot) \geq 1$.
+\item \emph{Witness:} by Lemma~\ref{lem:shift}, $P \in \E(\bar f)$; applying
+  Proposition~\ref{prop:transfer} to $g = \bar f$ (degree $n$, with
+  $\rev_n \bar f = f^*$ and $\lc \bar f = \lc f$) yields $M \geq 0$ with
+  \[
+    Q := \lc(f)^M\, P \;\in\; \E(f^*) = \ideal{f^*, (f^*)_z}\cap R .
+  \]
+  Moreover $Q \neq 0$ (as $\lc f \neq 0$, $P \neq 0$, and $R$ is a domain), and
+  $Q$ is order-invariant on $S$, because orders add over products:
+  $\ord_q Q = M\,\ord_q(\lc f) + \ord_q P$ is constant on $S$ by hypothesis.
+\end{enumerate}
+
+\emph{Lifting.} By Lemma~\ref{lem:refine}, choose an open $N \subseteq N_0$
+with $p \in N$ and $S \cap N$ a connected analytic submanifold. By (1)--(3),
+all hypotheses of Theorem~\ref{thm:lifting} hold for $f^*$ on $S \cap N$
+(degree-invariant of degree $n$; $f^*(q,\cdot)\not\equiv0$; witness
+$Q \in \E(f^*)$ nonzero and order-invariant). Hence $f^*$ is analytically
+delineable on $S\cap N$: there are analytic sections
+$\theta_1 < \cdots < \theta_s$ on $S \cap N$ exhausting the real roots of
+$f^*(q,\cdot)$, with constant multiplicities $m_1,\dots,m_s \geq 1$.
+
+\emph{Tracking the zero section.} By (2), $0$ is a real root of $f^*(p,\cdot)$,
+so $\theta_i(p) = 0$ for exactly one index $i$ (the $\theta_j(p)$ are pairwise
+distinct). By continuity of the finitely many sections, shrink $N$ to an open
+$N' \ni p$ with $\theta_j \neq 0$ on $S \cap N'$ for all $j \neq i$. Let
+$q \in S \cap N'$ be arbitrary: by (2), $0$ is a root of $f^*(q,\cdot)$, so
+$0 = \theta_j(q)$ for some $j$, forcing $j = i$. Therefore
+\[
+  n - \deg_z f(q,\cdot) = \mult_0\, f^*(q,\cdot)
+    = \mult_{\theta_i(q)} f^*(q,\cdot) = m_i ,
+\]
+so $\deg_z f(q,\cdot) = n - m_i$ for every $q \in S \cap N'$. This is the
+required local constancy, completing the proof.
+\end{proof}
+
+\section{Discussion}\label{sec:discussion}
+
+\begin{remark}[Recovering Brown on CAD cells]\label{rem:pipeline}
+Theorem~\ref{thm:main} subsumes Brown's Theorem~\ref{thm:brown} on the cells of
+a McCallum-style CAD. There the discriminant $D$ is a projection factor, hence
+$D \in \E(f)$ (the classical fact $\disc_n \in \ideal{\cdot,\cdot'}$, used in
+the repository to recover Theorem~3.2.3 from 3.2.3$'$) and $D$ is
+order-invariant on every cell; and $\lc f$ is also a projection factor, hence
+order-invariant on every cell. So taking $P = D$, the hypotheses of
+Theorem~\ref{thm:main} hold on each cell, and we recover degree-invariance ---
+which is precisely Brown's reduced projection in use. More generally the
+witness $\widetilde P := \lc(f)^M P$ of Brown's reduced projection is never
+computed by the algorithm: $V(\widetilde P) = V(\lc f) \cup V(P)$ contributes
+no irreducible factor not already present, so no new cells, degrees, or
+projection work arise.
+\end{remark}
+
+\begin{remark}[The factor is necessary]\label{rem:price}
+Some power of $\lc f$ is unavoidable in Proposition~\ref{prop:transfer}:
+Proposition~\ref{prop:counterexample} exhibits $P \in \E(f)$ with
+$P \notin \E(\rev f)$, so there is no general inclusion
+$\E(f) \subseteq \E(\rev f)$. The factor forces the witness to vanish on the
+degree-drop locus $\{a_n = a_{n-1} = 0\}$ --- exactly the information at
+infinity that $\E(f)$ alone lacks. It is also what couples the conclusion to
+the hypothesis ``$\lc f$ order-invariant'': order-invariance of $\lc f$ is what
+makes $\lc(f)^M P$ order-invariant in step (3).
+\end{remark}
+
+\begin{thebibliography}{9}
+\bibitem{Brown01} C.~W.~Brown,
+  \emph{Improved projection for cylindrical algebraic decomposition},
+  J.~Symbolic Computation \textbf{32} (2001), 447--465.
+\bibitem{McCallum98} S.~McCallum,
+  \emph{An improved projection operator for cylindrical algebraic
+  decomposition}, in: Caviness, Johnson (eds.), \emph{Quantifier Elimination
+  and Cylindrical Algebraic Decomposition}, Springer, 1998.
+\end{thebibliography}
+
+\end{document}
