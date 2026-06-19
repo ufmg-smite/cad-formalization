@@ -1,0 +1,995 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage[margin=2.6cm]{geometry}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem*{assertion1}{Assertion 1}
+\newtheorem*{assertion2}{Assertion 2}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\N}{\mathbb{N}}
+\DeclareMathOperator{\ord}{ord}
+\DeclareMathOperator{\res}{res}
+\DeclareMathOperator{\disc}{disc}
+\DeclareMathOperator{\coeff}{coeff}
+\DeclareMathOperator{\lc}{lc}
+\newcommand{\ideal}[1]{\langle #1\rangle}
+\newcommand{\OO}{\mathcal{O}}
+\newcommand{\code}[1]{{\ttfamily\small #1}}
+\newcommand{\UNCHANGED}{\textbf{[unchanged]}}
+\newcommand{\CHANGED}{\textbf{[changed]}}
+\newcommand{\NEW}{\textbf{[new]}}
+\emergencystretch=1.5em
+
+\title{A Projection Theorem for Cylindrical Algebraic Decomposition\\
+via Elimination Ideals\\[1ex]
+\large An informal proof extracted from a Lean~4 formalization}
+\author{}
+\date{June 12, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+McCallum's projection theorem (Theorem~3.2.3 of his 1985 thesis) is the
+mathematical foundation of the McCallum projection operator for cylindrical
+algebraic decomposition (CAD): if every coefficient, discriminant and pairwise
+resultant arising from a squarefree basis $A$ is order-invariant on a connected
+analytic submanifold $S\subseteq\R^{r-1}$, then the elements of $A$ are
+analytically delineable on $S$ with pairwise disjoint, order-invariant sections.
+We prove a generalization in which the discriminants and resultants are replaced
+by \emph{arbitrary nonzero elements of the corresponding elimination ideals}
+$\ideal{F,\partial F/\partial x_r}\cap\R[x]$ and $\ideal{F,G}\cap\R[x]$.
+The motivation is proof reconstruction: a verifier checking a CAD-based
+certificate need not recompute resultants and discriminants---membership of the
+projection polynomials in the elimination ideals can be certified by B\'ezout
+cofactors and checked by polynomial arithmetic alone.
+
+The proof follows the architecture of McCallum's original argument and reuses
+its intermediate results---complexification, Weierstrass preparation, Zariski's
+equisingularity theorem (Theorem~4.1.1 of the thesis), and the return to the
+real domain---\emph{verbatim}. Exactly three ingredients change:
+(i)~the identity $D=\prod_i\disc(F_i)\cdot\prod_{i<j}\res(F_i,F_j)^2$
+(thesis Theorem~2.3.3), used to deduce the projection theorem from the lifting
+theorem, is replaced by a purely ring-theoretic \emph{radical lemma}: some power
+of the product of the chosen elimination-ideal elements again lies in the
+elimination ideal of the product;
+(ii)~the factorization $E=Q\cdot\disc(h)$ of the discriminant across Weierstrass
+preparation (thesis equation~(3.3.8), again via Theorem~2.3.3) is replaced by a
+\emph{norm--resultant identity}: any $P$ in $\ideal{h,h'}\cap\OO$ for a
+Weierstrass polynomial $h$ of degree $m$ over the ring $\OO$ of analytic germs
+satisfies $P^{m}=\pm\disc(h)\cdot Q$ with $Q\in\OO$;
+(iii)~the B\'ezout cofactors witnessing $P\in\ideal{f,f'}$ must be transported
+through the coordinate change, the complexification and the Weierstrass
+preparation, a bookkeeping obligation absent from the original proof.
+Everything else, including the entire Chapter~4 of the thesis (the Zariski
+theorem), is used unchanged.
+
+The complete proof, including a self-contained proof of Zariski's theorem and
+of the Weierstrass preparation and division theorems, has been formalized and
+machine-checked in Lean~4 over Mathlib; the main theorem
+(\code{mccallum\_3\_2\_3\_generalized}) depends on no axioms beyond Lean's
+standard three (\code{propext}, \code{Classical.choice}, \code{Quot.sound}).
+This document is the informal rendering of that formal proof.
+\end{abstract}
+
+\tableofcontents
+
+%% =========================================================================
+\section{Introduction}\label{sec:intro}
+%% =========================================================================
+
+McCallum's improved projection operator \cite{McCallum85,McCallum98} replaces
+the Collins projection in CAD construction by the much smaller set
+\[
+  P(A) \;=\; \coeff(A)\,\cup\,\disc(A)\,\cup\,\res(A),
+\]
+and his Theorem~3.2.3 shows that \emph{order}-invariance of $P(A)$ on a cell
+lifts to delineability and order-invariance of $A$ over the cell. The
+discriminants and resultants enter the proof through exactly one interface:
+$\disc(F)$ (resp.\ $\res(F,G)$) is a nonzero polynomial in the base variables
+$x=(x_1,\dots,x_{r-1})$ that vanishes wherever $F,\partial F/\partial x_r$
+(resp.\ $F,G$) have a common root---that is, a nonzero element of an
+\emph{elimination ideal}. This suggests the generalization proved here: the
+theorem survives, with the same conclusions, when each $\disc(F)$ is replaced
+by an arbitrary chosen nonzero
+$d(F)\in\ideal{F,\partial F/\partial x_r}\cap\R[x]$ and each $\res(F,G)$ by an
+arbitrary chosen nonzero $r(F,G)\in\ideal{F,G}\cap\R[x]$.
+
+The practical motivation comes from certificate checking. An untrusted CAD
+implementation can emit, along with its answer, the projection polynomials it
+used together with B\'ezout cofactors witnessing the memberships
+$d(F)=AF+B\,\partial F/\partial x_r$ and $r(F,G)=AF+BG$. A verifier then only
+needs to check these polynomial identities---no resultant, subresultant or
+discriminant computation, and no commitment to any particular projection
+implementation. The generalized theorem is exactly the statement that such
+certificates are sound.
+
+Sections~\ref{sec:prelim}--\ref{sec:statements} fix notation and state the two
+main results, the generalized lifting theorem (Theorem~\ref{thm:lifting},
+``3.2.1$'$'') and the generalized projection theorem
+(Theorem~\ref{thm:projection}, ``3.2.3$'$''). Section~\ref{sec:ingredients}
+develops the three new ingredients. Sections~\ref{sec:proj-proof}
+and~\ref{sec:lifting-proof} give the proofs, following McCallum's \S3.2--3.3
+step by step and marking each step \UNCHANGED{} or \CHANGED{} relative to the
+thesis. Section~\ref{sec:zariski} recalls the Zariski theorem (thesis
+Chapter~4), which is used as a black box with \emph{no} modification, and
+records how the formalization proves it. Section~\ref{sec:lean} summarizes the
+correspondence between this document and the Lean development.
+
+Throughout, thesis references ``Theorem $m.n.k$'' are to McCallum's 1985 PhD
+thesis \cite{McCallum85}.
+
+%% =========================================================================
+\section{Preliminaries and notation}\label{sec:prelim}
+%% =========================================================================
+
+All background is as in Chapter~2 of the thesis and is used without change.
+We single out what is needed, with thesis numbering:
+analytic functions and convergent power series (\S2.1); the complexification
+of a real-analytic function by its power series (Theorem~2.1.2); the implicit
+mapping theorem (Theorem~2.1.7); the Weierstrass preparation theorem
+(Theorem~2.1.10); analytic submanifolds and straightening coordinate systems
+(Theorem~2.2.1); the behaviour of the vanishing order under analytic
+isomorphisms (Theorem~2.3.1); the root continuity principle (Theorem~2.3.2);
+and the discriminant-of-a-product formula (Theorem~2.3.3), which we will use
+\emph{only} inside the proof of the Zariski theorem, not in the main argument.
+
+Throughout, $x=(x_1,\dots,x_{r-1})$, and a polynomial
+$f(x,x_r)\in\R[x,x_r]$ is regarded as univariate in $x_r$ over $\R[x]$. We
+write $f'=\partial f/\partial x_r$. For $a\in\R^{r-1}$, $f(a,x_r)\in\R[x_r]$
+denotes the specialization.
+
+\begin{definition}[Order; order-invariance (thesis \S2.3, \S3.2)]
+For $K=\R$ or $\C$, an analytic function $F$ defined near $p\in K^n$, the
+\emph{order} $\ord_p F\in\N\cup\{\infty\}$ is the least $k$ such that some
+partial derivative of $F$ of total order $k$ does not vanish at $p$ ($\infty$
+if all vanish). $F$ is \emph{order-invariant in} a subset $S$ of its domain if
+$p\mapsto\ord_p F$ is constant on $S$. For a polynomial
+$g\in\R[x]$ this applies with $F=g$ as a function on $\R^{r-1}$; for
+$f\in\R[x,x_r]$, order-invariance ``in a subset of $\R^r$'' refers to $f$ as a
+function of all $r$ variables.
+\end{definition}
+
+Note that the order at a point of $S$ is always the \emph{ambient} order---the
+order of $F$ as a function on a neighbourhood in $K^n$, not of the restriction
+$F|_S$ (which is identically zero in the interesting cases).
+
+\begin{definition}[Analytic submanifold; analytic delineability (thesis \S2.2, \S3.2)]
+$S\subseteq\R^{r-1}$ is a (nonempty, $s$-dimensional) \emph{analytic
+submanifold} if every $p\in S$ has an open neighbourhood $W$ and an analytic
+$F:W\to\R^{r-1-s}$, submersive at $p$, with $S\cap W=F^{-1}(0)\cap W$.
+A polynomial $f(x,x_r)$ is \emph{analytically delineable} on $S$ if there are
+$k\ge 0$ analytic functions $\theta_1<\dots<\theta_k$ on $S$ such that, for
+every $a\in S$, the real roots of $f(a,x_r)$ are exactly
+$\theta_1(a),\dots,\theta_k(a)$, and the multiplicity of $\theta_i(a)$ as a
+root of $f(a,x_r)$ is a constant $m_i\ge 1$ independent of $a$. The graphs of
+the $\theta_i$ are the \emph{$f$-sections} over $S$.
+\end{definition}
+
+\begin{definition}[Squarefree basis]
+A finite set $A\subseteq\R[x,x_r]$ is a \emph{squarefree basis} if every
+element has positive degree in $x_r$, is squarefree, and the elements are
+pairwise coprime.
+\end{definition}
+
+%% =========================================================================
+\section{The generalized theorems}\label{sec:statements}
+%% =========================================================================
+
+\begin{definition}[Generalized reduced projection]\label{def:proj}
+Let $A$ be a squarefree basis. A \emph{generalized reduced projection} of $A$
+is any set
+\[
+  P'(A) \;=\; \coeff(A)\;\cup\;\{\,d(F) : F\in A\,\}\;\cup\;
+              \{\,r(F,G) : F,G\in A,\ F\neq G\,\},
+\]
+where $\coeff(A)$ is the set of nonzero $x_r$-coefficients of elements of $A$,
+and $d(F)\in\ideal{F,F'}\cap\R[x]$, $r(F,G)\in\ideal{F,G}\cap\R[x]$ are
+\emph{chosen nonzero} elements of the indicated elimination ideals.
+\end{definition}
+
+\begin{remark}[Non-vacuity; recovering McCallum's $P(A)$]\label{rem:recover}
+The resultant lies in the ideal generated by its arguments (Sylvester matrix),
+so $\res(F,F')\in\ideal{F,F'}\cap\R[x]$ and $\res(F,G)\in\ideal{F,G}\cap\R[x]$;
+moreover $\res(F,F')=\pm\lc(F)\cdot\disc(F)$. Taking
+$d(F)=\res(F,F')$ and $r(F,G)=\res(F,G)$, these are nonzero exactly under the
+squarefree-basis hypotheses, and they are order-invariant on $S$ whenever the
+elements of McCallum's $P(A)$ are (orders add over products, and
+$\lc(F)\in\coeff(A)$). Hence Theorem~\ref{thm:projection} below subsumes thesis
+Theorem~3.2.3. Conversely, a nonzero element of $\ideal{F,F'}\cap\R[x]$ exists
+\emph{only if} $F$ is squarefree: a repeated factor of $F$ divides every
+element of $\ideal{F,F'}$ in $\R(x)[x_r]$ and would force the elimination ideal
+to vanish. The membership hypotheses below therefore silently carry the
+nondegeneracy (squarefreeness, $\disc\neq 0$) assumptions of the original
+statements.
+\end{remark}
+
+\begin{theorem}[Generalized lifting theorem, ``3.2.1$'$'']\label{thm:lifting}
+Let $f(x,x_r)\in\R[x,x_r]$ and let $S$ be a connected analytic submanifold of
+$\R^{r-1}$ on which $f$ is degree-invariant and such that $f(a,x_r)\neq 0$ for
+every $a\in S$. Suppose there exists $P\in\R[x]$ with
+\[
+  P\neq 0,\qquad P\in\ideal{f,\,f'}\cap\R[x],\qquad
+  P\ \text{order-invariant in } S .
+\]
+Then $f$ is analytically delineable on $S$, and for every continuous root
+function $\theta$ of $f$ on $S$ (i.e.\ $f(a,\theta(a))=0$ for all $a\in S$),
+$f$ is order-invariant in the graph of $\theta$. In particular $f$ is
+order-invariant in each $f$-section over $S$.
+\end{theorem}
+
+\begin{remark}
+Thesis Theorem~3.2.1 is the special case $P=D=\disc(f)$ (more precisely
+$P=\res(f,f')$, cf.\ Remark~\ref{rem:recover}); its hypotheses ``$f$ squarefree
+with $D\neq 0$'' are subsumed by $P\neq 0$ as explained above. The conclusion
+quantified over arbitrary continuous root functions is the form delivered by
+the formal proof; it implies (and, given delineability, is equivalent to)
+order-invariance in each section.
+\end{remark}
+
+\begin{theorem}[Generalized projection theorem, ``3.2.3$'$'']\label{thm:projection}
+Let $A$ be a nonempty finite squarefree basis of $r$-variate polynomials,
+$r\ge 2$, and let $S$ be a connected analytic submanifold of $\R^{r-1}$.
+Suppose each element of $A$ is not identically zero on $S$, and each element
+of some generalized reduced projection $P'(A)$ (Definition~\ref{def:proj}) is
+order-invariant in $S$. Then each element of $A$ is degree-invariant and
+analytically delineable on $S$, the sections of $A$ over $S$ are pairwise
+disjoint, and each element of $A$ is order-invariant in every section of $A$
+over $S$.
+\end{theorem}
+
+%% =========================================================================
+\section{The three new ingredients}\label{sec:ingredients}
+%% =========================================================================
+
+\subsection{A norm--resultant identity for monic polynomials}\label{ssec:norm}
+
+In McCallum's proof of the lifting theorem, the discriminant $E$ of the
+transformed polynomial $g$ is related to the discriminant of its Weierstrass
+polynomial $h$ by the explicit factorization $E=Q\cdot\disc(h)$, obtained from
+the discriminant-of-a-product formula (thesis Theorem~2.3.3, eq.~(3.3.8)). For
+a general witness $P\in\ideal{f,f'}\cap\R[x]$ no such product formula exists.
+One might hope that $\ideal{h,h'}\cap R=(\res(h,h'))$ for monic $h$ over a
+ring $R$, which would give $\disc(h)\mid P$ directly; this is \textbf{false}:
+\begin{equation}\label{eq:counterexample}
+  R=\mathbb{Q}[t],\quad h=z^3+t,\quad g=h'=3z^2:\qquad
+  3t = 3\cdot h - z\cdot g\in\ideal{h,g}\cap R,\quad
+  \res(h,g)=27t^2\nmid 3t .
+\end{equation}
+The correct statement goes through the algebra norm and costs an $m$-th power.
+
+\begin{lemma}[Norm--resultant identity]\label{lem:norm-res}
+Let $R$ be a commutative ring and $h\in R[z]$ monic of degree $m$. For every
+$g\in R[z]$, the norm of the multiplication-by-$\bar g$ endomorphism of the
+free rank-$m$ $R$-module $R[z]/(h)$ equals the resultant:
+\[
+  N_{R[z]/(h)\,/\,R}(\bar g)\;=\;\res(h,g).
+\]
+\end{lemma}
+
+\begin{proof}
+Both sides are compatible with base change along ring maps (for the norm,
+because the matrix of multiplication by $\bar g$ in the basis
+$1,\bar z,\dots,\bar z^{m-1}$ has entries the coefficients of
+$g\,z^j \bmod h$, and reduction mod a monic polynomial commutes with ring
+maps; for the resultant, by the standard $\res(h^\varphi,g^\varphi)
+=\varphi(\res(h,g))$ for monic $h$). By a universal-coefficients reduction it
+therefore suffices to prove the identity when $R=K$ is a field over which $h$
+splits, $h=\prod_{i=1}^m(z-\alpha_i)$. There
+$\res(h,g)=\prod_i g(\alpha_i)$, and the norm factors the same way: by the
+multiplicativity of determinants along the filtration induced by
+$K[z]/(h)\twoheadrightarrow K[z]/(h/(z-\alpha_1))$, whose kernel is a line on
+which $\bar g$ acts by the scalar $g(\alpha_1)$, induction on $m$ gives
+$N(\bar g)=\prod_i g(\alpha_i)$.
+\end{proof}
+
+\begin{corollary}[Norm identity for elimination ideals]\label{cor:norm-elim}
+Let $R$ be a commutative ring, $h\in R[z]$ monic of degree $m$, $g\in R[z]$,
+and let $P\in R$ satisfy $P\in\ideal{h,g}\cap R$, say $P=ah+bg$ with
+$a,b\in R[z]$. Then
+\[
+  P^{m} \;=\; \res(h,g)\cdot Q,
+  \qquad Q \;=\; N_{R[z]/(h)/R}(\bar b)\;\in R .
+\]
+In particular, for $g=h'$:\quad $P^{m}=\pm\disc(h)\cdot Q$.
+\end{corollary}
+
+\begin{proof}
+Reducing $P=ah+bg$ modulo $h$ gives $\bar g\,\bar b=P$ in $R[z]/(h)$. Apply
+the norm: it is multiplicative, $N(\bar g)=\res(h,g)$ by
+Lemma~\ref{lem:norm-res}, and $N(P)=P^m$ since the scalar $P$ acts as
+$P\cdot\mathrm{id}$ on a free module of rank $m$. For $g=h'$ use
+$\res(h,h')=\pm\disc(h)$ ($h$ monic).
+\end{proof}
+
+Two features of Corollary~\ref{cor:norm-elim} matter in the application.
+First, it holds over an \emph{arbitrary} commutative ring; we will apply it
+with $R=\OO$ the ring of germs at $0$ of holomorphic functions on
+$\C^{r-1}$, so that the cofactor $Q=N(\bar b)$ is automatically a
+\emph{holomorphic germ}---being polynomial in the coefficients of $b$ and
+$h$---provided the B\'ezout cofactor $b$ has analytic coefficients. This is
+why the membership $P\in\ideal{h,h'}$ must be transported with analytic
+cofactors (\S\ref{ssec:transport}). Second, the exponent $m$ is harmless: the
+order of $P^m$ at a point is $m\cdot\ord P$, so constant order of $P$ along a
+set gives constant order of $P^m$.
+In the counterexample~\eqref{eq:counterexample}:
+$(3t)^3=27t^3=\res(h,g)\cdot t$, with $Q=t$.
+
+\subsection{Order-invariance of factors: Lemma 3.2.2 in ambient form}
+\label{ssec:order-add}
+
+The second ingredient is the ``only if'' half of thesis Lemma~3.2.2 (whose
+proof the thesis records as ``straightforward''), in precisely the ambient,
+along-a-subset form in which the thesis itself applies it, and with the
+non-degeneracy hypotheses weakened from ``each factor nonconstant'' to ``each
+factor not identically zero''. We include the complete proof, since the
+statement is applied in a situation where both factors vanish identically
+\emph{on} the subset $S$ (only their ambient orders are finite), and since the
+proof is genuinely where connectedness of $S$ enters.
+
+\begin{lemma}[Order-invariance descends to factors]\label{lem:order-add}
+Let $U\subseteq\C^n$ be a connected open set, $f,g:U\to\C$ holomorphic and
+neither identically zero on $U$. Let $S\subseteq U$ be preconnected, let
+$z_0\in S$, and suppose $\ord_z(fg)=\ord_{z_0}(fg)$ for all $z\in S$. Then
+$\ord_z f=\ord_{z_0}f$ and $\ord_z g=\ord_{z_0}g$ for all $z\in S$.
+\end{lemma}
+
+\begin{proof}
+Since $f\not\equiv 0$ on the connected open $U$, the identity theorem gives
+$\ord_z f<\infty$ for \emph{every} $z\in U$; likewise for $g$. The order at a
+point is a valuation: $\ord_z(fg)=\ord_z f+\ord_z g$. Set $a=\ord_{z_0}f$,
+$b=\ord_{z_0}g$, $c=a+b=\ord_{z_0}(fg)$; all are finite, and
+$\ord_z f+\ord_z g=c$ for all $z\in S$.
+
+Consider $A=\{z\in S:\ord_z f>a\}$. Because the sum of orders is $c$ and all
+orders are finite, $A=\{z\in S:\ord_z g<b\}$. The first description shows $A$
+is closed in $S$ ($\ord_z f\ge a+1$ says that all partial derivatives of $f$
+of total order $\le a$ vanish at $z$, a closed condition); the second shows
+$A$ is open in $S$ ($\ord_z g\le b-1$ says that some particular partial
+derivative of order $\le b-1$ is nonzero at $z$, an open condition). Thus $A$
+is clopen in the preconnected $S$ and misses $z_0$, hence $A=\emptyset$. By
+symmetry $\{z\in S:\ord_z g>b\}=\emptyset$ as well, and since the orders sum
+to $c$ everywhere on $S$, $\ord f\equiv a$ and $\ord g\equiv b$ on $S$.
+\end{proof}
+
+\begin{remark}\label{rem:ambient}
+The hypotheses concern the \emph{ambient} orders at points of $S$ and ambient
+non-vanishing ($f\not\equiv0$ on $U$, not on $S$). This is essential: in the
+application $f=\disc(h)$ restricted to the section $T^*$ is identically zero
+whenever the tracked root has multiplicity $m\ge 2$ (for instance
+$f=x_3^2-x_2$ gives a Weierstrass polynomial with $\disc(h)=4x_2$, identically
+zero on $T^*=\{x_2=0\}$, of constant ambient order $1$ there). Finiteness of
+the ambient orders comes from the identity theorem on $U$, never from
+non-vanishing on~$S$.
+\end{remark}
+
+\subsection{The radical lemma}\label{ssec:radical}
+
+The third ingredient replaces the use of Theorem~2.3.3
+($D=\prod\disc(F_i)\cdot\prod\res(F_i,F_j)^2$) in the deduction of the
+projection theorem from the lifting theorem. Its content: the product of the
+chosen elimination-ideal elements, raised to a suitable power, is itself an
+elimination-ideal element for the product polynomial. The proof is purely
+ring-theoretic---no algebraically closed field, no Nullstellensatz, no descent
+of coefficients---using only the characterization of the radical of an ideal
+as the intersection of the primes containing it.
+
+\begin{lemma}[Radical lemma]\label{lem:radical}
+Let $R_0$ be a commutative ring, let $F_1,\dots,F_n\in R_0[x_r]$, and set
+$f=\prod_{i=1}^n F_i$. Suppose given
+\[
+  d_i\in\ideal{F_i,\,F_i'}\cap R_0\quad(1\le i\le n),\qquad
+  r_{ij}\in\ideal{F_i,\,F_j}\cap R_0\quad(i\neq j),
+\]
+and set $\mathcal R=\prod_i d_i\cdot\prod_{i\neq j} r_{ij}\in R_0$. Then
+$\mathcal R^{N}\in\ideal{f,\,f'}\cap R_0$ for some $N\ge 1$.
+\end{lemma}
+
+\begin{proof}
+It suffices to show $\mathcal R\in\sqrt{\ideal{f,f'}}$ in $R_0[x_r]$, since
+then $\mathcal R^N\in\ideal{f,f'}$ for some $N$, and $\mathcal R^N\in R_0$.
+As $\sqrt{I}=\bigcap\{\mathfrak p\ \text{prime}:\mathfrak p\supseteq I\}$, fix
+a prime $\mathfrak p\supseteq\ideal{f,f'}$ of $R_0[x_r]$ and show
+$\mathcal R\in\mathfrak p$.
+
+From $f=\prod_i F_i\in\mathfrak p$ and primality, some $F_{i_0}\in\mathfrak p$.
+Write $f=F_{i_0}\cdot G$ with $G=\prod_{i\neq i_0}F_i$; then
+$f'=F_{i_0}'\,G+F_{i_0}\,G'$, and since $f'\in\mathfrak p$ and
+$F_{i_0}G'\in\mathfrak p$, we get $F_{i_0}'\,G\in\mathfrak p$. By primality,
+either $F_{i_0}'\in\mathfrak p$, in which case
+$\ideal{F_{i_0},F_{i_0}'}\subseteq\mathfrak p$ and hence
+$d_{i_0}\in\mathfrak p$; or some $F_{j_0}\in\mathfrak p$ with $j_0\neq i_0$,
+in which case $\ideal{F_{i_0},F_{j_0}}\subseteq\mathfrak p$ and hence
+$r_{i_0 j_0}\in\mathfrak p$. Either way one factor of $\mathcal R$ lies in
+$\mathfrak p$, so $\mathcal R\in\mathfrak p$.
+\end{proof}
+
+\begin{remark}
+Geometrically, $\mathcal R$ vanishes on the projection of the repeated-root
+locus of $f$, which decomposes as
+$V(f,f')=\bigcup_iV(F_i,F_i')\cup\bigcup_{i<j}V(F_i,F_j)$; the lemma is the
+algebraic shadow of that decomposition. The prime-ideal argument above proves
+it directly over $R_0=\R[x]$ (indeed over any commutative ring), avoiding both
+the passage to $\overline{K}$ and the descent of the membership back to
+$\R[x]$ that a Nullstellensatz argument would require. The exponent $N$ is
+immaterial for order-invariance, by additivity of orders.
+\end{remark}
+
+%% =========================================================================
+\section{Proof of the projection theorem from the lifting theorem}
+\label{sec:proj-proof}
+%% =========================================================================
+
+This mirrors the thesis proof of Theorem~3.2.3 (\S3.2), with
+Lemma~\ref{lem:radical} substituting for Theorem~2.3.3.
+
+\begin{proof}[Proof of Theorem~\ref{thm:projection}]
+Degree-invariance of each $F\in A$ on $S$ follows from order-invariance of its
+coefficients exactly as in the thesis: the leading coefficient is a nonzero
+polynomial of constant order on $S$; if it vanished at some $a\in S$ its order
+there would be $\ge 1$, hence $\ge 1$ everywhere on $S$, i.e.\ it would vanish
+identically on $S$; applying this argument to successive coefficients and
+using that $F$ is not identically zero on $S$ pins the specialized degree.
+\UNCHANGED
+
+Disjointness of sections is immediate from pairwise coprimality: a B\'ezout
+identity $uF+vG=1$ in $\R(x)[x_r]$, cleared of denominators and specialized at
+$a\in S$, prevents common roots of $F(a,x_r)$ and $G(a,x_r)$. \UNCHANGED
+
+Let $f=\prod_{F\in A}F$; it is squarefree (the $F$ are squarefree and pairwise
+coprime), of positive degree, degree-invariant on $S$, and $f(a,x_r)\neq 0$
+for $a\in S$. \UNCHANGED
+
+\CHANGED\ \emph{The witness.} Let
+$\mathcal R=\prod_F d(F)\cdot\prod_{F\neq G}r(F,G)\in\R[x]$. Each factor is
+nonzero, so $\mathcal R\neq 0$; each factor is order-invariant in $S$, so
+$\mathcal R$ is order-invariant in $S$ (orders add over products). By
+Lemma~\ref{lem:radical} there is $N\ge1$ with
+$P:=\mathcal R^{N}\in\ideal{f,f'}\cap\R[x]$; and $P\neq0$ is order-invariant
+in $S$ since $\ord_a P=N\ord_a\mathcal R$. (In the thesis, this paragraph is
+the computation $D=\prod\disc(F_i)\prod\res(F_i,F_j)^2$ followed by
+Lemma~3.2.2.)
+
+Applying Theorem~\ref{thm:lifting} to $f$ with witness $P$: $f$ is
+analytically delineable on $S$ and order-invariant in the graph of every
+continuous root function of $f$ on $S$. Delineability and the
+root-multiplicity structure pass from the product $f$ to each factor $F\in A$
+as in the thesis (each root of $F(a,\cdot)$ is a root of $f(a,\cdot)$; on
+sections, the multiplicities of the coprime factors do not interact); and on
+the graph of a continuous root function $\theta$ of any $G\in A$
+(a continuous root function of $f$ as well), the order-invariance of the
+product $f$ descends to each factor $F$ by Lemma~3.2.2 (in the ambient form,
+Lemma~\ref{lem:order-add}, applied to $F$ and its cofactor in $f$, both of
+which specialize nontrivially at every point of $S$). \UNCHANGED
+\end{proof}
+
+%% =========================================================================
+\section{Proof of the lifting theorem}\label{sec:lifting-proof}
+%% =========================================================================
+
+We follow the thesis proof of Theorem~3.2.1 (\S3.3) step by step. Recall its
+architecture: the theorem reduces to a local statement (Assertion~1), which in
+turn reduces to a nonsplitting statement about each individual real root
+(Assertion~2); Assertion~2 splits into the case $s=r-1$ ($S$ open) and the
+case $1\le s\le r-2$ (positive codimension), and the latter proceeds by
+coordinate change, complexification, Weierstrass preparation, the Zariski
+theorem, and a return to the real domain.
+
+\subsection{Reduction to the local statements}\label{ssec:reduce}
+
+\UNCHANGED\ The deduction of the theorem from Assertion~1 (local
+delineability: each $p\in S$ has a neighbourhood $N$ with $f$ analytically
+delineable on $S\cap N$ and order-invariant in each section over $S\cap N$) is
+exactly as on thesis pp.~22--23: by connectedness of $S$ the number of
+distinct real roots, and the list of their multiplicities, are locally
+constant hence constant; the local analytic root functions agree on overlaps
+(they enumerate the same roots in increasing order) and patch to global ones;
+order-invariance globalizes by a clopen argument on $S$. The reduction of
+Assertion~1 to Assertion~2 (nonsplitting of each root cluster, eq.~(3.3.1))
+via the root continuity principle (Theorem~2.3.2)---choosing $\epsilon$ below
+a third of the minimal root separation of $f(p,x_r)$, circles $C_i$ around the
+distinct complex roots $\alpha_i$ of multiplicity $m_i$, and a neighbourhood
+$N_0$ on which each $C_i$ encloses exactly $m_i$ roots---is also unchanged, as
+is the translation reducing each real root to $\alpha_i=0$. (The translation
+$x_r\mapsto x_r+\alpha_i$ fixes $\R[x]$, so it transports the witness $P$ and
+its B\'ezout cofactors verbatim.)
+
+For the rest of the section, fix $p\in S$, a real root $\alpha=0$ of
+$f(p,x_r)$ of multiplicity $m\ge 1$, and the data $\epsilon$, $C$, $N_0$ as
+above. We must produce a neighbourhood $N\ni p$ and an analytic
+$\theta:S\cap N\to(-\epsilon,\epsilon)$ with: $f(x,\alpha)=0\iff
+\alpha=\theta(x)$ for $x\in S\cap N$, $|\alpha|<\epsilon$; and $f$
+order-invariant in the graph of $\theta$.
+
+\subsection{Case $s=r-1$ ($S$ open)}\label{ssec:open}
+
+\CHANGED\ (simplified). Since $S$ is open and connected and $P$ is a nonzero
+polynomial of constant order on $S$, $P$ vanishes nowhere on $S$: a nonzero
+polynomial cannot vanish identically on a nonempty open set, so its order is
+$0$ at some point of $S$, hence at every point. Now write the membership as a
+B\'ezout identity
+\[
+  P(x) \;=\; A(x,x_r)\,f(x,x_r)+B(x,x_r)\,f'(x,x_r)
+\]
+and specialize at any $a\in S$: since $P(a)\neq 0$, the univariate polynomials
+$f(a,x_r)$ and $f'(a,x_r)$ generate the unit ideal, i.e.\ $f(a,x_r)$ is
+\emph{separable}. In particular $m=1$ and $f'(p,0)\neq 0$, and the implicit
+function theorem (Theorem~2.1.7) yields the analytic simple-root function
+$\theta$ near $p$ with $f$ of constant order $1$ on its graph
+($f'\neq0$ there). This proves Assertion~2 with constant section order $1$.
+
+(The thesis argument passes through the identity
+$(-1)^{m(m-1)/2}R(x)=f_0(x)D(x)$ and the non-vanishing of the leading
+coefficient to conclude $R(p)\neq0$; the elimination-ideal hypothesis makes
+this detour unnecessary.)
+
+\subsection{Case $1\le s\le r-2$: coordinate change and transport of the
+witness}\label{ssec:transport}
+
+\emph{Coordinate change.} \UNCHANGED\ By Theorem~2.2.1 choose a connected
+neighbourhood $U\subseteq N_0$ of $p$ and an analytic coordinate system
+$\Phi:U\to V$ with
+$S\cap U=\{x\in U:\phi_{s+1}(x)=\dots=\phi_{r-1}(x)=0\}$; let
+$T=\{y:y_{s+1}=\dots=y_{r-1}=0\}$, so $\Phi(S\cap U)=T\cap V$. Define the
+transformed pseudopolynomial
+$g(y,y_r)=\sum_j g_j(y)\,y_r^{\,d-j}$, $g_j=f_j\circ\Phi^{-1}$, with analytic
+coefficients on $V$.
+
+\CHANGED\ \emph{Transport of the witness and of its certificate.} Set
+$\widetilde P=P\circ\Phi^{-1}$, analytic on $V$ and not identically zero.
+Substituting $x=\Phi^{-1}(y)$ in the B\'ezout identity gives
+\begin{equation}\label{eq:transported-membership}
+  \widetilde P(y)\;=\;\widetilde A(y,y_r)\,g(y,y_r)
+    +\widetilde B(y,y_r)\,\frac{\partial g}{\partial y_r}(y,y_r),
+\end{equation}
+where $\widetilde A,\widetilde B$ are polynomials in $y_r$ with coefficients
+analytic in $y$ (the substitution touches only the base variables, so it
+commutes with $\partial/\partial x_r$). Thus
+$\widetilde P\in\ideal{g,\partial g/\partial y_r}$ over the ring of analytic
+functions---\emph{with explicit analytic cofactors}, which the sequel must
+preserve. By Theorem~2.3.1 (order is preserved by analytic isomorphisms),
+$\widetilde P$ is order-invariant in $T\cap V$, with the same constant order
+$\mu:=\ord_0\widetilde P<\infty$ as $P$ on $S$ near $p$.
+(In the thesis this step defines $E=\disc(g)=D\circ\Phi^{-1}$ instead; no
+cofactor transport is needed there.)
+
+\subsection{Complexification}\label{ssec:complexify}
+
+\UNCHANGED\ in method (applied to $\widetilde P,\widetilde A,\widetilde B$ in
+place of $E$). Expanding all the analytic coefficient functions
+($g_j$, $\widetilde P$, and the $y$-coefficients of $\widetilde A,\widetilde
+B$) in convergent power series at $0$ and substituting complex variables
+(Theorem~2.1.2) extends everything to a polydisc
+$\Delta_1\subseteq\C^{r-1}$: a pseudopolynomial $g(z,z_r)$, a holomorphic
+$\widetilde P(z)$, and identity~\eqref{eq:transported-membership} continues to
+hold on $\Delta_1$ by the identity theorem (both sides are holomorphic and
+agree on the real points, coefficientwise in $y_r$).
+
+Let $T^*=\{z:z_{s+1}=\dots=z_{r-1}=0\}$. The thesis argument on pp.~25--26
+applies verbatim to $\widetilde P$: every partial derivative of
+$\widetilde P$ of order $<\mu$ vanishes on $T\cap V$ by order-invariance, its
+complexification vanishes on $T^*\cap\Delta_1$ (a power series with real
+coefficients vanishing for real arguments vanishes identically), and some
+order-$\mu$ derivative is nonzero at $0$, hence on a polydisc. After
+refining $\Delta_1$:
+\begin{equation}\label{eq:Ptilde-oi}
+  \widetilde P(z)\ \text{is order-invariant in}\ T^*\cap\Delta_1,
+  \ \text{with constant (ambient) order}\ \mu .
+\end{equation}
+Moreover the order of the complexification at a real point equals the real
+order (the complex Taylor coefficients at a real point are determined by the
+real ones), which is what makes~\eqref{eq:Ptilde-oi} usable and what will
+later transport the complex conclusions back to $\R$.
+
+\subsection{Weierstrass preparation and descent of the membership}
+\label{ssec:prep}
+
+\emph{Preparation.} \UNCHANGED\ Since $z_r=0$ is a zero of $g(0,z_r)$ of
+multiplicity exactly $m$ (and $g(0,z_r)\neq0$ for $0<|z_r|\le\epsilon$), the
+Weierstrass preparation theorem (Theorem~2.1.10) gives, after refining to
+$\Delta_2\subseteq\Delta_1$, a non-vanishing holomorphic unit $u(z,z_r)$ on
+$\Delta'=\Delta_2\times\Delta(0;\epsilon)$ and a Weierstrass polynomial
+\[
+  h(z,z_r)=z_r^{m}+a_1(z)z_r^{m-1}+\dots+a_m(z),\qquad a_i(0)=0,
+\]
+with $g=u\,h$ on $\Delta'$ (thesis eq.~(3.3.7)), all roots of $h(z,\cdot)$
+lying in $\Delta(0;\epsilon)$.
+
+\CHANGED\ \emph{Descent of the membership to $\ideal{h,h'}$ over germs.} Let
+$\OO$ denote the ring of germs at $0\in\C^{r-1}$ of holomorphic functions; it
+is an integral domain (identity theorem), and $h\in\OO[z_r]$ is monic of
+degree $m$. We claim
+\begin{equation}\label{eq:descent}
+  \widetilde P\;\in\;\ideal{h,\,h'}\ \subseteq\ \OO[z_r]
+  \qquad(h'=\partial h/\partial z_r).
+\end{equation}
+Indeed, differentiating $g=uh$ in $z_r$ gives $g'=u'h+uh'$;
+substituting into~\eqref{eq:transported-membership},
+\[
+  \widetilde P
+  \;=\;\bigl(\widetilde A\,u+\widetilde B\,u'\bigr)\,h
+      +\bigl(\widetilde B\,u\bigr)\,h' ,
+\]
+an identity of holomorphic functions of $(z,z_r)$ near $0$ whose cofactors
+$A_1=\widetilde A u+\widetilde B u'$ and $B_1=\widetilde B u$ are holomorphic
+but not polynomial in $z_r$. To restore polynomiality, divide $B_1$ by the
+monic $h$ (Weierstrass division): $B_1=qh+b$ with $b\in\OO[z_r]$ of degree
+$<m$ and $q$ holomorphic. Then
+$\widetilde P-b\,h'=(A_1+q\,h')\,h$, and the left side is a polynomial in
+$z_r$ of degree $\le 2m-2$ with germ coefficients; dividing by the monic $h$
+in $\OO[z_r]$ and using that $\OO$ is a domain, the holomorphic quotient
+$A_1+q h'$ coincides with the polynomial quotient $a\in\OO[z_r]$. Hence
+$\widetilde P=a\,h+b\,h'$ with $a,b\in\OO[z_r]$,
+proving~\eqref{eq:descent}---with the crucial byproduct that the cofactor $b$
+has \emph{analytic} coefficients.
+
+\subsection{The discriminant of $h$ has constant order along $T^*$}
+\label{ssec:disc-order}
+
+\CHANGED\ (this is the key new step, replacing thesis eq.~(3.3.8)).
+Apply Corollary~\ref{cor:norm-elim} over $R=\OO$ to the
+membership~\eqref{eq:descent}:
+\begin{equation}\label{eq:norm-identity}
+  \widetilde P(z)^{\,m}\;=\;\res(h,h')(z)\cdot Q(z)
+  \;=\;\pm\,\disc(h)(z)\cdot Q(z),
+  \qquad Q=N_{\OO[z_r]/(h)}(\bar b)\in\OO ,
+\end{equation}
+valid on a connected open neighbourhood $\Delta_3\subseteq\Delta_2$ of $0$ on
+which all the germs involved have analytic representatives. The cofactor $Q$
+is analytic because the norm is a polynomial expression in the coefficients of
+$b$ and of $h$ (\S\ref{ssec:norm}).
+
+Neither factor on the right of~\eqref{eq:norm-identity} vanishes identically
+on $\Delta_3$: since $\widetilde P\not\equiv 0$ (it has finite order $\mu$ at
+$0$) we have $\widetilde P^m\not\equiv0$, and $\OO$ is a domain, so
+$\disc(h)\not\equiv0$ and $Q\not\equiv0$. (Note that squarefreeness of $f$ is
+never invoked: the non-vanishing of $\disc(h)$ is a consequence of the
+existence of the nonzero witness, cf.\ Remark~\ref{rem:recover}.)
+
+By~\eqref{eq:Ptilde-oi} and additivity of orders,
+$\ord_z\widetilde P^{\,m}=m\mu$ is constant for $z\in T^*\cap\Delta_3$. Now
+apply Lemma~\ref{lem:order-add} on $U=\Delta_3$ with $S=T^*\cap\Delta_3$
+(preconnected), $f=\disc(h)$, $g=Q$:
+\begin{equation}\label{eq:disc-oi}
+  \disc(h)\ \text{is order-invariant in}\ T^*\cap\Delta_3,
+  \ \text{with finite constant order} .
+\end{equation}
+By Remark~\ref{rem:ambient} the lemma applies even though
+$\disc(h)|_{T^*}\equiv 0$ whenever $m\ge2$---the generic situation.
+Display~\eqref{eq:disc-oi} is precisely the hypothesis of Zariski's theorem.
+
+(For comparison, the thesis obtains~\eqref{eq:disc-oi} from
+$E=Q\cdot\disc(h)$ with $Q=\disc(u)\res(u,h)^2$ via Theorem~2.3.3, plus
+Lemma~3.2.2; here the unit $u$ never needs to be analyzed as a
+pseudopolynomial, and the witness replaces the discriminant $E$ throughout.)
+
+\subsection{Application of Zariski's theorem}\label{ssec:zariski-apply}
+
+\UNCHANGED\ By~\eqref{eq:disc-oi}, Theorem~4.1.1 of the thesis (stated as
+Theorem~\ref{thm:zariski} below) applies to the Weierstrass polynomial $h$:
+after refining to $\Delta_4\subseteq\Delta_3$ there is a holomorphic
+$\psi:\Delta_4^{(s)}\to\Delta(0;\epsilon)$ such that for
+$z=(z_1,\dots,z_s,0,\dots,0)\in T^*\cap\Delta_4$ and
+$\alpha\in\Delta(0;\epsilon)$,
+\[
+  h(z,\alpha)=0\iff\alpha=\psi(z_1,\dots,z_s)
+  \qquad\text{(thesis eq.~(3.3.9)),}
+\]
+the unique root having multiplicity exactly $m$, and $h$ is order-invariant in
+the graph $G^*=\{(z,\psi(z)):z\in T^*\cap\Delta_4\}$. This delivers both the
+\emph{nonsplitting} of the root cluster over the section and the
+order-invariance of $h$ (hence of $g=uh$, as $u\neq0$) along it.
+
+\subsection{Return to the real domain and reassembly}\label{ssec:real}
+
+\UNCHANGED\ The argument of thesis pp.~27--28 applies verbatim:
+\begin{enumerate}[leftmargin=2em]
+\item For real $y\in T\cap B$ the polynomial $g(y,y_r)$ has real
+coefficients, so the unique root $\psi(y)$ of $h(y,\cdot)$ in
+$\Delta(0;\epsilon)$ is fixed by conjugation, i.e.\ real. Consequently the
+power series of $\psi$ has real coefficients and the restriction
+$\eta=\psi|_{B^{(s)}}$ is a real-valued real-analytic function (Schwarz
+reflection, via Theorem~2.1.2).
+\item For $y\in T\cap B$, $\alpha\in(-\epsilon,\epsilon)$:
+$g(y,\alpha)=0\iff h(y,\alpha)=0\iff\alpha=\eta(y)$, since $u\neq0$.
+\item The order of $g$ at a real point of the graph of $\eta$ equals the
+order of its complexification at that point (matching Taylor coefficients,
+as in \S\ref{ssec:complexify}); hence the order-invariance of $h$ in $G^*$
+gives order-invariance of $g$ in the graph of $\eta$.
+\item Detransform: $N=\Phi^{-1}(B)$ and $\theta=\eta\circ\phi$, where $\phi$
+is the chart of $S$ induced by $\Phi$. By Theorem~2.3.1 the order is
+preserved, establishing Assertion~2 for the root $\alpha_i$.
+\end{enumerate}
+Undoing the translation of \S\ref{ssec:reduce} and intersecting the finitely
+many neighbourhoods $N_i$ yields Assertion~1 at $p$; globalization over the
+connected $S$ was already described in \S\ref{ssec:reduce}. Finally, for the
+conclusion as stated (order-invariance along \emph{arbitrary} continuous root
+functions $\theta$): on each connected local piece, the values of $\theta$ lie
+among the finitely many separated analytic branches, so the branch index is
+locally constant, hence constant; thus $\theta$ coincides with a single
+delineation branch and inherits its order-invariance. \qed
+
+%% =========================================================================
+\section{The Zariski theorem (thesis Chapter 4): unchanged}
+\label{sec:zariski}
+%% =========================================================================
+
+The generalization makes \emph{no} change to Chapter~4 of the thesis: the
+hypothesis it consumes, constancy of the order of $\disc(h)$ along the
+section, is produced by \S\ref{ssec:disc-order}, and its conclusion is
+consumed in \S\ref{ssec:zariski-apply} exactly as in the original proof. We
+restate it for completeness.
+
+\begin{theorem}[Zariski; thesis Theorem 4.1.1]\label{thm:zariski}
+Let $h(z,z_n)$ be a Weierstrass polynomial of degree $m\ge 1$ on a polydisc
+$\Delta_1\subseteq\C^{n-1}$, all of whose roots lie in $\Delta(0;\epsilon)$,
+and whose discriminant $F(z)$ does not vanish identically. Let
+$1\le s\le n-2$ and $T^*=\{z:z_{s+1}=\dots=z_{n-1}=0\}$, and assume $F$ is
+order-invariant in $T^*\cap\Delta_1$. Then on a smaller polydisc there is a
+holomorphic $\psi(z_1,\dots,z_s)$ with values in $\Delta(0;\epsilon)$ such
+that, over points of $T^*$, the roots of $h$ are exactly $z_n=\psi$
+(``nonsplitting'': one root of multiplicity $m$), and $h$ is order-invariant
+in the graph $G^*$ of $\psi$ over $T^*$.
+\end{theorem}
+
+Since the formalization had to be axiom-free, the entire Chapter-4 proof was
+formalized as well, following the thesis: the splitting of Theorem~4.2.1 into
+the nonsplitting statement (Theorem~4.2.2) and the order-invariance statement
+(Theorem~4.2.3); factorization of $h$ into irreducible Weierstrass polynomials
+over the germ ring; the root cover of the separable locus and path lifting
+(Lemma~4.2.4); transitive monodromy for irreducible factors (Lemma~4.2.5);
+the homotopy-deformation contradiction proving nonsplitting per factor and the
+resultant/zero-set argument making the factors' roots coincide
+(proof of Theorem~4.2.2); the Newton--Puiseux parametrization
+$z_{n-1}=u^m$, $z_n=\phi(z,u)$ (Lemma~4.2.6) and the order computation
+$\ord_{(z,0,0)}h=\min(m,m_1)$ (Lemmas~4.2.7--4.2.8, proof of Theorem~4.2.3);
+and, for codimension $\ge 2$, the quadratic blow-up
+$Q(z,z_{s+1},\dots,z_{n-1})=(z,\,z_{s+1}z_{n-1},\dots,z_{n-2}z_{n-1},\,
+z_{n-1})$ reducing to codimension one, including the normal form
+$F\circ Q=z_{n-1}^{\,r}\,N$ with $N(0)\neq0$ (stages 1--7 of the thesis proof
+of 4.1.1) and the term-tracking transport of the order of $h$ through the
+blow-up (stage 8). A few proofs were reorganized in the formalization without
+changing the statements; the noteworthy points are:
+
+\begin{itemize}[leftmargin=2em]
+\item \emph{Lemma 4.2.5.} The thesis cites Bochner--Martin for the transitive
+monodromy of the root cover of an irreducible Weierstrass polynomial. The
+formalization proves it: a clopen splitting of the root cover over the
+punctured (separable) base would glue, via Cauchy-coefficient continuity and a
+removable-singularity argument, into a nontrivial monic factorization of $h$
+over the germ ring, contradicting irreducibility; path-connectedness of the
+cover then yields transitive monodromy by lifting.
+\item \emph{Genericity of the blow-up direction} (stage 1 of the thesis
+proof): the linear change making $\partial^r F/\partial z_{n-1}^r(0)\neq 0$ is
+obtained from a polarization argument---the degree-$r$ leading form of $F$ is
+a nonzero symmetric form, so its diagonal restriction cannot vanish on any
+dense set of transverse directions. The same mechanism drives the stage-8
+term-tracking (the nonzero coefficient $q$ of the thesis's displayed term is
+realized at some nearby ratio point $w''$).
+\item \emph{Lemmas 4.2.7--4.2.8.} Where the thesis works in iterated
+fractional-power-series fields, the formalization stays with the convergent
+parametrization of Lemma~4.2.6 and uses only \emph{continuity} of
+Cauchy-integral coefficients in the section variables, which suffices for the
+order computation $\ord_{(z,0,0)}h=\min(m,m_1)$.
+\item The auxiliary identities of Theorem~2.3.3 (discriminant of a product)
+\emph{are} used here---inside Chapter~4, to descend discriminant
+order-invariance from $h$ to its irreducible factors and to force distinct
+factors to share their section root---exactly as in the thesis proofs of
+Theorems~4.2.2 and~4.2.3.
+\end{itemize}
+
+We emphasize the division of labour this creates for the generalized theorem:
+all uses of the \emph{specific} polynomials $\disc$, $\res$ in McCallum's
+Chapter~3 argument are eliminated in favour of the elimination-ideal witness,
+while their uses \emph{internal} to the Zariski theorem are untouched---they
+concern the Weierstrass polynomial $h$ and its factors, objects private to the
+proof, not the projection set handed to the CAD algorithm.
+
+%% =========================================================================
+\section{Summary of changes, and the Lean formalization}\label{sec:lean}
+%% =========================================================================
+
+\subsection{What changed relative to the thesis}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|p{5.4cm}|c|p{7.2cm}|}
+\hline
+\textbf{Thesis item} & \textbf{Status} & \textbf{Notes} \\
+\hline
+Ch.~2 (preliminaries) & unchanged & used as is \\
+\hline
+Def.\ of $P(A)$ & changed & $P'(A)$ with chosen elimination-ideal elements
+(Def.~\ref{def:proj}) \\
+\hline
+Thm.~3.2.1 statement & changed & witness $P\in\ideal{f,f'}\cap\R[x]$ replaces
+$D$; squarefree/$D\neq0$ subsumed by $P\neq 0$ \\
+\hline
+Thm.~3.2.3 statement & changed & $P'(A)$ replaces $P(A)$ \\
+\hline
+Proof of 3.2.3 from 3.2.1 & changed & radical lemma (Lemma~\ref{lem:radical})
+replaces $D=\prod\disc\cdot\prod\res^2$ (Thm.~2.3.3) \\
+\hline
+3.2.1: reduction to Assertions 1, 2; root clusters; translation &
+unchanged & \S\ref{ssec:reduce} \\
+\hline
+3.2.1: case $s=r-1$ & simplified & $P(a)\neq0$ $\Rightarrow$ separability
+directly (\S\ref{ssec:open}) \\
+\hline
+3.2.1: coordinate change & unchanged & \S\ref{ssec:transport} \\
+\hline
+3.2.1: transform of the invariant & changed & $\widetilde P=P\circ\Phi^{-1}$
+\emph{with B\'ezout cofactors} replaces $E=\disc g$ \\
+\hline
+3.2.1: complexification & unchanged in method & applied to $\widetilde P$
+(and cofactors) instead of $E$ \\
+\hline
+3.2.1: Weierstrass preparation & unchanged & eq.~(3.3.7) \\
+\hline
+3.2.1: membership descent to $\ideal{h,h'}$ & new & Weierstrass division of
+the cofactors (\S\ref{ssec:prep}) \\
+\hline
+3.2.1: factorization step (3.3.8) & changed & norm identity
+$\widetilde P^{m}=\pm\disc(h)\,Q$ (Cor.~\ref{cor:norm-elim}) $+$
+Lemma~\ref{lem:order-add} replace Thm.~2.3.3 \\
+\hline
+3.2.1: Zariski application (3.3.9) & unchanged & \S\ref{ssec:zariski-apply} \\
+\hline
+3.2.1: return to real; reassembly & unchanged & \S\ref{ssec:real} \\
+\hline
+Ch.~4 (Zariski theorem) & unchanged & statement and proof as in thesis;
+formalized in full (\S\ref{sec:zariski}) \\
+\hline
+\NEW\ norm--resultant identity & new & Lemma~\ref{lem:norm-res},
+Cor.~\ref{cor:norm-elim} (classical algebra) \\
+\hline
+\NEW\ order-additivity lemma & new & Lemma~\ref{lem:order-add} = ambient
+``only if'' half of Lemma~3.2.2, full proof \\
+\hline
+\NEW\ radical lemma & new & Lemma~\ref{lem:radical} (pure ring theory) \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{The formalization}
+
+The entire development is machine-checked in Lean~4 over Mathlib. The main
+theorem is \code{mccallum\_3\_2\_3\_generalized}
+(\code{Mccalum/Generalized/Projection.lean}); \code{\#print axioms} reports
+only \code{propext}, \code{Classical.choice}, \code{Quot.sound}. In
+particular, the classical inputs that the informal literature cites---the
+Weierstrass preparation and division theorems for convergent power series
+(absent from Mathlib), the several-variable
+holomorphic$\Rightarrow$analytic bridge needed for them, Zariski's theorem
+with its monodromy and blow-up arguments---are all proved inside the
+development. A correspondence table for the main steps:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\small
+\begin{tabular}{|p{6.0cm}|p{8.4cm}|}
+\hline
+\textbf{This document} & \textbf{Lean identifier (file)} \\
+\hline
+Theorem~\ref{thm:projection} (3.2.3$'$) &
+\code{mccallum\_3\_2\_3\_generalized} (\code{Generalized/Projection.lean}) \\
+\hline
+Theorem~\ref{thm:lifting} (3.2.1$'$) &
+\code{lifting\_theorem\_generalized} (ibid.) \\
+\hline
+Lemma~\ref{lem:radical} &
+\code{nullstellensatz\_elim} (ibid.) \\
+\hline
+Lemma~\ref{lem:norm-res} &
+\code{norm\_eq\_resultant\_monic} (\code{Generalized/Lifting.lean}) \\
+\hline
+Corollary~\ref{cor:norm-elim} &
+\code{norm\_identity\_elim} (ibid.) \\
+\hline
+Lemma~\ref{lem:order-add} &
+\code{order\_factor\_const\_of\_mul\_analytic} (\code{OrderMulAnalytic.lean}) \\
+\hline
+\S\ref{ssec:open} (open case) &
+\code{lifting\_generalized\_open\_case},
+\code{separable\_of\_elim\_nonvanishing} (\code{Generalized/Lifting.lean}) \\
+\hline
+\S\ref{ssec:transport} (chart + transport) &
+\code{lifting\_generalized\_codim\_local} (\code{Generalized/Delineable.lean}) \\
+\hline
+\S\ref{ssec:complexify} &
+\code{analyticAt\_complexify}, \code{order\_real\_eq\_order\_complex}
+(\code{Generalized/Lifting.lean}) \\
+\hline
+\S\ref{ssec:prep} (preparation; descent) &
+\code{weierstrass\_preparation\_analytic} (\code{Generalized/WeierstrassPrep.lean});
+\code{descent\_membership} (\code{Generalized/MembershipDescent.lean}) \\
+\hline
+Eq.~\eqref{eq:norm-identity} over germs &
+\code{descent\_norm\_identity} (\code{Generalized/DescentNormIdentity.lean}) \\
+\hline
+\S\ref{ssec:disc-order} (disc order constant) &
+\code{weierstrassDisc\_order\_const\_along\_section}
+(\code{Generalized/DiscOrder.lean}) \\
+\hline
+Theorem~\ref{thm:zariski} as consumed &
+\code{cluster\_root\_structure} (\code{Generalized/ClusterRootStructure.lean})
+= \code{zariski\_single\_branch} (Conclusion~1,
+\code{Generalized/ZariskiNonsplitting.lean}) $+$
+\code{Puiseux.order\_invariant\_in\_graph} (Conclusion~2,
+\code{Puiseux/Conclusion2General.lean}) \\
+\hline
+Thesis Thm.~4.2.2 (nonsplitting, codim 1) &
+\code{irreducible\_section\_single\_root\_e1} (\code{Generalized/ZariskiE1.lean});
+monodromy kernel in \code{Generalized/Monodromy*.lean},
+\code{Puiseux/RootCover.lean} \\
+\hline
+Thesis Lemma 4.2.5 &
+\code{rootCover\_exchange\_gen} (\code{Generalized/MonodromyGen.lean}) \\
+\hline
+Thesis Thm.~4.2.3 / Lemmas 4.2.6--4.2.8 &
+\code{Puiseux/Parametrization.lean}, \code{Puiseux/OrderInvariance.lean},
+\code{Puiseux/Conclusion2Value*.lean} (\code{order\_eval\_eq\_min}) \\
+\hline
+Thesis 4.1.1 Case II (blow-up; stage 8) &
+\code{ZariskiE2.irreducible\_section\_single\_root\_blowup\_proof}
+(\code{Generalized/ZariskiE2Main.lean});
+\code{Puiseux.order\_eval\_value\_e2\_blowup\_proof}
+(\code{Puiseux/Conclusion2E2.lean}) \\
+\hline
+\S\ref{ssec:real}, reassembly, globalization &
+\code{Generalized/ClusterFromReal.lean}, \code{MultiCluster.lean};
+\code{locally\_delineable\_to\_global$'$},
+\code{order\_invariant\_of\_locally\_invariant}
+(\code{Generalized/Delineable.lean}) \\
+\hline
+\end{tabular}
+\end{center}
+
+Two findings of the formalization are worth recording. First, the natural
+strengthening ``$\ideal{h,g}\cap R=(\res(h,g))$ for monic $h$'' that one might
+be tempted to use in \S\ref{ssec:disc-order} is false
+(counterexample~\eqref{eq:counterexample}); the formal proof effort exposed
+this early, and Lemma~\ref{lem:norm-res} is the correct replacement. Second,
+the deduction of the projection theorem needs no Nullstellensatz and no
+algebraically closed field: the radical-as-intersection-of-primes argument of
+Lemma~\ref{lem:radical} is both simpler to formalize and sharper than the
+geometric argument it replaces.
+
+\begin{thebibliography}{9}
+\bibitem{McCallum85} S.~McCallum,
+  \emph{An Improved Projection Operation for Cylindrical Algebraic
+  Decomposition}, PhD thesis, University of Wisconsin--Madison, 1985.
+\bibitem{McCallum98} S.~McCallum,
+  \emph{An improved projection operation for cylindrical algebraic
+  decomposition}, in: B.~Caviness, J.~Johnson (eds.), \emph{Quantifier
+  Elimination and Cylindrical Algebraic Decomposition}, Springer, 1998,
+  242--268.
+\bibitem{Zariski65} O.~Zariski, \emph{Studies in equisingularity I--II},
+  Amer.\ J.\ Math.\ \textbf{87} (1965).
+\bibitem{Zariski75} O.~Zariski,
+  \emph{On equimultiple subvarieties of algebroid hypersurfaces},
+  Proc.\ Nat.\ Acad.\ Sci.\ USA \textbf{72} (1975), 1425--1426.
+\bibitem{Lang} S.~Lang, \emph{Algebra}, 3rd ed., Springer GTM 211, Ch.~IV
+  (resultants and norms).
+\end{thebibliography}
+
+\end{document}

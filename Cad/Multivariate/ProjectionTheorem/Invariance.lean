@@ -21,7 +21,12 @@ def DegreeInvariant (f : PolyR n) (S : Set (Fin n → ℝ)) : Prop :=
 def OrderInvariantMv (g : MvPolyR n) (S : Set (Fin n → ℝ)) : Prop :=
   ∀ a ∈ S, ∀ b ∈ S, polyOrder n g a = polyOrder n g b
 
-/-- Order of `f ∈ ℝ[x₁,…,xₙ][xᵣ]` at `(a, y) ∈ ℝⁿ × ℝ`. -/
+/-- **McCallum's order of `f` at `(a, y)`** — the multivariate analytic order `ord_{(a,y)} f`:
+the least `k` such that some order-`k` partial derivative of `f` (as the `(n+1)`-variable analytic
+function `toMvPoly f`) does not vanish at `(y, a)` (`⊤` if all vanish). This is McCallum's `ord`
+from §2.3 of the thesis, used uniformly for the discriminant hypothesis and the order-invariance
+conclusion. (Note `ord_{(a,y)} f ≤ rootMultiplicity y (specialize f a)`, the gap being a transverse
+order drop; the two coincide along delineable sections via Zariski 4.1.1, conclusion (2).) -/
 def orderFull (f : PolyR n) (a : Fin n → ℝ) (y : ℝ) : ℕ∞ :=
   polyOrder (n + 1) (toMvPoly f) (Fin.cons y a)
 

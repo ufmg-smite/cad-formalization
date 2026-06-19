@@ -27,22 +27,6 @@ open Polynomial MvPolynomial Set Classical
 
 variable {n : ℕ}
 
-/-- **Theorem 3.2.1** (Lifting theorem, §3.3). -/
-axiom lifting_theorem
-    (S : Set (Fin n → ℝ))
-    (f : PolyR n)
-    (hS_submfld : IsAnalyticSubmanifold S)
-    (hS_conn : IsConnected S)
-    (hpos : 0 < f.natDegree)
-    (hsf : Squarefree f)
-    (hdisc_ne : Polynomial.discr f ≠ 0)
-    (hnonzero : NotIdenticallyZeroOn f S)
-    (hdeg : DegreeInvariant f S)
-    (hdisc : OrderInvariantMv (Polynomial.discr f) S) :
-    AnalyticDelineable f S ∧
-    (∀ (θ : (Fin n → ℝ) → ℝ), ContinuousOn θ S → IsRootFunction f θ S →
-      OrderInvariantFull f (SectionGraph θ S))
-
 /-- Product of squarefree pairwise coprime polynomials is squarefree. -/
 theorem prod_squarefree_of_coprime
     (A : Finset (PolyR n))
@@ -62,27 +46,6 @@ theorem prod_squarefree_of_coprime
     · exact ih (fun f hf => hsf f (Finset.mem_insert_of_mem hf))
         (fun f hf g hg hne =>
           hcop f (Finset.mem_insert_of_mem hf) g (Finset.mem_insert_of_mem hg) hne)
-
-/-- Discriminant of a degree-1 polynomial is order-invariant. In fact the
-discriminant equals `1`, so this is trivially invariant. -/
-theorem discr_degree_one_order_invariant
-    (S : Set (Fin n → ℝ))
-    (f : PolyR n)
-    (hdeg : f.natDegree = 1) :
-    OrderInvariantMv (Polynomial.discr f) S := by
-  have hf_ne : f ≠ 0 := by
-    intro h; rw [h] at hdeg; simp at hdeg
-  have hf_deg : f.degree = 1 := by
-    rw [Polynomial.degree_eq_natDegree hf_ne, hdeg]; rfl
-  have hdiscr : Polynomial.discr f = 1 :=
-    Polynomial.discr_of_degree_eq_one hf_deg
-  rw [hdiscr]
-  intro a _ b _
-  have h1 : polyOrder n (1 : MvPolyR n) a = 0 :=
-    (polyOrder_zero_iff n 1 a).mpr (by simp)
-  have h2 : polyOrder n (1 : MvPolyR n) b = 0 :=
-    (polyOrder_zero_iff n 1 b).mpr (by simp)
-  rw [h1, h2]
 
 /-! ### Helper lemmas for `delineable_factor_of_delineable_prod` -/
 

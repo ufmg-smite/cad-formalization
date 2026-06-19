@@ -1,4 +1,5 @@
 import Cad.Multivariate.ProjectionTheorem.Basic
+import Cad.Multivariate.ProjectionTheorem.Basic
 import Mathlib.RingTheory.Polynomial.Resultant.Basic
 import Mathlib.FieldTheory.Perfect
 import Mathlib.RingTheory.Polynomial.GaussLemma
@@ -193,7 +194,7 @@ private lemma discr_map_eq
       (φ n) f.leadingCoeff ≠ 0 := by
     apply mul_ne_zero
     · exact pow_ne_zero _ (neg_ne_zero.mpr one_ne_zero)
-    · exact fun h => (leadingCoeff_ne_zero.mpr hf) (hinj (by simp [h]))
+    · grind only [leadingCoeff_eq_zero]
   exact mul_left_cancel₀ hne hmap
 
 /-- **Theorem**: The discriminant of a squarefree polynomial with positive degree is nonzero. -/
@@ -232,5 +233,3 @@ theorem discr_ne_zero_of_squarefree
   intro hdisc
   apply hdisc_K
   rw [discr_map_eq f hf_ne hpos, hdisc, map_zero]
-
-end

@@ -2,7 +2,8 @@ import Cad.Multivariate.ProjectionTheorem.Prerequisites
 import Cad.Multivariate.ProjectionTheorem.DiscrProdInvariant
 import Cad.Multivariate.ProjectionTheorem.OrderInvariantFactor
 import Cad.Multivariate.ProjectionTheorem.SquarefreeBasis
-import Cad.Multivariate.ProjectionTheorem.Projection
+import Cad.Multivariate.ProjectionTheorem.Generalized.Lifting
+import Cad.Multivariate.ProjectionTheorem.Generalized.Delineable
 
 /-!
 # Generalized Projection Theorem (Theorem 3.2.3')
@@ -14,7 +15,8 @@ corresponding elimination ideals `⟨F, F'⟩ ∩ R[x]` and `⟨F, G⟩ ∩ R[x]
 
 ## Main results
 
-- `lifting_theorem_generalized` (axiom): Theorem 3.2.1' — the generalized lifting theorem.
+- `lifting_theorem_generalized` (theorem): Theorem 3.2.1' — the generalized lifting theorem,
+  proved from the open case + codimension case axiom in `Cad.Multivariate.ProjectionTheorem.Generalized.Lifting`.
 - `nullstellensatz_elim` (theorem): a power of the product of elimination ideal elements
   belongs to `⟨f, f'⟩ ∩ R[x]`, proved via the radical-equals-intersection-of-primes
   characterization.
@@ -33,22 +35,23 @@ open Polynomial MvPolynomial Set Classical
 
 variable {n : ℕ}
 
-/-! ### Axiom: Generalized Lifting Theorem (Theorem 3.2.1') -/
+/-! ### Generalized Lifting Theorem (Theorem 3.2.1') — from Lifting.lean -/
 
 /-- **Theorem 3.2.1'** (Generalized Lifting Theorem).
 
 This generalizes `lifting_theorem` by replacing the discriminant hypothesis with an
 arbitrary nonzero element `P ∈ ⟨f, ∂f/∂xᵣ⟩ ∩ R[x]` that is order-invariant on `S`.
-The discriminant is one such element, so the original theorem is a special case. -/
-axiom lifting_theorem_generalized
+The discriminant is one such element, so the original theorem is a special case.
+
+Proved in `Cad.Multivariate.ProjectionTheorem.Generalized.Lifting` from the open case (fully proved from
+`simple_roots_delineable`) and the codimension case (axiom). -/
+theorem lifting_theorem_generalized
     (S : Set (Fin n → ℝ))
     (f : PolyR n)
     (hS_submfld : IsAnalyticSubmanifold S)
     (hS_conn : IsConnected S)
-    (hpos : 0 < f.natDegree)
-    (hsf : Squarefree f)
-    (hnonzero : NotIdenticallyZeroOn f S)
     (hdeg : DegreeInvariant f S)
+    (hspec_ne : ∀ a ∈ S, specialize f a ≠ 0)
     (P : MvPolyR n)
     (hP_ne : P ≠ 0)
     (hP_mem : Polynomial.C P ∈
@@ -56,7 +59,12 @@ axiom lifting_theorem_generalized
     (hP_oi : OrderInvariantMv P S) :
     AnalyticDelineable f S ∧
     (∀ (θ : (Fin n → ℝ) → ℝ), ContinuousOn θ S → IsRootFunction f θ S →
-      OrderInvariantFull f (SectionGraph θ S))
+      OrderInvariantFull f (SectionGraph θ S)) := by
+  by_cases hopen : IsOpen S
+  · exact lifting_generalized_open_case S f hopen hS_conn hdeg P hP_ne hP_mem hP_oi
+  · exact lifting_generalized_codim_case S f hS_submfld hS_conn hopen hdeg hspec_ne P hP_ne hP_mem hP_oi
+
+/- #print axioms lifting_theorem_generalized -/
 
 /-! ### Elimination product -/
 
@@ -129,69 +137,6 @@ lemma prod_eq_mul_cofactorProd (A : Finset (PolyR n)) (F : PolyR n) (hF : F ∈ 
   (Finset.mul_prod_erase A id hF).symm
 
 /-! ### Algebraic helper lemmas for elimination ideal membership -/
-
-/-- The resultant-like factor `cofactor(F) · cofactor(G) · C(r(F,G))` belongs to
-`⟨f, f'⟩` where `f = ∏ H ∈ A, H`. Since `C(r) ∈ ⟨F, G⟩`, multiplying generators
-by cofactors yields multiples of `f`. -/
-lemma cofactors_mul_r_mem (A : Finset (PolyR n)) (F G : PolyR n)
-    (hF : F ∈ A) (hG : G ∈ A)
-    (r_FG : MvPolyR n)
-    (hr : Polynomial.C r_FG ∈ Ideal.span ({F, G} : Set (PolyR n))) :
-    cofactorProd A F * cofactorProd A G * Polynomial.C r_FG ∈
-      Ideal.span ({∏ H ∈ A, H, Polynomial.derivative (∏ H ∈ A, H)} : Set (PolyR n)) := by
-  obtain ⟨u, v, huv⟩ := Ideal.mem_span_pair.mp hr
-  rw [← huv]
-  have h1 : F * cofactorProd A F = ∏ H ∈ A, H := (prod_eq_mul_cofactorProd A F hF).symm
-  have h2 : G * cofactorProd A G = ∏ H ∈ A, H := (prod_eq_mul_cofactorProd A G hG).symm
-  have key : cofactorProd A F * cofactorProd A G * (u * F + v * G) =
-      (u * cofactorProd A G + v * cofactorProd A F) * (∏ H ∈ A, H) := by
-    calc cofactorProd A F * cofactorProd A G * (u * F + v * G)
-        = u * (F * cofactorProd A F) * cofactorProd A G +
-          v * cofactorProd A F * (G * cofactorProd A G) := by ring
-      _ = u * (∏ H ∈ A, H) * cofactorProd A G +
-          v * cofactorProd A F * (∏ H ∈ A, H) := by rw [h1, h2]
-      _ = (u * cofactorProd A G + v * cofactorProd A F) * (∏ H ∈ A, H) := by ring
-  rw [key]
-  exact Ideal.mul_mem_left _ _ (Ideal.subset_span (Set.mem_insert _ _))
-
-/-- The discriminant-like factor `cofactor(F)² · C(d(F))` belongs to `⟨f, f'⟩`.
-Uses the product rule: `f' = F'·G_F + F·G_F'`, giving
-`G_F²·(u·F + v·F') = (u·G_F - v·G_F')·f + v·G_F·f'`. -/
-lemma cofactor_sq_mul_d_mem (A : Finset (PolyR n)) (F : PolyR n) (hF : F ∈ A)
-    (d_F : MvPolyR n)
-    (hd : Polynomial.C d_F ∈ Ideal.span ({F, Polynomial.derivative F} : Set (PolyR n))) :
-    cofactorProd A F ^ 2 * Polynomial.C d_F ∈
-      Ideal.span ({∏ H ∈ A, H, Polynomial.derivative (∏ H ∈ A, H)} : Set (PolyR n)) := by
-  obtain ⟨u, v, huv⟩ := Ideal.mem_span_pair.mp hd
-  rw [← huv]
-  have h1 : F * cofactorProd A F = ∏ H ∈ A, H := (prod_eq_mul_cofactorProd A F hF).symm
-  have hder : Polynomial.derivative (∏ H ∈ A, H) =
-      Polynomial.derivative F * cofactorProd A F +
-        F * Polynomial.derivative (cofactorProd A F) := by
-    conv_lhs => rw [prod_eq_mul_cofactorProd A F hF]
-    exact Polynomial.derivative_mul
-  have key : cofactorProd A F ^ 2 * (u * F + v * Polynomial.derivative F) =
-      (u * cofactorProd A F - v * Polynomial.derivative (cofactorProd A F)) * (∏ H ∈ A, H) +
-      v * cofactorProd A F * Polynomial.derivative (∏ H ∈ A, H) := by
-    calc cofactorProd A F ^ 2 * (u * F + v * Polynomial.derivative F)
-        = u * (F * cofactorProd A F) * cofactorProd A F +
-          v * cofactorProd A F *
-            (Polynomial.derivative F * cofactorProd A F +
-              F * Polynomial.derivative (cofactorProd A F)) -
-          v * Polynomial.derivative (cofactorProd A F) *
-            (F * cofactorProd A F) := by ring
-      _ = u * (∏ H ∈ A, H) * cofactorProd A F +
-          v * cofactorProd A F * Polynomial.derivative (∏ H ∈ A, H) -
-          v * Polynomial.derivative (cofactorProd A F) * (∏ H ∈ A, H) := by
-        rw [h1, ← hder]
-      _ = (u * cofactorProd A F - v * Polynomial.derivative (cofactorProd A F)) * (∏ H ∈ A, H) +
-          v * cofactorProd A F * Polynomial.derivative (∏ H ∈ A, H) := by ring
-  rw [key]
-  apply Ideal.add_mem
-  · exact Ideal.mul_mem_left _ _
-      (Ideal.subset_span (Set.mem_insert _ _))
-  · exact Ideal.mul_mem_left _ _
-      (Ideal.subset_span (Set.mem_insert_of_mem _ (Set.mem_singleton_iff.mpr rfl)))
 
 /-! ### Nullstellensatz for elimination ideals -/
 
@@ -271,6 +216,24 @@ theorem nullstellensatz_elim
         Polynomial.C (elimProduct A d r) * Polynomial.C (elimProduct A d r) ^ N := by ring
     rw [h]; exact Ideal.mul_mem_left _ _ hN⟩
 
+/-- Coprime polynomials have no common root after specialization. -/
+theorem no_common_root_of_coprime (F G : PolyR n) (hcop : IsCoprime F G)
+    (a : Fin n → ℝ) (y : ℝ) :
+    ¬ ((specialize F a).IsRoot y ∧ (specialize G a).IsRoot y) := by
+  intro ⟨hF, hG⟩
+  obtain ⟨u, v, huv⟩ := hcop
+  have h1 : specialize (u * F + v * G) a = 1 := by
+    rw [huv]; simp [specialize, Polynomial.map_one]
+  have h2 : (specialize (u * F + v * G) a).eval y = 1 := by
+    rw [h1]; simp
+  simp only [specialize, Polynomial.map_add, Polynomial.map_mul,
+    Polynomial.eval_add, Polynomial.eval_mul] at h2
+  rw [Polynomial.IsRoot] at hF hG
+  simp only [specialize] at hF hG
+  rw [hF, hG] at h2
+  linarith
+
+
 /-! ### Generalized Projection Theorem (Theorem 3.2.3') -/
 
 /-- **Theorem 3.2.3'** (Generalized Projection Theorem).
@@ -330,6 +293,11 @@ theorem mccallum_3_2_3_generalized
     prod_pos_degree A hA_ne hA.pos_degree
   have hf_nz : NotIdenticallyZeroOn f S :=
     not_identically_zero_prod S A hnonzero hcoeff hS_ne
+  have hf_spec_ne : ∀ a ∈ S, specialize f a ≠ 0 := by
+    have hne_each := fun f hf => specialize_nonzero_everywhere f S (hnonzero f hf) (hcoeff f hf)
+    intro a ha
+    simp only [hf_def, specialize, Polynomial.map_prod]
+    exact Finset.prod_ne_zero_iff.mpr (fun g hg => hne_each g hg a ha)
   have hf_deg : DegreeInvariant f S :=
     degree_invariant_prod S A h_deg
       (fun f hf => specialize_nonzero_everywhere f S (hnonzero f hf) (hcoeff f hf))
@@ -344,7 +312,7 @@ theorem mccallum_3_2_3_generalized
   have hP_oi : OrderInvariantMv P S := order_invariant_pow_mv S _ N hR_oi
   -- Apply the generalized lifting theorem to f with witness P
   obtain ⟨hf_delin, hf_oi_sections⟩ := lifting_theorem_generalized S f hS_submfld hS_conn
-    hf_pos hf_sf hf_nz hf_deg P hP_ne hPN_mem hP_oi
+    hf_deg hf_spec_ne P hP_ne hPN_mem hP_oi
   -- Factor the conclusions back to individual polynomials
   refine ⟨h_deg, ?_, h_disjoint, ?_⟩
   · exact delineable_factor_of_delineable_prod S hS_conn.isPreconnected A
@@ -363,9 +331,12 @@ theorem mccallum_3_2_3_generalized
         (continuousOn_id.prodMk hθ_cont)
     have hA_ne_zero : ∀ f ∈ A, f ≠ 0 :=
       fun f hf h => by linarith [hA.pos_degree f hf, show f.natDegree = 0 from by rw [h]; simp]
+    have hA_spec : ∀ f ∈ A, ∀ p ∈ SectionGraph θ S, specialize f p.1 ≠ 0 :=
+      fun f hf p hp => specialize_nonzero_everywhere f S
+        (hnonzero f hf) (hcoeff f hf) p.1 hp.1
     exact order_invariant_full_factor_of_prod A (SectionGraph θ S) hT_preconn hA_ne_zero
-      hprod_oi F hF
+      hA_spec hprod_oi F hF
 
-#print axioms mccallum_3_2_3_generalized
+/- #print axioms mccallum_3_2_3_generalized -/
 
 end
