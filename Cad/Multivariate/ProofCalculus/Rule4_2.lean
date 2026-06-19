@@ -1,24 +1,6 @@
-import Cad.Multivariate.ProofCalculus.Defs
+import Cad.Multivariate.ProofCalculus.Basic
 
 namespace ProofCalculus
-
-private lemma eq_zero_of_sgn_eq_zero {r : ℝ} (h : sgn r = 0) : r = 0 := by
-  unfold sgn at h
-  split_ifs at h with hlt heq
-  · exact heq
-  · norm_num at h
-
-private lemma sgn_eq_zero_of_eq_zero {r : ℝ} (h : r = 0) : sgn r = 0 := by
-  unfold sgn
-  split_ifs
-  · linarith
-  · rfl
-
-private lemma specialize_eq_zero_iff {n : ℕ} (f : PolyR n) (a : Fin n → ℝ) :
-    specialize f a = 0 ↔ ∀ k, (f.coeff k).eval a = 0 := by
-  unfold specialize
-  rw [Polynomial.ext_iff]
-  simp only [Polynomial.coeff_map, Polynomial.coeff_zero, evalBase]
 
 theorem nalbach_4_2_part1_generalized
     (i : Nat)

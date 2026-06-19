@@ -1,4 +1,4 @@
-import Cad.Multivariate.ProofCalculus.Defs
+import Cad.Multivariate.ProofCalculus.Basic
 
 namespace ProofCalculus
 

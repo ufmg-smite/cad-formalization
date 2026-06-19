@@ -1,28 +1,6 @@
-import Cad.Multivariate.ProofCalculus.Defs
+import Cad.Multivariate.ProofCalculus.Basic
 
 namespace ProofCalculus
-
-private lemma sgn_neg {x : ℝ} (h : x < 0) : sgn x = -1 := by
-  unfold sgn; rw [if_pos h]
-
-private lemma sgn_pos {x : ℝ} (h : 0 < x) : sgn x = 1 := by
-  unfold sgn; rw [if_neg (not_lt.mpr h.le), if_neg h.ne']
-
-private lemma sgn_zero {x : ℝ} (h : x = 0) : sgn x = 0 := by
-  subst h; unfold sgn; simp
-
-/-- The sign function is multiplicative. -/
-private lemma sgn_mul (x y : ℝ) : sgn (x * y) = sgn x * sgn y := by
-  rcases lt_trichotomy x 0 with hx | hx | hx
-  · rcases lt_trichotomy y 0 with hy | hy | hy
-    · rw [sgn_pos (mul_pos_of_neg_of_neg hx hy), sgn_neg hx, sgn_neg hy]; ring
-    · rw [sgn_zero (show x * y = 0 by rw [hy, mul_zero]), sgn_zero hy]; ring
-    · rw [sgn_neg (mul_neg_of_neg_of_pos hx hy), sgn_neg hx, sgn_pos hy]; ring
-  · rw [sgn_zero hx, sgn_zero (show x * y = 0 by rw [hx, zero_mul])]; ring
-  · rcases lt_trichotomy y 0 with hy | hy | hy
-    · rw [sgn_neg (mul_neg_of_pos_of_neg hx hy), sgn_pos hx, sgn_neg hy]; ring
-    · rw [sgn_zero (show x * y = 0 by rw [hy, mul_zero]), sgn_zero hy]; ring
-    · rw [sgn_pos (mul_pos hx hy), sgn_pos hx, sgn_pos hy]; ring
 
 theorem nalbach_4_4_part1
     (i : Nat)
