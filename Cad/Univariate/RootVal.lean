@@ -30,10 +30,8 @@ def RootVal.ofExpr (e : Expr) : MetaM RootVal := do
     return .rat e v
   else if t == .const ``AlgNum [] then
     let e : Q(AlgNum) := e
-    let p : CPolynomial Rat ← unsafe Meta.evalExpr (CPolynomial Rat) q(CPolynomial Rat) q(AlgNum.p $e)
-    let l : Rat ← unsafe Meta.evalExpr Rat q(Rat) q(AlgNum.l $e)
-    let r : Rat ← unsafe Meta.evalExpr Rat q(Rat) q(AlgNum.r $e)
-    let raw: Raw := ⟨p, l, r⟩
+    let raw : AlgebraicNumber.Raw ← unsafe Meta.evalExpr AlgebraicNumber.Raw
+      q(AlgebraicNumber.Raw) q(Subtype.val $e)
     return .alg e raw
   else
     throwError "[RootVal.ofExpr]: expected Rat or AlgNum, got {t}"

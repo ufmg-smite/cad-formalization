@@ -8,30 +8,17 @@ import Cad.Univariate.SturmTarski.Decidable
 open AlgebraicNumber
 open CompPoly
 
-lemma root_in_refineN (α : AlgNum) (x : ℝ) (hx : (toPolyReal α.p).eval x = 0)
-    (hxl : ↑α.l ≤ x) (hxr : x ≤ ↑α.r) (n : ℕ) :
-    ↑(AlgNum.refine^[n] α).l ≤ x ∧ x ≤ ↑(AlgNum.refine^[n] α).r := by
+lemma represents_refineN (α : AlgNum) (x : ℝ) (hx : α.val.represents x) (n : ℕ) :
+    (AlgNum.refine^[n] α).val.represents x := by
   induction n with
-  | zero => exact ⟨hxl, hxr⟩
+  | zero => exact hx
   | succ n ih =>
-    rw [Function.iterate_succ', Function.comp]
-    set β := AlgNum.refine^[n] α
-    have hβp : β.p = α.p := AlgNum.refineN_p α n
-    have hwd := β.isWellDefined
-    rw [AlgNum.wellDefined, hβp] at hwd
-    obtain ⟨y, ⟨hy_root, hy_l, hy_r⟩, hy_unique⟩ := hwd
-    have hxy : x = y := hy_unique x ⟨hx, ih.1, ih.2⟩
-    have hβrp : β.refine.p = α.p := by rw [AlgNum.refine_p, hβp]
-    have hwd' := β.refine.isWellDefined
-    rw [AlgNum.wellDefined, hβrp] at hwd'
-    obtain ⟨z, ⟨hz_root, hz_l, hz_r⟩, hz_unique⟩ := hwd'
-    have hz_in_β : ↑β.l ≤ z ∧ z ≤ ↑β.r := by
-      constructor
-      · exact le_trans (by exact_mod_cast β.refine_bounds_l) hz_l
-      · exact le_trans hz_r (by exact_mod_cast β.refine_bounds_r)
-    have hzy : z = y := hy_unique z ⟨hz_root, hz_in_β.1, hz_in_β.2⟩
-    rw [hxy, ← hzy]
-    exact ⟨hz_l, hz_r⟩
+    rw [Function.iterate_succ_apply']
+    exact Raw.refine_represents _ (AlgNum.refine^[n] α).prop.1 (AlgNum.refine^[n] α).prop.2 ih
+
+lemma root_in_refineN (α : AlgNum) (x : ℝ) (hx : α.val.represents x) (n : ℕ) :
+    ↑(AlgNum.refine^[n] α).l ≤ x ∧ x ≤ ↑(AlgNum.refine^[n] α).r :=
+  Raw.represents_bounds (represents_refineN α x hx n)
 
 lemma toReal_in_refineN (α : AlgNum) (n : ℕ) :
     ↑(AlgNum.refine^[n] α).l ≤ α.toReal ∧ α.toReal ≤ ↑(AlgNum.refine^[n] α).r := by
@@ -42,7 +29,7 @@ lemma toReal_in_refineN (α : AlgNum) (n : ℕ) :
   rw [key]
   exact toReal_bounds _
 
-lemma wellDefined_root (α : AlgNum) (x : ℝ) (hx_l : α.l ≤ x) (hx_r : x ≤ α.r) (hx_root : (toPolyReal α.p).eval x = 0) : α.toReal = x := by
+lemma wellDefined_root (α : AlgNum) (x : ℝ) (hx : α.val.represents x) : α.toReal = x := by
   by_contra hne
   have hne' : α.toReal - x ≠ 0 := sub_ne_zero.mpr hne
   have habs_pos : |α.toReal - x| > 0 := abs_pos.mpr hne'
@@ -66,23 +53,25 @@ lemma wellDefined_root (α : AlgNum) (x : ℝ) (hx_l : α.l ≤ x) (hx_r : x ≤
       linarith
   intro n
   have h_toReal := toReal_in_refineN α n
-  have h_x := root_in_refineN α x hx_root hx_l hx_r n
+  have h_x : ↑(AlgNum.refine^[n] α).l ≤ x ∧ x ≤ ↑(AlgNum.refine^[n] α).r :=
+    root_in_refineN α x hx n
   have h_width := refineN_width α n
-  have h_width_real : (↑(AlgNum.refine^[n] α).r : ℝ) - ↑(AlgNum.refine^[n] α).l =
+  have h_width_real : (↑(AlgNum.refine^[n] α).r : ℝ) - ↑(AlgNum.refine^[n] α).l ≤
       ((↑α.r : ℝ) - ↑α.l) / 2 ^ n := by
-    have : ((AlgNum.refine^[n] α).r : ℝ) - (AlgNum.refine^[n] α).l =
-        ((α.r : ℝ) - α.l) / 2 ^ n := by exact_mod_cast h_width
-    exact this
+    exact_mod_cast h_width
   rw [abs_le]
-  constructor <;> nlinarith [h_toReal.1, h_toReal.2, h_x.1, h_x.2]
+  constructor <;> linarith [h_toReal.1, h_toReal.2, h_x.1, h_x.2]
 
 lemma toReal_root (α : AlgNum) : (toPolyReal α.p).eval α.toReal = 0 := by
-  obtain ⟨x, ⟨hx_root, hx_l, hx_r⟩, _⟩ := α.isWellDefined
-  suffices h : α.toReal = x by rw [h]; exact hx_root
-  exact wellDefined_root α x hx_l hx_r hx_root
+  obtain ⟨x, hx_rep, -⟩ := α.isWellDefined
+  rw [wellDefined_root α x hx_rep]
+  exact Raw.represents_root hx_rep
 
-lemma toReal_in_rootsInInterval (α : AlgNum) (hpl : α.p.eval α.l ≠ 0) (hpr : α.p.eval α.r ≠ 0) :
+lemma toReal_in_rootsInInterval (α : AlgNum) (hpl : α.p.eval α.l ≠ 0) (_hpr : α.p.eval α.r ≠ 0) :
     α.toReal ∈ rootsInInterval (toPolyReal α.p) α.l α.r := by
+  obtain ⟨x, hx_rep, -⟩ := α.isWellDefined
+  have hxr := wellDefined_root α x hx_rep
+  have hstrict : ((α.l : ℝ) < x ∧ x < (α.r : ℝ)) := Raw.represents_strict hx_rep hpl
   simp [toPolyReal, rootsInInterval]
   refine And.intro (And.intro ?_ ?_) (And.intro ?_ ?_)
   · intro abs
@@ -90,35 +79,21 @@ lemma toReal_in_rootsInInterval (α : AlgNum) (hpl : α.p.eval α.l ≠ 0) (hpr 
     rw [this] at hpl
     exact false_of_ne hpl
   · exact toReal_root α
-  · have hl_leq := (toReal_bounds α).1
-    apply Std.lt_of_le_of_ne hl_leq ?_
-    intro abs
-    have := toReal_root α
-    rw [<- abs] at this
-    rw [CPolynomial.eval_toPoly, <- (Rat.cast_ne_zero (α := Real)), eval_comm_map] at hpl
-    exact hpl this
-  · have hr_leq := (toReal_bounds α).2
-    apply Std.lt_of_le_of_ne hr_leq ?_
-    intro abs
-    have := toReal_root α
-    rw [abs] at this
-    rw [CPolynomial.eval_toPoly, <- (Rat.cast_ne_zero (α := Real)), eval_comm_map] at hpr
-    exact hpr this
+  · rw [hxr]
+    exact hstrict.1
+  · rw [hxr]
+    exact hstrict.2
 
 lemma toReal_only_root (α : AlgNum) (hpl: α.p.eval α.l ≠ 0) (hpr: α.p.eval α.r ≠ 0) :
     rootsInInterval (toPolyReal α.p) α.l α.r = {α.toReal} := by
   set S := rootsInInterval (toPolyReal α.p) α.l α.r
   have h1 : α.toReal ∈ S := toReal_in_rootsInInterval α hpl hpr
   have h2 : ∀ y ∈ S, y = α.toReal := by
-    have := α.isWellDefined
-    obtain ⟨x, ⟨⟨hx1, hx2, hx3⟩, hx4⟩⟩ := this
-    have : α.toReal = x := wellDefined_root α x hx2 hx3 hx1
     intros y hy
     simp [S, rootsInInterval] at hy
     obtain ⟨⟨_, h_root⟩, ⟨hyl, hyr⟩⟩ := hy
-    rw [this]
-    apply hx4
-    exact And.intro h_root (And.intro (le_of_lt hyl) (le_of_lt hyr))
+    have hrep : α.val.represents y := Raw.represents_of_root h_root hyl hyr
+    exact (wellDefined_root α y hrep).symm
   grind
 
 lemma sgn_eval_alg (q : CPolynomial Rat) (α : AlgNum) (hpl: α.p.eval α.l ≠ 0) (hpr: α.p.eval α.r ≠ 0) :
@@ -128,15 +103,10 @@ lemma sgn_eval_alg (q : CPolynomial Rat) (α : AlgNum) (hpl: α.p.eval α.l ≠ 
   simp
 
 lemma AlgNum.lr' (α : AlgNum) (hl : α.p.eval α.l ≠ 0) : α.l < α.r := by
-  have := α.lr
-  apply Std.lt_of_le_of_ne this
-  intro abs
-  have hr : α.p.eval α.r ≠ 0 := by rw [<- abs]; exact hl
-  have := α.hasSgnDiff
-  unfold AlgNum.sgnDiff at this
-  rw [abs] at this
-  have := mul_self_pos.mpr hr
-  linarith
+  obtain ⟨x, hx_rep, -⟩ := α.isWellDefined
+  have hstrict := Raw.represents_strict hx_rep hl
+  have : (α.l : ℝ) < (α.r : ℝ) := lt_trans hstrict.1 hstrict.2
+  exact_mod_cast this
 
 lemma sgn_eval_alg_sturm_seq (q : CPolynomial Rat) (α : AlgNum) (hpl: α.p.eval α.l ≠ 0) (hpr: α.p.eval α.r ≠ 0) :
     sgn ((toPolyReal q).eval α.toReal) = seqVarSturmC_ab' α.p (α.p.derivative * q) α.l α.r := by
@@ -190,6 +160,24 @@ lemma eval_pos (a : Rat) (p : CPolynomial Rat) (h_eval : p.eval a > 0) : (toPoly
   unfold ratToRealHom at this ⊢
   finiteness
 
+/- Sign computation for an `AlgNum` whose interval collapsed to a rational
+(`Raw.rat`, characterized by `l = r`): just evaluate at that rational. -/
+
+lemma eval_neg_alg_rat (p : CPolynomial Rat) (α : AlgNum) (h : α.l = α.r)
+    (h_eval : p.eval α.l < 0) : (toPolyReal p).eval α.toReal < 0 := by
+  rw [AlgNum.toReal_of_l_eq_r α h]
+  exact eval_neg α.l p h_eval
+
+lemma eval_zero_alg_rat (p : CPolynomial Rat) (α : AlgNum) (h : α.l = α.r)
+    (h_eval : p.eval α.l = 0) : (toPolyReal p).eval α.toReal = 0 := by
+  rw [AlgNum.toReal_of_l_eq_r α h]
+  exact eval_zero α.l p h_eval
+
+lemma eval_pos_alg_rat (p : CPolynomial Rat) (α : AlgNum) (h : α.l = α.r)
+    (h_eval : p.eval α.l > 0) : (toPolyReal p).eval α.toReal > 0 := by
+  rw [AlgNum.toReal_of_l_eq_r α h]
+  exact eval_pos α.l p h_eval
+
 def getSignProof (p : Q(CPolynomial Rat)) (p_native : CPolynomial Rat) (a : RootVal) : MetaM (Expr × Int) := do
   match a with
   | .rat ea va =>
@@ -210,24 +198,45 @@ def getSignProof (p : Q(CPolynomial Rat)) (p_native : CPolynomial Rat) (a : Root
         mkAppM ``eval_pos #[ea, p, pf_rat]
     return (pf, val)
   | .alg (ea : Q(AlgNum)) va =>
-    let h1 : Q(Prop) := q(«$ea».p.eval «$ea».l ≠ 0)
-    let p1 : Q($h1) ← mkDecideProof h1
-    let h2 : Q(Prop) := q(«$ea».p.eval «$ea».r ≠ 0)
-    let p2 : Q($h2) ← mkDecideProof h2
-    let sign_sturm_pf := q(sgn_eval_alg_sturm_seq $p $ea $p1 $p2)
-    let sign : Int := seqVarSturmC_ab' va.p (va.p.derivative * p_native) va.l va.r
-    let sign_eq : Q(Prop) := q(seqVarSturmC_ab' «$ea».p («$ea».p.derivative * $p) «$ea».l «$ea».r = $sign)
-    let sign_reflection ← mkDecideProof sign_eq
-    let sign_pf : Q(sgn ((toPolyReal $p).eval «$ea».toReal) = $sign) ← mkAppM ``Eq.trans #[sign_sturm_pf, sign_reflection]
-    if sign = -1 then
-      let sign_neg_pf : Q(sgn ((toPolyReal $p).eval «$ea».toReal) < 0) ← mkAppM ``minus_one #[q(sgn ((toPolyReal $p).eval «$ea».toReal)), sign_pf]
-      return (q((sgn_sgn_neg ((toPolyReal $p).eval «$ea».toReal)).mp $sign_neg_pf), sign)
-    else if sign = 0 then
-      let sign_pf : Q(sgn ((toPolyReal $p).eval «$ea».toReal) = 0) := sign_pf
-      return (q((sgn_sgn_zero ((toPolyReal $p).eval «$ea».toReal)).mp $sign_pf), sign)
-    else
-      let sign_pos_pf : Q(sgn ((toPolyReal $p).eval «$ea».toReal) > 0) ← mkAppM ``plus_one #[q(sgn ((toPolyReal $p).eval «$ea».toReal)), sign_pf]
-      return (q((sgn_sgn_pos ((toPolyReal $p).eval «$ea».toReal)).mp $sign_pos_pf), sign)
+    match va with
+    | .rat v =>
+      -- the isolating interval collapsed to a rational: evaluate directly
+      let hlr : Q(Prop) := q(AlgNum.l $ea = AlgNum.r $ea)
+      let pf_lr ← mkDecideProof hlr
+      let val := sgnC (p_native.eval v)
+      let pf ← do
+        if val < 0 then
+          let goal := q(CPolynomial.eval (AlgNum.l $ea) $p < 0)
+          let pf_rat ← mkDecideProof goal
+          mkAppM ``eval_neg_alg_rat #[p, ea, pf_lr, pf_rat]
+        else if val = 0 then
+          let goal := q(CPolynomial.eval (AlgNum.l $ea) $p = 0)
+          let pf_rat ← mkDecideProof goal
+          mkAppM ``eval_zero_alg_rat #[p, ea, pf_lr, pf_rat]
+        else
+          let goal := q(CPolynomial.eval (AlgNum.l $ea) $p > 0)
+          let pf_rat ← mkDecideProof goal
+          mkAppM ``eval_pos_alg_rat #[p, ea, pf_lr, pf_rat]
+      return (pf, val)
+    | .interval _ _ _ =>
+      let h1 : Q(Prop) := q(«$ea».p.eval «$ea».l ≠ 0)
+      let p1 : Q($h1) ← mkDecideProof h1
+      let h2 : Q(Prop) := q(«$ea».p.eval «$ea».r ≠ 0)
+      let p2 : Q($h2) ← mkDecideProof h2
+      let sign_sturm_pf := q(sgn_eval_alg_sturm_seq $p $ea $p1 $p2)
+      let sign : Int := seqVarSturmC_ab' va.p (va.p.derivative * p_native) va.l va.r
+      let sign_eq : Q(Prop) := q(seqVarSturmC_ab' «$ea».p («$ea».p.derivative * $p) «$ea».l «$ea».r = $sign)
+      let sign_reflection ← mkDecideProof sign_eq
+      let sign_pf : Q(sgn ((toPolyReal $p).eval «$ea».toReal) = $sign) ← mkAppM ``Eq.trans #[sign_sturm_pf, sign_reflection]
+      if sign = -1 then
+        let sign_neg_pf : Q(sgn ((toPolyReal $p).eval «$ea».toReal) < 0) ← mkAppM ``minus_one #[q(sgn ((toPolyReal $p).eval «$ea».toReal)), sign_pf]
+        return (q((sgn_sgn_neg ((toPolyReal $p).eval «$ea».toReal)).mp $sign_neg_pf), sign)
+      else if sign = 0 then
+        let sign_pf : Q(sgn ((toPolyReal $p).eval «$ea».toReal) = 0) := sign_pf
+        return (q((sgn_sgn_zero ((toPolyReal $p).eval «$ea».toReal)).mp $sign_pf), sign)
+      else
+        let sign_pos_pf : Q(sgn ((toPolyReal $p).eval «$ea».toReal) > 0) ← mkAppM ``plus_one #[q(sgn ((toPolyReal $p).eval «$ea».toReal)), sign_pf]
+        return (q((sgn_sgn_pos ((toPolyReal $p).eval «$ea».toReal)).mp $sign_pos_pf), sign)
 
 @[tactic compute_sign] def evalComputeSign : Tactic := fun stx => withMainContext do
   let p : Q(CPolynomial Rat) ← elabTerm stx[1] none
@@ -249,7 +258,7 @@ def P1 : CPolynomial Rat := X ^ 3 - 3 * X ^ 2 + X - 5
 
 open CPolynomial in
 def Q : CPolynomial Rat := X ^ 2 - 2
-def r : Raw := ⟨Q, 1, 2⟩
+def r : Raw := .interval Q 1 2
 def α : AlgNum := by lift_alg_num r -- sqrt(2)
 
 example : (toPolyReal P1).eval α.toReal < 0 := by
@@ -273,5 +282,16 @@ def r2 : Rat := 3 / 2
 
 example : (toPolyReal Pr).eval (ratToReal r2) = 0 := by
   compute_sign Pr , r2
+
+-- an AlgNum whose refinement collapses to the exact rational root
+def Px : CPolynomial Rat := CPolynomial.X
+def rzero : Raw := .interval Px (-1) 1
+def zero : AlgNum := by lift_alg_num rzero
+
+example : (toPolyReal Pr).eval zero.refine.toReal < 0 := by
+  compute_sign Pr , zero.refine
+
+example : (toPolyReal Px).eval zero.refine.toReal = 0 := by
+  compute_sign Px , zero.refine
 
 end tests_sgn

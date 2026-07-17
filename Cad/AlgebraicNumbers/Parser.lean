@@ -69,7 +69,7 @@ def getRaw (s:String) : Q(AlgebraicNumber.Raw) :=
   let p: Q(CPolynomial Rat) := getPoly t[0]!
   let l : Rat := matchStrWithRat (t[1]!.trimAscii.drop 1).toString
   let r : Rat := matchStrWithRat (((t[2]!.dropEnd 1).trimAscii.toString))
-  q(@AlgebraicNumber.Raw.mk $p $l $r)
+  q(AlgebraicNumber.Raw.interval $p $l $r)
 
 def getMonomNative (s: String) : CPolynomial Rat :=
   let l := (removeParentheses (s.trimAscii.toString)).splitOn "*"
@@ -99,7 +99,7 @@ def getRawNative (s:String) : AlgebraicNumber.Raw :=
   let p: CPolynomial Rat := getPolyNative t[0]!
   let l : Rat := matchStrWithRat (t[1]!.trimAscii.drop 1).toString
   let r : Rat := matchStrWithRat (((t[2]!.dropEnd 1).trimAscii.toString))
-  @AlgebraicNumber.Raw.mk p l r
+  AlgebraicNumber.Raw.interval p l r
 
 def getRawWithNative (s : String) : Q(AlgebraicNumber.Raw) × AlgebraicNumber.Raw :=
   let t := ((s.drop 1).dropEnd 1).toString.splitOn ","
@@ -107,4 +107,4 @@ def getRawWithNative (s : String) : Q(AlgebraicNumber.Raw) × AlgebraicNumber.Ra
   let p := getPolyNative t[0]!
   let l : Rat := matchStrWithRat (t[1]!.trimAscii.drop 1).toString
   let r : Rat := matchStrWithRat (((t[2]!.dropEnd 1).trimAscii.toString))
-  (q(AlgebraicNumber.Raw.mk $pE $l $r), ⟨p, l, r⟩)
+  (q(AlgebraicNumber.Raw.interval $pE $l $r), .interval p l r)
