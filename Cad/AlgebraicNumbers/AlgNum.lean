@@ -12,37 +12,14 @@ def AlgNum.l (a : AlgNum) : Rat := a.val.l
 def AlgNum.r (a : AlgNum) : Rat := a.val.r
 def AlgNum.p (a : AlgNum) : CPolynomial Rat := a.val.p
 
-def AlgNum.wellDefined (a : AlgNum) : Prop :=
-  ∃! x : Real, (toPolyReal a.p).eval x = 0 ∧ a.l ≤ x ∧ x ≤ a.r
+lemma AlgNum.isWellDefined (a : AlgNum) : a.val.wellDefined := a.prop.1
 
-def AlgNum.sgnDiff (a : AlgNum) : Prop :=
-  (a.p.eval a.l) * (a.p.eval a.r) ≤ 0
-
-lemma AlgNum.isWellDefined (a : AlgNum) : a.wellDefined := by
-  unfold AlgNum.wellDefined
-  have := a.prop.1
-  simp [Raw.wellDefined] at this
-  obtain ⟨r, hr⟩ := this
-  use r
-  finiteness
-
-lemma AlgNum.hasSgnDiff (a : AlgNum) : a.sgnDiff := by
-  have := a.prop.2
-  unfold sgnDiff
-  simp [Raw.sgnDiff] at this
-  finiteness
+lemma AlgNum.hasSgnDiff (a : AlgNum) : a.val.sgnDiff := a.prop.2
 
 def AlgNum.refine (a : AlgNum) : AlgNum :=
   have h1 : a.val.refine.wellDefined := Raw.refine_wellDefined a.val a.prop.1 a.prop.2
-  have h2 : a.val.refine.sgnDiff := Raw.refine_sgnDiff a.val a.prop.1 a.prop.2
+  have h2 : a.val.refine.sgnDiff := Raw.refine_sgnDiff a.val a.prop.2
   ⟨a.val.refine, And.intro h1 h2⟩
-
-lemma AlgNum.refine_p (a : AlgNum) : a.refine.p = a.p := Raw.refine_p a.val
-
-lemma AlgNum.refineN_p (a : AlgNum) (n : ℕ) : (AlgNum.refine^[n] a).p = a.p := by
-  induction n with
-  | zero => simp
-  | succ n ih => rw [Function.iterate_succ', Function.comp, AlgNum.refine_p, ih]
 
 lemma AlgNum.lr (a : AlgNum) : a.l ≤ a.r := Raw.lr_wellDefined a.val a.prop.1
 
@@ -84,19 +61,21 @@ lemma toSeq_iterate (a : AlgNum) : ∀ n k : ℕ, toSeq a (n + k) = toSeq (AlgNu
     simp only [toSeq]
     rw [ih a.refine k, Function.iterate_succ, Function.comp]
 
-lemma refine_width (a : AlgNum) : a.refine.val.r - a.refine.l = (a.val.r - a.l) / 2 := by
-  simp [AlgNum.refine]
-  exact Raw.refine_width a.val
+lemma refine_width (a : AlgNum) : a.refine.r - a.refine.l ≤ (a.r - a.l) / 2 :=
+  Raw.refine_width a.val a.prop.1
 
 lemma refineN_width (a : AlgNum) : ∀ n : ℕ,
-    (AlgNum.refine^[n] a).val.r - (AlgNum.refine^[n] a).l = (a.val.r - a.l) / 2 ^ n := by
+    (AlgNum.refine^[n] a).r - (AlgNum.refine^[n] a).l ≤ (a.r - a.l) / 2 ^ n := by
   intro n
   induction n with
   | zero => simp
   | succ n ih =>
-    rw [Function.iterate_succ', Function.comp, refine_width, ih]
-    rw [pow_succ]
-    field_simp
+    rw [Function.iterate_succ_apply']
+    have h1 := refine_width (AlgNum.refine^[n] a)
+    have h2 : ((a.r - a.l) / 2 ^ n) / 2 = (a.r - a.l) / 2 ^ (n + 1) := by
+      rw [pow_succ]
+      ring
+    linarith
 
 lemma toSeq_in_refineN (a : AlgNum) (n i : ℕ) (hni : n ≤ i) :
     (AlgNum.refine^[n] a).l ≤ toSeq a i ∧ toSeq a i ≤ (AlgNum.refine^[n] a).r := by
@@ -122,9 +101,10 @@ theorem toSeq_cauchy : ∀ a: AlgNum, IsCauSeq abs (toSeq a) := by
   intro j hj
   have hbN := toSeq_in_refineN a N N le_rfl
   have hbj := toSeq_in_refineN a N j hj
-  have hwidthN : (AlgNum.refine^[N] a).r - (AlgNum.refine^[N] a).l = (a.r - a.l) / 2 ^ N := refineN_width a N
+  have hwidthN : (AlgNum.refine^[N] a).r - (AlgNum.refine^[N] a).l ≤ (a.r - a.l) / 2 ^ N :=
+    refineN_width a N
   rw [abs_lt]
-  constructor <;> nlinarith [hbN.1, hbN.2, hbj.1, hbj.2]
+  constructor <;> linarith [hbN.1, hbN.2, hbj.1, hbj.2]
 
 def AlgNum.toReal (a: AlgNum): ℝ :=
   Real.ofCauchy (CauSeq.Completion.mk ⟨toSeq a, toSeq_cauchy a⟩)
@@ -159,8 +139,6 @@ theorem refine_toReal : ∀ a : AlgNum, a.toReal = a.refine.toReal := by
     intro j hj
     have hbA := toSeq_in_refineN a N j hj
     have hbR_own := toSeq_in_refineN a.refine N j hj
-    have hcontain_l := a.refine_bounds_l
-    have hcontain_r := a.refine_bounds_r
     have hbR : (AlgNum.refine^[N] a).l ≤ toSeq a.refine j ∧ toSeq a.refine j ≤ (AlgNum.refine^[N] a).r := by
       have : (AlgNum.refine^[N] a.refine) = (AlgNum.refine^[N] a).refine := by
         rw [← Function.iterate_succ_apply, Function.iterate_succ_apply']
@@ -168,11 +146,24 @@ theorem refine_toReal : ∀ a : AlgNum, a.toReal = a.refine.toReal := by
       constructor
       · exact le_trans (AlgNum.refine_bounds_l (AlgNum.refine^[N] a)) hbR_own.1
       · exact le_trans hbR_own.2 (AlgNum.refine_bounds_r (AlgNum.refine^[N] a))
-    have hwidthN : (AlgNum.refine^[N] a).r - (AlgNum.refine^[N] a).l = (a.r - a.l) / 2 ^ N := refineN_width a N
+    have hwidthN : (AlgNum.refine^[N] a).r - (AlgNum.refine^[N] a).l ≤ (a.r - a.l) / 2 ^ N :=
+      refineN_width a N
     simp only [CauSeq.sub_apply]
     rw [abs_lt]
-    constructor <;> nlinarith [hbA.1, hbA.2, hbR.1, hbR.2]
+    constructor <;> linarith [hbA.1, hbA.2, hbR.1, hbR.2]
   )
+
+/-- An `AlgNum` whose bounds coincide (i.e. whose representation collapsed to
+a rational) is exactly that rational number. -/
+lemma AlgNum.toReal_of_l_eq_r (a : AlgNum) (h : a.l = a.r) : a.toReal = ratToReal a.l := by
+  have h1 := (toReal_bounds a).1
+  have h2 := (toReal_bounds a).2
+  have hcast : ratToReal a.l = (a.l : ℝ) := by
+    unfold ratToReal ratToRealHom
+    simp
+  rw [hcast]
+  rw [← h] at h2
+  exact le_antisymm h2 h1
 
 instance : LT AlgNum where
   lt a b := a.r < b.l
