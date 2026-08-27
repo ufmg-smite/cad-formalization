@@ -48,8 +48,7 @@ theorem wellDefined_iff_rootsInInterval (p : CPolynomial ℚ) (l r : ℚ)
     exact Finset.mem_singleton.mp hy_mem
 
 lemma sturm_l_r_cpoly (p : CPolynomial ℚ) (l r : ℚ) (hl : p.eval l ≠ 0) (hr : p.eval r ≠ 0) (hlr : l < r) :
-    seqVarSturmC_ab' p p.derivative l r = (rootsInInterval (p.toPoly.map ratToRealHom) l r).card := by
-  rw [<- seqVarSturmC_ab_equiv]
+    seqVarSturmC_ab p p.derivative l r = (rootsInInterval (p.toPoly.map ratToRealHom) l r).card := by
   have : p.derivative = p.derivative * 1 := by norm_num
   rw [this, seqVarABEquivSturm p 1]
   have hl0 : Polynomial.eval (↑l) (Polynomial.map ratToRealHom p.toPoly) ≠ 0 := by
@@ -95,7 +94,7 @@ theorem Raw.wellDefined_of_sturm (a : Raw) (hlr : a.l < a.r)
     have h0 : p.toPoly.map ratToRealHom ≠ 0 := Polynomial.map_ne_zero (toPoly_ne0_of_poly_ne0 p hp)
     have h_roots : Finset.card (rootsInInterval (p.toPoly.map ratToRealHom) ↑l ↑r) = 1 := by
       zify
-      rw [<- sturm_l_r_cpoly p l r hl hr hlr']
+      rw [<- sturm_l_r_cpoly p l r hl hr hlr', seqVarSturmC_ab_equiv]
       exact h_int
     exact (wellDefined_iff_rootsInInterval p l r h0).mpr h_roots
 

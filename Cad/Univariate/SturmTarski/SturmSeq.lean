@@ -25,12 +25,12 @@ lemma no_zero_in_sturmSeq (p q : Polynomial ℝ) : 0 ∉ sturmSeq p q := by
       apply IH q (-p % q)
       exact this
 
-lemma seqVarSgn : ∀ ps : List (Polynomial ℝ), ∀ (k : ℝ), seqVarR (seqEval k ps) = seqVarR (seqEvalSgn k ps)
-| [] => by intro k; simp [seqVarR, seqEval, seqEvalSgn]
-| [p] => by intro k; simp [seqVarR, seqEval, seqEvalSgn]
+lemma seqVarSgn : ∀ ps : List (Polynomial ℝ), ∀ (k : ℝ), seqVar (seqEval k ps) = seqVar (seqEvalSgn k ps)
+| [] => by intro k; simp [seqVar, seqEval, seqEvalSgn]
+| [p] => by intro k; simp [seqVar, seqVar_aux, seqEval, seqEvalSgn]
 | p1 :: p2 :: ps => by
   intro k
-  simp [seqVarR, seqEval, seqEvalSgn]
+  simp [seqVar, seqVar_aux, seqEval, seqEvalSgn]
   split_ifs with h1 h2 h3 h4 h5 h6 h7 h8
   · exact seqVarSgn (p1 :: ps) k
   · have := (sgn_sgn_zero (eval k p2)).mpr h1
@@ -116,12 +116,12 @@ lemma smods_s_0_2 (p: Polynomial ℝ) : sturmSeq p 0 = if p = 0 then [] else [p]
 
 @[simp]
 theorem seqVarSturm_ab_z_1 (p: Polynomial ℝ) (a b: ℝ) : seqVarSturm_ab 0 p a b = 0 := by
-  unfold seqVarSturm_ab seqVar_ab seqVarR seqEval sturmSeq
+  unfold seqVarSturm_ab seqVar_ab seqVar seqEval sturmSeq
   simp
 
 @[simp]
 theorem seqVarSturm_ab_z_2 (p: Polynomial ℝ) (a b: ℝ) : seqVarSturm_ab p 0 a b = 0 := by
-  unfold seqVarSturm_ab seqVar_ab seqVarR seqEval
+  unfold seqVarSturm_ab seqVar_ab seqVar seqEval
   if H: p = 0 then simp [H]
   else simp [H]
 
@@ -145,7 +145,7 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
     rcases H with h | h | h
     · simp [cross, variation, h]
     · simp [cross, variation, h]
-    · unfold seqVarSturm_ab seqVar_ab seqEval cross seqVarR sturmSeq
+    · unfold seqVarSturm_ab seqVar_ab seqEval cross seqVar seqVar_aux sturmSeq
       rw [mod_minus, h]
       have ⟨hap, haq⟩: eval a p ≠ 0 ∧ eval a q ≠ 0 := by simp_all only [eval_mul, ne_eq, mul_eq_zero, not_or,
         EuclideanDomain.mod_eq_zero, not_false_eq_true, and_self]
@@ -165,25 +165,21 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
         simp_all only [zero_dvd_iff]
       simp [hpz, hqz, haq, hbq]
       split_ifs with h1 h2 h3
-      · unfold seqVarR
-        rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.2.2 ⟨h1, h2⟩];
+      · rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.2.2 ⟨h1, h2⟩];
         simp
-      · unfold seqVarR
-        have : eval b p * eval b q > 0 := by
+      · have : eval b p * eval b q > 0 := by
           rw [eval_mul] at hpqb
           rw [not_lt, <-ge_iff_le] at h2
           exact lt_of_le_of_ne h2 (Ne.symm hpqb)
         rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.2.1 ⟨h1, this⟩];
         simp
-      · unfold seqVarR
-        have : eval a p * eval a q > 0 := by
+      · have : eval a p * eval a q > 0 := by
           rw [eval_mul] at hpqa
           rw [not_lt, <-ge_iff_le] at h1
           exact lt_of_le_of_ne h1 (Ne.symm hpqa)
         rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.1 ⟨this, h3⟩];
         simp
-      · unfold seqVarR
-        have : eval a p * eval a q > 0 ∧ eval b p * eval b q > 0 := by
+      · have : eval a p * eval a q > 0 ∧ eval b p * eval b q > 0 := by
           rw [eval_mul] at hpqa hpqb
           rw [not_lt, <-ge_iff_le] at h1 h3
           exact ⟨lt_of_le_of_ne h1 (Ne.symm hpqa), lt_of_le_of_ne h3 (Ne.symm hpqb)⟩
@@ -195,11 +191,11 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
        unfold sturmSeq sturmSeq
        rw [sturmSeq]
        simp_all
-     let changes_diff := fun x => ((seqVarR (seqEval x (p::q::(-p%q)::ps)): ℤ) - (seqVarR (seqEval x (q::(-p%q)::ps))): ℤ)
+     let changes_diff := fun x => ((seqVar (seqEval x (p::q::(-p%q)::ps)): ℤ) - (seqVar (seqEval x (q::(-p%q)::ps))): ℤ)
      have hz1: ∀ x: ℝ, (eval x p) * (eval x q) < 0 → changes_diff x = 1 := by
        unfold changes_diff
        intros x hx
-       rw [seqVarR.eq_def, seqEval]
+       rw [seqVar.eq_def, seqEval]
        have hxq : eval x q ≠ 0 := by
          simp_all only [eval_mul, ne_eq, mul_eq_zero, not_or, EuclideanDomain.mod_eq_zero]
          obtain ⟨left, right⟩ := hpqa
@@ -209,11 +205,11 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
          apply Aesop.BuiltinRules.not_intro
          intro a_1
          simp_all only [mul_zero, lt_self_iff_false]
-       simp [hxq, hx]
+       simp [seqVar, seqVar_aux, hxq, hx]
      have hz2: ∀x, (eval x p) * (eval x q) > 0 → changes_diff x = 0 := by
        unfold changes_diff
        intros x hx
-       rw [seqVarR.eq_def, seqEval]
+       rw [seqVar.eq_def, seqEval]
        have hxq : eval x q ≠ 0 := by
          simp_all only [eval_mul, ne_eq, mul_eq_zero, not_or, EuclideanDomain.mod_eq_zero, gt_iff_lt, changes_diff]
          obtain ⟨left, right⟩ := hpqa
@@ -224,7 +220,7 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
          intro a_1
          simp_all only [mul_zero, lt_self_iff_false]
        have  : ¬ eval x p * eval x q < 0 := by nlinarith
-       simp [hxq, this]
+       simp [seqVar, seqVar_aux, hxq, this]
      have hf: changes_diff a - changes_diff b = cross (p * q) a b := by
        unfold cross
        rcases lt_or_gt_of_ne hpqa with ha | ha <;> rcases lt_or_gt_of_ne hpqb with hb | hb
@@ -336,7 +332,7 @@ lemma cauchyIndex_poly_rec (p q : Polynomial ℝ) (a b: ℝ) (hab : a < b)
 
 lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') (hpa : eval a p ≠ 0)
     (no_root : ∀ p' ∈ sturmSeq p q, ∀ x : ℝ, ((a < x ∧ x ≤ a') ∨ (a' ≤ x ∧ x < a)) → eval x p' ≠ 0) :
-    seqVarR (seqEval a (sturmSeq p q)) = seqVarR (seqEval a' (sturmSeq p q)) := by
+    seqVar (seqEval a (sturmSeq p q)) = seqVar (seqEval a' (sturmSeq p q)) := by
   have p_neq_0 : p ≠ 0 := eval_non_zero p a hpa
   let r1 := -p%q
   have r1_def : r1 = -p%q := rfl
@@ -356,7 +352,7 @@ lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') 
 
   if hq: q = 0 then
     unfold sturmSeq
-    simp [hq, seqEval, seqVarR, p_neq_0]
+    simp [hq, seqEval, seqVar, seqVar_aux, p_neq_0]
   else if hq2: eval a q = 0 then
     let r2 := -(q%r1)
     have : eval a p = - (eval a r1) := by
@@ -401,12 +397,12 @@ lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') 
         exact hp'
       exact no_root_2_aux p' this
     have IH := changes_smods_congr r1 r2 a a' haa' h_eval_r no_root_2
-    have rec_a : seqVarR (seqEval a (sturmSeq p q)) = 1 + seqVarR (seqEval a (sturmSeq r1 r2)) := by
+    have rec_a : seqVar (seqEval a (sturmSeq p q)) = 1 + seqVar (seqEval a (sturmSeq r1 r2)) := by
       rw [hps1, hps2, seqEval]
-      simp [seqVarR, hq2]
+      simp [seqVar, seqVar_aux, hq2]
       simp [h_eval_r]
       exact eval_a_eval_r
-    have rec_a' : seqVarR (seqEval a' (sturmSeq p q)) = 1 + seqVarR (seqEval a' (sturmSeq r1 r2)) := by
+    have rec_a' : seqVar (seqEval a' (sturmSeq p q)) = 1 + seqVar (seqEval a' (sturmSeq r1 r2)) := by
       have hp1 : eval a p * eval a' p ≥ 0 := by
         rw [hps1] at a_a'_rel
         apply a_a'_rel
@@ -431,11 +427,11 @@ lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') 
         · aesop
       rw [hps1, hps2]
       rw [seqEval, List.map, List.map]
-      rw [seqVarR]
+      rw [seqVar, seqVar_aux]
       simp [ev_neq_0_q]
       split_ifs
       next H =>
-        simp [seqVarR, ev_neq_0_r1]
+        simp [seqVar, seqVar_aux, ev_neq_0_r1]
         by_contra!
         have : (eval a' p * eval a' q) * (eval a' q * eval a' r1) > 0 := mul_pos_of_neg_of_neg H this
         have h1 : (eval a' p * eval a' r1) * (eval a' q * eval a' q) > 0 := by linarith
@@ -446,7 +442,7 @@ lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') 
         have : eval a p * eval a r1 ≥ 0 := (mul_nonneg_iff_of_pos_right h_pos).mp this
         linarith
       next H =>
-        simp [seqVarR, ev_neq_0_r1]
+        simp [seqVar, seqVar_aux, ev_neq_0_r1]
         simp at H
         by_contra!
         have : 0 ≤ (eval a' p * eval a' q) * (eval a' q * eval a' r1) := Left.mul_nonneg H this
@@ -494,12 +490,10 @@ lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') 
     have ev_qa' : eval a q * eval a' q ≥ 0 := by
       apply a_a'_rel q (by rw [hps1]; simp)
     rw [hps1]
-    simp [seqEval, seqVarR, hq2, hqa']
-    have eq_a : seqVarR (eval a q :: seqEval a ps) = seqVarR (seqEval a (q :: ps)) := by simp [seqEval]
-    have eq_a' : seqVarR (eval a' q :: seqEval a' ps) = seqVarR (seqEval a' (q :: ps)) := by simp [seqEval]
+    simp [seqEval, seqVar, seqVar_aux, hq2, hqa']
     rw [hps2] at IH
     split_ifs
-    next h1 h2 => unfold seqEval at eq_a eq_a' IH; rw [eq_a, eq_a', IH]
+    next h1 h2 => simp; finiteness
     next h1 h2 =>
       push_neg at h2
       clear * - h1 h2 ev_pa' ev_qa' hq2 hpa hpa' hqa'
@@ -583,14 +577,14 @@ lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') 
           linarith
         have : eval a' p * eval a' q > 0 := mul_pos_of_neg_of_neg Ha'p Ha'q
         linarith
-    next h1 h2 => unfold seqEval at eq_a eq_a' IH; rw [eq_a, eq_a', IH]
+    next h1 h2 => finiteness
 termination_by List.length (sturmSeq p q)
 
 lemma changes_itv_smods_congr (p q : Polynomial ℝ) (a a' b b' : ℝ) (hpa : eval a p ≠ 0) (hpb : eval b p ≠ 0)
     (haa' : a < a') (hb'b : b' < b)
     (no_root : ∀ p' ∈ sturmSeq p q, ∀ x : ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) → eval x p' ≠ 0) :
     seqVarSturm_ab p q a b = seqVarSturm_ab p q a' b' := by
-  have h1 : seqVarR (seqEval a (sturmSeq p q)) = seqVarR (seqEval a' (sturmSeq p q)) := by
+  have h1 : seqVar (seqEval a (sturmSeq p q)) = seqVar (seqEval a' (sturmSeq p q)) := by
     apply changes_smods_congr p q a a'
     · exact ne_of_lt haa'
     · exact hpa
@@ -600,7 +594,7 @@ lemma changes_itv_smods_congr (p q : Polynomial ℝ) (a a' b b' : ℝ) (hpa : ev
       cases hx
       next hx => exact hx
       next hx => linarith
-  have h2 : seqVarR (seqEval b (sturmSeq p q)) = seqVarR (seqEval b' (sturmSeq p q)) := by
+  have h2 : seqVar (seqEval b (sturmSeq p q)) = seqVar (seqEval b' (sturmSeq p q)) := by
     apply changes_smods_congr p q b b'
     · exact Ne.symm (ne_of_lt hb'b)
     · exact hpb
@@ -619,7 +613,7 @@ theorem cauchyIndex_sturmSeq (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a �
   | nil =>
     unfold seqVarSturm_ab
     rw [h]
-    simp [seqVar_ab, seqVarR, seqEval]
+    simp [seqVar_ab, seqEval]
     have := (smod_nil_eq p q).mp h
     rw [this]
     simp [cauchyIndex, rootsInInterval]

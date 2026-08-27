@@ -566,19 +566,3 @@ lemma root_list_lb (ps : List (Polynomial ℝ)) (b : ℝ) (h0 : 0 ∉ ps) :
           apply hlb3
           · linarith
           · exact hmem
-
-lemma seqVarI_seqVarR (is : List ℤ) : seqVarI is = seqVarR (is : List ℝ) := match is with
-| [] => by simp [seqVarR, seqVarI]
-| [i] => by simp [seqVarR, seqVarI]
-| i1 :: i2 :: is => by
-  simp [seqVarR, seqVarI]
-  have IH1 := seqVarI_seqVarR (i1 :: is)
-  have IH2 := seqVarI_seqVarR (i2 :: is)
-  have IH3 := seqVarI_seqVarR is
-  split_ifs
-  next => finiteness
-  next => simp_all only [List.pure_def, List.bind_eq_flatMap, List.flatMap_cons, List.cons_append,
-    List.nil_append]
-  next H1 H2 => norm_cast at H2
-  next H1 H2 => norm_cast at H2
-  next => finiteness

@@ -445,17 +445,17 @@ def univCadCore (x : Q(Real)) (ineq_pfs : List Expr) (rs : List RootVal) : MetaM
 /-   univ_cad x , [h1,h2,h3,h4] [a,b,c] -/
 
 /- def p2 : CPolynomial Rat := X - 3/2 -/
-/- def r3 : Raw := ⟨p2, 7/5, 2⟩ -/
+/- def r3 : Raw := .interval p2 (7/5) 2 -/
 /- def R3 : AlgNum := by lift_alg_num r3 -/
 
 /- abbrev R3' : Rat := 3 / 2 -/
 
 /- def p1 : CPolynomial Rat := 10 • X ^ 2 + 2 • X + -15 -/
 
-/- def r1 : Raw := ⟨p1, -4/2, -6/4⟩ -/
+/- def r1 : Raw := .interval p1 (-3/2) (-5/4) -/
 /- def R1 : AlgNum := by lift_alg_num r1 -/
 
-/- def r2 : Raw := ⟨p1, 1, 5/4⟩ -/
+/- def r2 : Raw := .interval p1 1 (5/4) -/
 /- def R2 : AlgNum := by lift_alg_num r2 -/
 
 /- lemma exemplo (a : Real) (h1 : ¬ -1 * a ≥ -3 / 2) (h2 : a = 15 / 2 + -5 * (a * a)) : False := by -/
@@ -464,7 +464,7 @@ def univCadCore (x : Q(Real)) (ineq_pfs : List Expr) (rs : List RootVal) : MetaM
 /- #print axioms exemplo -/
 
 /- def zero_p : CPolynomial Rat := X -/
-/- def zero_r : Raw := ⟨zero_p, -1, 1⟩ -/
+/- def zero_r : Raw := .interval zero_p (-1) 1 -/
 /- def zero : AlgNum := by lift_alg_num zero_r -/
 
 /- example (x : Real) (h1 : x * x * x * x * x > 0) (h2 : x * x * x < 0) : False := by -/

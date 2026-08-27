@@ -89,44 +89,12 @@ theorem sturmSeqC_equiv (f g : CPolynomial ℚ) :
   unfold sturmSeqC'
   exact sturmSeqC_fuel_eq f g (g.natDegree + 2) (le_refl _)
 
-def seqVarI_aux (prev : ℤ) : List ℤ → ℕ
-  | [] => 0
-  | b :: as =>
-    if b == 0 then seqVarI_aux prev as
-    else if prev * b < 0 then 1 + seqVarI_aux b as
-    else seqVarI_aux b as
-
-/-- Kernel-reducible version of `seqVarI`. -/
-def seqVarI' : List ℤ → ℕ
-  | [] => 0
-  | a :: rest => seqVarI_aux a rest
-
-theorem seqVarI_aux_eq_seqVarI (prev : ℤ) (rest : List ℤ) :
-    seqVarI_aux prev rest = seqVarI (prev :: rest) := by
-  induction rest generalizing prev with
-  | nil => simp [seqVarI_aux, seqVarI.eq_2]
-  | cons b as ih =>
-    simp only [seqVarI_aux]
-    rw [seqVarI.eq_3]
-    split
-    · rw [ih]
-    · split
-      · congr 1; rw [ih]
-      · rw [ih]
-
-theorem seqVarI_eq (l : List ℤ) : seqVarI' l = seqVarI l := by
-  cases l with
-  | nil => simp [seqVarI', seqVarI.eq_1]
-  | cons a rest =>
-    simp only [seqVarI']
-    exact seqVarI_aux_eq_seqVarI a rest
-
 def seqVarLineC' (P : List (CPolynomial ℚ)) : ℤ :=
-  (seqVarI' (seq_sgn_neg_inf'' P) : Int) - seqVarI' (seq_sgn_pos_inf'' P)
+  (seqVar (seq_sgn_neg_inf'' P) : Int) - seqVar (seq_sgn_pos_inf'' P)
 
 theorem seqVarLine_eq (P : List (CPolynomial ℚ)) : seqVarLineC P = seqVarLineC' P := by
   unfold seqVarLineC seqVarLineC'
-  rw [seqVarI_eq, seqVarI_eq]
+  rfl
 
 def seqVarLineSturmC' (p q : CPolynomial ℚ) : ℤ :=
   seqVarLineC' (sturmSeqC' p q)
@@ -139,50 +107,10 @@ theorem seqVarLineEquivSturm' (p q : CPolynomial ℚ) : seqVarLineSturm (p.toPol
   rw [<- seqVarLineSturmC_eq]
   exact (seqVarLineEquivSturm p q).symm
 
-def seqVarQ_aux (prev : ℚ) : List ℚ → ℕ
-  | [] => 0
-  | b :: as =>
-    if b == 0 then seqVarQ_aux prev as
-    else if prev * b < 0 then 1 + seqVarQ_aux b as
-    else seqVarQ_aux b as
-
-/-- Kernel-reducible version of `seqVarI`. -/
-def seqVarQ' : List ℚ → ℕ
-  | [] => 0
-  | a :: rest => seqVarQ_aux a rest
-
-theorem seqVarQ_aux_eq_seqVarQ (prev : ℚ) (rest : List ℚ) :
-    seqVarQ_aux prev rest = seqVarQ (prev :: rest) := by
-  induction rest generalizing prev with
-  | nil => simp [seqVarQ_aux, seqVarQ.eq_2]
-  | cons b as ih =>
-    simp only [seqVarQ_aux]
-    rw [seqVarQ.eq_3]
-    split
-    · rw [ih]
-    · split
-      · congr 1; rw [ih]
-      · rw [ih]
-
-theorem seqVarQ_eq (l : List ℚ) : seqVarQ' l = seqVarQ l := by
-  cases l with
-  | nil => simp [seqVarQ', seqVarQ.eq_1]
-  | cons a rest =>
-    simp only [seqVarQ']
-    exact seqVarQ_aux_eq_seqVarQ a rest
-
-def seqVarQ_ab' (P: List (CPolynomial ℚ)) (a b: ℚ): ℤ :=
-  (seqVarQ' (seqEvalC a P) : Int) - seqVarQ' (seqEvalC b P)
-
-lemma seqVarQ_ab_equiv (P : List (CPolynomial ℚ)) (a b : ℚ) :
-    seqVarQ_ab P a b = seqVarQ_ab' P a b := by
-  unfold seqVarQ_ab seqVarQ_ab'
-  rw [seqVarQ_eq, seqVarQ_eq]
-
 def seqVarSturmC_ab' (p q: CPolynomial ℚ) (a b : ℚ) : ℤ :=
-  seqVarQ_ab' (sturmSeqC' p q) a b
+  seqVar_abC (sturmSeqC' p q) a b
 
 lemma seqVarSturmC_ab_equiv (p q : CPolynomial ℚ) (a b : ℚ) :
     seqVarSturmC_ab p q a b = seqVarSturmC_ab' p q a b := by
   unfold seqVarSturmC_ab' seqVarSturmC_ab
-  rw [seqVarQ_ab_equiv, sturmSeqC_equiv]
+  rw [sturmSeqC_equiv]

@@ -91,7 +91,6 @@ theorem sturm_tarski_above (a : ℝ) (p q : Polynomial ℝ) (hpa : eval a p ≠ 
   have changes_changes : seqVarAboveSturm p (derivative p * q) a = seqVarSturm_ab p (derivative p * q) a ub := by
     simp [seqVarSturm_ab, seqVarAboveSturm, seqVarAbove_a, seqVar_ab]
     rw [seqVarSgn, <- ps_def, seq_sgn_pos_inf_seqEvalSgn ub ps hub3]
-    rw [seqVarI_seqVarR]
   rw [taq_taq, changes_changes]
   apply sturm_tarski_interval _ _ _ _ hub2 hpa
   intro abs
@@ -140,7 +139,6 @@ theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpa : eval b p ≠ 
   have changes_changes : seqVarBelowSturm p (derivative p * q) b = seqVarSturm_ab p (derivative p * q) lb b := by
     simp [seqVarSturm_ab, seqVarBelowSturm, seqVarBelow_b, seqVar_ab]
     rw [seqVarSgn, <- ps_def, seq_sgn_neg_inf_seqEvalSgn lb ps hlb3]
-    rw [seqVarI_seqVarR]
   rw [taq_taq, changes_changes]
   apply sturm_tarski_interval _ _ _ _ hlb2 _ hpa
   intro abs
@@ -193,8 +191,6 @@ theorem sturm_tarski_R (p q : Polynomial ℝ) :
          , <- ps_def
          , seq_sgn_neg_inf_seqEvalSgn lb ps hlb3
          , seq_sgn_pos_inf_seqEvalSgn ub ps hub3
-         , seqVarI_seqVarR
-         , seqVarI_seqVarR
          ]
     have lb_neq_0 : eval lb p ≠ 0 := by
       intro abs

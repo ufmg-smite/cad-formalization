@@ -2,16 +2,38 @@ import Mathlib
 import CompPoly
 import Cad.Univariate.Utils
 
-def seqVarI : List ℤ → ℕ
+def seqVar_aux {α : Type*} [Ring α] [LinearOrder α] [DecidableEq α] (prev : α) : List α → ℕ
 | [] => 0
-| _::[] => 0
-| a::(b::as) =>
-  if b == 0 then
-    seqVarI (a::as)
-  else if a * b < 0 then
-    1 + seqVarI (b::as)
-  else
-    seqVarI (b::as)
+| a :: as =>
+  if a == 0 then seqVar_aux prev as
+  else if prev * a < 0 then 1 + seqVar_aux a as
+  else seqVar_aux a as
+
+def seqVar {α : Type*} [Ring α] [LinearOrder α] [DecidableEq α] : List α → ℕ
+| [] => 0
+| a :: as => seqVar_aux a as
+
+theorem seqVar_aux_map {α β : Type*} [Ring α] [LinearOrder α] [DecidableEq α]
+    [Ring β] [LinearOrder β] [DecidableEq β] {f : α → β}
+    (hf0 : ∀ x, f x = 0 ↔ x = 0) (hfmul : ∀ x y, f x * f y < 0 ↔ x * y < 0)
+    (prev : α) (l : List α) :
+    seqVar_aux (f prev) (l.map f) = seqVar_aux prev l := by
+  induction l generalizing prev with
+  | nil => rfl
+  | cons a as ih =>
+    simp only [List.map_cons, seqVar_aux, beq_iff_eq, hf0, hfmul]
+    split_ifs <;> simp [ih]
+
+/-- `seqVar` is invariant under any map preserving zeroness and signs of products
+(e.g. casts and `sgn`). -/
+theorem seqVar_map {α β : Type*} [Ring α] [LinearOrder α] [DecidableEq α]
+    [Ring β] [LinearOrder β] [DecidableEq β] {f : α → β}
+    (hf0 : ∀ x, f x = 0 ↔ x = 0) (hfmul : ∀ x y, f x * f y < 0 ↔ x * y < 0)
+    (l : List α) :
+    seqVar (l.map f) = seqVar l := by
+  cases l with
+  | nil => rfl
+  | cons a as => exact seqVar_aux_map hf0 hfmul a as
 
 section RealPoly
 
@@ -63,47 +85,24 @@ noncomputable def seq_sgn_pos_inf : List (Polynomial ℝ) → List ℤ := List.m
 
 noncomputable def seq_sgn_neg_inf : List (Polynomial ℝ) → List ℤ := List.map (fun x => sgn_neg_inf x)
 
--- If we use typeclasses for these three we don't know which one is computable (?)
-noncomputable def seqVarR : List ℝ → ℕ
-| [] => 0
-| _::[] => 0
-| a::(b::as) =>
-  if b == 0 then
-    seqVarR (a::as)
-  else if a * b < 0 then
-    1 + seqVarR (b::as)
-  else
-    seqVarR (b::as)
-
-def seqVarQ : List ℚ → ℕ
-| [] => 0
-| _::[] => 0
-| a::(b::as) =>
-  if b == 0 then
-    seqVarQ (a::as)
-  else if a * b < 0 then
-    1 + seqVarQ (b::as)
-  else
-    seqVarQ (b::as)
-
 def seqEval {α : Type*} [Semiring α] (k : α) : List (Polynomial α) → List α := List.map (eval k)
 
 noncomputable def seqEvalSgn (k : ℝ) : List (Polynomial ℝ) → List ℤ := List.map (fun a => sgn (eval k a))
 
 noncomputable def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
-  (seqVarR (seqEval a P) : Int) - seqVarR (seqEval b P)
+  (seqVar (seqEval a P) : Int) - seqVar (seqEval b P)
 
 noncomputable def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
   seqVar_ab (sturmSeq p q) a b
 
 noncomputable def seqVarAbove_a (P: List (Polynomial ℝ)) (a : ℝ) : ℤ :=
-  (seqVarR (seqEval a P) : Int) - seqVarI (seq_sgn_pos_inf P)
+  (seqVar (seqEval a P) : Int) - seqVar (seq_sgn_pos_inf P)
 
 noncomputable def seqVarBelow_b (P: List (Polynomial ℝ)) (b : ℝ) : ℤ :=
-  (seqVarI (seq_sgn_neg_inf P) : Int) - seqVarR (seqEval b P)
+  (seqVar (seq_sgn_neg_inf P) : Int) - seqVar (seqEval b P)
 
 noncomputable def seqVarLine (P : List (Polynomial ℝ)) : ℤ :=
-  (seqVarI (seq_sgn_neg_inf P) : Int) - seqVarI (seq_sgn_pos_inf P)
+  (seqVar (seq_sgn_neg_inf P) : Int) - seqVar (seq_sgn_pos_inf P)
 
 noncomputable def seqVarAboveSturm (p q : Polynomial ℝ) (a : ℝ) : ℤ :=
   seqVarAbove_a (sturmSeq p q) a
@@ -229,11 +228,11 @@ decreasing_by exact termination_sturmSeqC f g (by assumption)
 
 def seqEvalC (k : ℚ) : List (CPolynomial ℚ) → List ℚ := List.map (eval k)
 
-def seqVarQ_ab (P: List (CPolynomial ℚ)) (a b: ℚ): ℤ :=
-  (seqVarQ (seqEvalC a P) : Int) - seqVarQ (seqEvalC b P)
+def seqVar_abC (P: List (CPolynomial ℚ)) (a b: ℚ): ℤ :=
+  (seqVar (seqEvalC a P) : Int) - seqVar (seqEvalC b P)
 
 def seqVarSturmC_ab (p q: (CPolynomial ℚ)) (a b : ℚ) : ℤ :=
-  seqVarQ_ab (sturmSeqC p q) a b
+  seqVar_abC (sturmSeqC p q) a b
 
 def sgnC (q : ℚ) : ℤ :=
   if q < 0 then -1 else if q = 0 then 0 else 1
@@ -249,13 +248,13 @@ def seq_sgn_pos_inf'' : List (CPolynomial ℚ) → List ℤ := List.map (fun x =
 def seq_sgn_neg_inf'' : List (CPolynomial ℚ) → List ℤ := List.map (fun x => sgn_neg_inf'' x)
 
 def seqVarAboveC_a (P: List (CPolynomial ℚ)) (a : ℚ) : ℤ :=
-  (seqVarQ (seqEvalC a P) : Int) - seqVarI (seq_sgn_pos_inf'' P)
+  (seqVar (seqEvalC a P) : Int) - seqVar (seq_sgn_pos_inf'' P)
 
 def seqVarBelowC_b (P: List (CPolynomial ℚ)) (b : ℚ) : ℤ :=
-  (seqVarI (seq_sgn_neg_inf'' P) : Int) - seqVarQ (seqEvalC b P)
+  (seqVar (seq_sgn_neg_inf'' P) : Int) - seqVar (seqEvalC b P)
 
 def seqVarLineC (P : List (CPolynomial ℚ)) : ℤ :=
-  (seqVarI (seq_sgn_neg_inf'' P) : Int) - seqVarI (seq_sgn_pos_inf'' P)
+  (seqVar (seq_sgn_neg_inf'' P) : Int) - seqVar (seq_sgn_pos_inf'' P)
 
 def seqVarAboveSturmC (p q : CPolynomial ℚ) (a : ℚ) : ℤ :=
   seqVarAboveC_a (sturmSeqC p q) a
@@ -393,40 +392,6 @@ lemma cpolynomial_map_cast (x : Rat) (p : CPolynomial Rat) : p.eval x = (p.toPol
   unfold ratToRealHom
   congr
 
-private lemma seqVarR_cast_list (l : List ℚ) :
-    seqVarR (l.map ((↑) : ℚ → ℝ)) = seqVarQ l := by
-  match l with
-  | [] => simp [seqVarR, seqVarQ]
-  | [_] => simp [seqVarR, seqVarQ]
-  | a :: b :: as =>
-    show seqVarR (((a : ℝ) :: (b : ℝ) :: as.map ((↑) : ℚ → ℝ))) = seqVarQ (a :: b :: as)
-    rw [seqVarR, seqVarQ]
-    have hb : ((b : ℝ) == (0 : ℝ)) = (b == (0 : ℚ)) := by
-      by_cases h : b = 0
-      · subst h; simp
-      · have hR : (b : ℝ) ≠ 0 := Rat.cast_ne_zero.mpr h
-        simp [h, hR]
-    have hab : ((a : ℝ) * (b : ℝ) < 0) ↔ (a * b < 0) := by
-      rw [← Rat.cast_mul]; exact_mod_cast Iff.rfl
-    rw [hb]
-    by_cases h1 : b == 0
-    · simp only [h1, ↓reduceIte]
-      have := seqVarR_cast_list (a :: as)
-      simp only [List.map_cons] at this
-      exact this
-    · simp only [h1, Bool.false_eq_true, ↓reduceIte]
-      by_cases h2 : a * b < 0
-      · simp only [hab.mpr h2, h2, ↓reduceIte]
-        have := seqVarR_cast_list (b :: as)
-        simp only [List.map_cons] at this
-        omega
-      · have h2' : ¬ ((a : ℝ) * (b : ℝ) < 0) := fun h => h2 (hab.mp h)
-        simp only [h2', h2, ↓reduceIte]
-        have := seqVarR_cast_list (b :: as)
-        simp only [List.map_cons] at this
-        exact this
-termination_by l.length
-
 private lemma seqEval_cast (a : ℚ) (L : List (CPolynomial ℚ)) :
     seqEval ((a : ℝ)) (List.map (Polynomial.map ratToRealHom) (List.map CPolynomial.toPoly L))
       = (seqEvalC a L).map ((↑) : ℚ → ℝ) := by
@@ -436,6 +401,11 @@ private lemma seqEval_cast (a : ℚ) (L : List (CPolynomial ℚ)) :
   intro p _
   simp only [Function.comp_apply]
   rw [← cpolynomial_map_cast]
+
+private lemma seqVar_ratCast (l : List ℚ) :
+    seqVar (l.map ((↑) : ℚ → ℝ)) = seqVar l :=
+  seqVar_map (fun x => by norm_num)
+    (fun x y => by rw [← Rat.cast_mul]; exact Rat.cast_lt_zero) l
 
 private lemma toPolyReal_mul (p q : CPolynomial ℚ) :
     toPolyReal (p * q) = toPolyReal p * toPolyReal q := by
@@ -456,6 +426,6 @@ private lemma sturmSeq_toPolyReal (f g : CPolynomial ℚ) :
 theorem seqVarABEquivSturm (p q : CPolynomial ℚ) (a b : ℚ) :
     seqVarSturmC_ab p (p.derivative * q) a b
       = seqVarSturm_ab (toPolyReal p) ((toPolyReal p).derivative * (toPolyReal q)) a b := by
-  unfold seqVarSturmC_ab seqVarSturm_ab seqVarQ_ab seqVar_ab
+  unfold seqVarSturmC_ab seqVarSturm_ab seqVar_ab seqVar_abC
   rw [toPolyReal_derivative, ← toPolyReal_mul, sturmSeq_toPolyReal,
-      seqEval_cast, seqEval_cast, seqVarR_cast_list, seqVarR_cast_list]
+      seqEval_cast, seqEval_cast, seqVar_ratCast, seqVar_ratCast]
