@@ -1,5 +1,4 @@
 import Mathlib
-import CompPoly
 import Cad.Univariate.SturmTarski.SturmSeq
 
 open Polynomial
@@ -10,25 +9,6 @@ theorem sturm_tarski_interval (a b : ℝ) (p q : Polynomial ℝ) (hab : a < b) (
     tarskiQuery p q a b = seqVarSturm_ab p (derivative p * q) a b := by
   rw [cauchyIndex_sturmSeq p (derivative p * q) a b hpa hpb hab]
   rw [cauchyIndex_poly_taq p q a b]
-
-open CompPoly
-open CPolynomial
-
-theorem toPoly_ne0_of_poly_ne0 (g : CPolynomial ℚ) (h : g ≠ 0) : g.toPoly ≠ 0 := by
-  intro abs
-  have : g = 0 := by
-    apply CPolynomial.eq_zero_iff_coeff_zero.mpr
-    have aux (x : ℚ) := CPolynomial.eval_toPoly x g
-    rw[abs] at aux
-    simp at aux
-    simp only [CPolynomial.coeff_toPoly]
-    rw[abs]
-    apply Polynomial.coeff_zero
-  exact h this
-
-instance : DecidableEq (CPolynomial.Raw Rat) := instDecidableEqOfLawfulBEq
-
-instance : DecidableEq (CPolynomial Rat) := Subtype.instDecidableEq
 
 noncomputable def rootsAbove (f : Polynomial ℝ) (a : ℝ) : Finset ℝ :=
   f.roots.toFinset.filter (fun x => x > a)
