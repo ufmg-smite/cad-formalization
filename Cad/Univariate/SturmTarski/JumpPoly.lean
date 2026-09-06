@@ -1,6 +1,6 @@
 import Cad.Univariate.SturmTarski.SignRPos
 
-open Polynomial Set Filter Classical
+open Polynomial Set Filter Classical SignType
 
 noncomputable section
 
@@ -201,14 +201,14 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
     exact h_ult
 
 lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
-    jump_val p (Polynomial.C c * q) x = (sgn c) * jump_val p q x := by
+    jump_val p (Polynomial.C c * q) x = (sign c) * jump_val p q x := by
   rcases Classical.em (c = 0 ∨ q = 0)  with ht|hf
   · simp [jump_val, ht]
     intros h1 h2 h3
     have hc: c = 0 := by aesop
     split
-    · simp [sgn, hc]
-    · simp [hc, sgn]
+    · simp [sign, hc]
+    · simp [hc, sign]
   · simp at hf
     unfold jump_val
     if hpz : p = 0 then simp [hpz]
@@ -216,15 +216,16 @@ lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
       have h := sign_r_pos_smult (p * q) x c hf.1
       simp [hf, hpz] at h
       simp [hpz, hf]
-      unfold sgn
+      unfold sign
       have := mul_C_eq_root_multiplicity q c x hf.1
       rw [mul_left_comm, this]
       if hc : c > 0 then
         simp [hc] at h ⊢
         rw [h]
      else
-       simp [hc, hf.1] at h ⊢
-       simp only [h, ite_not]
+       simp [hc] at h ⊢
+       simp [h, ite_not]
+       split_ifs <;> (first | grind | rfl)
 
 @[simp]
 lemma jump_poly_not_root {p q: Polynomial ℝ} {x: ℝ} (hp: eval x p ≠ 0) : jump_val p q x = 0 := by
@@ -262,9 +263,9 @@ lemma jump_poly_coprime {p q: Polynomial ℝ} {x: ℝ} (hp: eval x p = 0) (hpq_c
     rw [mul_comm]
 
 lemma jump_poly_1_mult {p q: Polynomial ℝ} {x: ℝ} (hnroot: eval x p ≠ 0 ∨ eval x q ≠ 0) :
-      jump_val (p * q) 1 x  = sgn (eval x q) * jump_val p 1 x + sgn (eval x p) * jump_val q 1 x := by
+      jump_val (p * q) 1 x  = sign (eval x q) * jump_val p 1 x + sign (eval x p) * jump_val q 1 x := by
   if H: p = 0 ∨ q = 0 then
-    rcases H with h | h <;> simp [h, sgn]
+    rcases H with h | h <;> simp [h, sign]
   else
     have ⟨hpz, hqz, hpqz⟩ : p ≠ 0 ∧ q ≠ 0 ∧ p * q ≠ 0 := by simp_all
     rcases hnroot with h₁ | h₂
@@ -277,19 +278,20 @@ lemma jump_poly_1_mult {p q: Polynomial ℝ} {x: ℝ} (hnroot: eval x p ≠ 0 �
         simp [hpqz, rootMultiplicity_mul, h_util, sign_r_pos_mult, hpz, hqz, hx_multiplicity]
         rw [sign_r_pos_rec p x hpz]
         aesop
-      have hpgtz: eval x p > 0 -> simpl = sgn (eval x q) * jump_val p 1 x + sgn (eval x p) * jump_val q 1 x := by
+      have hpgtz: eval x p > 0 -> simpl = sign (eval x q) * jump_val p 1 x + sign (eval x p) * jump_val q 1 x := by
         intros hp
         unfold simpl
         simp only [ne_eq, gt_iff_lt, Int.reduceNeg, h₁, not_false_eq_true, jump_poly_not_root, mul_zero, zero_add]
-        unfold jump_val sgn
+        unfold jump_val sign
         simp [hqz, hp, h_util]
-      have hpltz: eval x p < 0 -> simpl = sgn (eval x q) * jump_val p 1 x + sgn (eval x p) * jump_val q 1 x := by
+      have hpltz: eval x p < 0 -> simpl = sign (eval x q) * jump_val p 1 x + sign (eval x p) * jump_val q 1 x := by
         intros hp
         unfold simpl
         have haux : ¬ eval x p > 0 := not_lt_of_gt hp
         simp only [ne_eq, gt_iff_lt, Int.reduceNeg, h₁, not_false_eq_true, jump_poly_not_root, mul_zero, zero_add]
-        unfold jump_val sgn
-        simp [hqz, haux, h_util, h₁]
+        unfold jump_val sign
+        simp [hqz, haux, h_util]
+        split_ifs <;> norm_cast
       rw [hl_simpl]
       if H: eval x p > 0 then exact hpgtz H
       else
@@ -316,19 +318,20 @@ lemma jump_poly_1_mult {p q: Polynomial ℝ} {x: ℝ} (hnroot: eval x p ≠ 0 �
             intro a
             simp_all only [not_true_eq_false]
         next h => simp_all only [Nat.not_odd_iff_even]
-      have hpgtz: eval x q > 0 -> simpl = sgn (eval x q) * jump_val p 1 x + sgn (eval x p) * jump_val q 1 x := by
+      have hpgtz: eval x q > 0 -> simpl = sign (eval x q) * jump_val p 1 x + sign (eval x p) * jump_val q 1 x := by
         intros hq
         unfold simpl
         simp only [ne_eq, gt_iff_lt, Int.reduceNeg, h₂, not_false_eq_true, jump_poly_not_root, mul_zero]
-        unfold jump_val sgn
+        unfold jump_val sign
         simp [hq, h_util]
-      have hpltz: eval x q < 0 -> simpl = sgn (eval x q) * jump_val p 1 x + sgn (eval x p) * jump_val q 1 x := by
+      have hpltz: eval x q < 0 -> simpl = sign (eval x q) * jump_val p 1 x + sign (eval x p) * jump_val q 1 x := by
         intros hq
         unfold simpl
         have haux : ¬ eval x q > 0 := not_lt_of_gt hq
         simp only [ne_eq, gt_iff_lt, Int.reduceNeg, h₂, not_false_eq_true, jump_poly_not_root, mul_zero]
-        unfold jump_val sgn
-        simp [haux, h_util, h₂]
+        unfold jump_val sign
+        simp [haux, h_util]
+        split_ifs <;> norm_cast
       rw [hl_simpl]
       if H: eval x q > 0 then
         exact hpgtz H
@@ -339,11 +342,11 @@ lemma jump_poly_1_mult {p q: Polynomial ℝ} {x: ℝ} (hnroot: eval x p ≠ 0 �
       exact hpltz this
 
 lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
-    p ≠ 0 → p.eval x = 0 → jump_val p (derivative p * q) x = sgn (q.eval x) := by
+    p ≠ 0 → p.eval x = 0 → jump_val p (derivative p * q) x = sign (q.eval x) := by
   intros hp hev
   if hq : q = 0 then
     rw [hq]
-    simp [sgn, jump_val]
+    simp [sign, jump_val]
   else
     have deriv_ne_0 : derivative p ≠ 0 := derivative_ne_0 p x hev hp
     have elim_p_order : rootMultiplicity x p - rootMultiplicity x (derivative p * q) = 1 - rootMultiplicity x q := by
@@ -355,7 +358,7 @@ lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
           exact dvd_iff_isRoot.mpr hev
         omega
       · exact (mul_ne_zero_iff_right hq).mpr deriv_ne_0
-    have elim_sgn_r_pos_p : sign_r_pos x (p * (derivative p * q)) = sign_r_pos x q := by
+    have elim_sign_r_pos_p : sign_r_pos x (p * (derivative p * q)) = sign_r_pos x q := by
       have : sign_r_pos x (p * (derivative p * q)) = (sign_r_pos x (derivative p * p) ↔ sign_r_pos x q) := by
         have := sign_r_pos_mult (p * derivative p) q x ((mul_ne_zero_iff_right deriv_ne_0).mpr hp) hq
         nth_rw 2 [mul_comm p (derivative p)] at this
@@ -369,7 +372,7 @@ lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
         (if sign_r_pos x q then 1 else -1)
       else 0
     have : jump_val p (derivative p * q) x = simpleL := by
-      simp [jump_val, simpleL, hp, deriv_ne_0, hq, elim_p_order, elim_sgn_r_pos_p]
+      simp [jump_val, simpleL, hp, deriv_ne_0, hq, elim_p_order, elim_sign_r_pos_p]
     rw [this]
     by_cases eval x q = 0
     next hevQ =>
@@ -378,8 +381,9 @@ lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
       have : ¬ Odd (1 - rootMultiplicity x q) := by rw [this]; exact Nat.not_odd_zero
       have lhs : simpleL = 0 := by
         simp [simpleL, this]
-      have rhs : sgn (eval x q) = 0 := by rw [hevQ]; simp [sgn]
+      have rhs : sign (eval x q) = 0 := by rw [hevQ]; simp [sign]
       rw [lhs, rhs]
+      norm_cast
     next hevQ =>
       have : rootMultiplicity x q = 0 := rootMultiplicity_eq_zero hevQ
       have h1 : Odd (1 - rootMultiplicity x q) := by
@@ -396,4 +400,8 @@ lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
       have h4 : simpleL = if 0 < eval x q then 1 else -1 := by
         simp [simpleL, h1, h2, h3]
       rw [h4]
-      simp [sgn, hevQ]
+      simp [sign]
+      split_ifs
+      · norm_cast
+      · norm_cast
+      · grind

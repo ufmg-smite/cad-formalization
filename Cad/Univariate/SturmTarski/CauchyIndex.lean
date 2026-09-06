@@ -3,7 +3,7 @@ import Mathlib.RingTheory.Polynomial.Content
 
 noncomputable section
 
-open Polynomial
+open Polynomial SignType
 
 -- Corresponde a Ind(Q/P; a, b)
 def cauchyIndex (p q : Polynomial ℝ) (a b : ℝ) : ℤ :=
@@ -46,9 +46,9 @@ lemma cauchyIndex_poly_mod (p q : Polynomial Real) (a b : Real) :
   exact Finset.sum_congr rfl fun x a => this x
 
 lemma cauchyIndex_smult_1 (p q : Polynomial Real) (a b c : Real) :
-    cauchyIndex p (C c * q) a b = sgn c * cauchyIndex p q a b := by
+    cauchyIndex p (C c * q) a b = sign c * cauchyIndex p q a b := by
   unfold cauchyIndex
-  have : sgn c * ∑ x ∈ rootsInInterval p a b, jump_val p q x = ∑ x ∈ rootsInInterval p a b, sgn c * (jump_val p q x) := Finset.mul_sum (rootsInInterval p a b) (jump_val p q) (sgn c)
+  have : sign c * ∑ x ∈ rootsInInterval p a b, jump_val p q x = ∑ x ∈ rootsInInterval p a b, sign c * (jump_val p q x) := Finset.mul_sum (rootsInInterval p a b) (jump_val p q) (sign c)
   rw [this]
   congr
   ext x
@@ -56,7 +56,7 @@ lemma cauchyIndex_smult_1 (p q : Polynomial Real) (a b c : Real) :
 
 theorem variation_mult_pos1 (c x y : ℝ) (hc : c > 0) : variation (c*x) y = variation x y := by
   rw [variation, variation]
-  have sgnequals : (0 ≤ x*y) = (0 ≤ c*x*y) := by
+  have signequals : (0 ≤ x*y) = (0 ≤ c*x*y) := by
     simp
     constructor
     · intro hxy
@@ -71,7 +71,7 @@ theorem variation_mult_pos1 (c x y : ℝ) (hc : c > 0) : variation (c*x) y = var
   have hneg : c * x * y < 0 → (c * x < y ↔ x < y) := by
     intro hcy
     simp_all
-    have hxy : x * y < 0 := (lt_iff_lt_of_le_iff_le (Iff.symm sgnequals)).mp hcy
+    have hxy : x * y < 0 := (lt_iff_lt_of_le_iff_le (Iff.symm signequals)).mp hcy
     have : (c * x < y) = (x < y) := by
       simp_all
       constructor
@@ -100,7 +100,7 @@ theorem variation_mult_pos1 (c x y : ℝ) (hc : c > 0) : variation (c*x) y = var
 
 theorem variation_mult_pos2 (c x y : ℝ) (hc : c > 0) : variation x (c*y) = variation x y := by
   rw[variation, variation]
-  have sgnequals : (0 ≤ x*y) = (0 ≤ c*x*y) := by
+  have signequals : (0 ≤ x*y) = (0 ≤ c*x*y) := by
     simp
     constructor
     · intro hxy
@@ -115,7 +115,7 @@ theorem variation_mult_pos2 (c x y : ℝ) (hc : c > 0) : variation x (c*y) = var
   have hneg : c * x * y < 0 → (x < c * y ↔ x < y) := by
     intro hcy
     simp_all
-    have hxy : x * y < 0 := (lt_iff_lt_of_le_iff_le (Iff.symm sgnequals)).mp hcy
+    have hxy : x * y < 0 := (lt_iff_lt_of_le_iff_le (Iff.symm signequals)).mp hcy
     have : (x < c * y) = (x < y) := by
       simp_all
       constructor
@@ -163,29 +163,29 @@ lemma variation_cases (x y: ℝ):
     have hxy: x * y ≥ 0 := by nlinarith
     simp [hxy]
 
-lemma variation_mult_neg_1 (c x y: ℝ) (hc: c < 0): variation (c*x) y = variation x y + if y = 0 then 0 else sgn x := by
+lemma variation_mult_neg_1 (c x y: ℝ) (hc: c < 0): variation (c*x) y = variation x y + if y = 0 then 0 else sign x := by
   rcases lt_trichotomy x 0 with hxz | hxz | hxz <;> rcases lt_trichotomy y 0 with hyz | hyz | hyz
   · have : c * x > 0 := by nlinarith
     have hyy: y ≠ 0 := by linarith;
     have hxx: ¬ 0 < x := by linarith
     have hxnez: x ≠ 0 := by linarith
-    simp [variation_cases, sgn, *]
+    simp [variation_cases, sign, *]
   · simp_all [variation]
   · have : c * x > 0 := by nlinarith
     have hyy: y ≠ 0 := by linarith
     have hxx: ¬ 0 < x := by linarith
     have hxnez: x ≠ 0 := by linarith
-    simp [variation_cases, sgn, *]
-  · simp_all [variation, sgn]
+    simp [variation_cases, sign, *]
+  · simp_all [variation, sign]
   · simp_all [variation]
-  · simp_all [variation, sgn]
+  · simp_all [variation, sign]
   · have : c * x < 0 := by nlinarith
     have hyy: y ≠ 0 := by linarith
-    simp [variation_cases, sgn, *]
+    simp [variation_cases, sign, *]
   ·  simp_all [variation]
   · have : c * x < 0 := by nlinarith
     have hyy: y ≠ 0 := by linarith
-    simp [variation_cases, sgn, *]
+    simp [variation_cases, sign, *]
 
 @[simp]
 theorem cindex_poly_z_1 (p q: Polynomial ℝ) (a b: ℝ) (hp: p = 0) : cauchyIndex p q a b  = 0 := by 
@@ -340,25 +340,16 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                  exact this
                exact pow_ne_zero (rootMultiplicity maxr p) this
               have hxlmaxr: x < maxr := by
-                have : x <= maxr := Finset.le_max' (rootsInInterval p a b) x hx_root 
+                have : x <= maxr := Finset.le_max' (rootsInInterval p a b) x hx_root
                 exact lt_of_le_of_ne this hx_maxr
-              have hmaxr_sign : sgn (eval x maxrp) = maxr_sign := by
-                unfold sgn maxr_sign 
-                simp [hx_nroot]
-                unfold maxrp
+              have hmaxr_sign : sign (eval x maxrp) = maxr_sign := by
                 have hevallt: (x - maxr) < 0 := by
                   simp [hxlmaxr]
-                split_ifs with h₁ h₂ h₃
-                · have hcontra: ¬ 0 < eval x ((X - C maxr) ^ rootMultiplicity maxr p) := by
-                    simp
-                    exact (Odd.pow_nonpos_iff h₂).mpr (le_of_lt hevallt)
-                  exact hcontra h₁
-                · rfl
-                · rfl
-                · have h_contra : 0 < eval x ((X - C maxr) ^ rootMultiplicity maxr p) := by
-                    simp at h₃ ⊢
-                    exact (Even.pow_pos_iff h₃ hmulr).mpr (sub_ne_zero_of_ne hx_maxr)
-                  exact h₁ h_contra
+                unfold maxr_sign maxrp
+                simp only [eval_pow, eval_sub, eval_X, eval_C]
+                split_ifs with h₁
+                · simp [sign_neg (Odd.pow_neg h₁ hevallt)]
+                · simp [sign_pos (Even.pow_pos (Nat.not_odd_iff_even.mp h₁) (sub_ne_zero_of_ne hx_maxr))]
               rw [hp', jump_poly_1_mult (Or.inr hx_nroot), hmaxr_sign]
               simp [jump_poly_not_root hx_nroot]
             have hsec: ∑ (x∈ rootsInInterval p' a b), maxr_sign * jump_val p' 1 x = maxr_sign * (∑ x∈ rootsInInterval p' a b, jump_val p' 1 x) :=
@@ -392,17 +383,17 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                 simp
                 have : b - maxr > 0 := by linarith
                 exact pow_pos this (rootMultiplicity maxr p)
-              have hr: cross p a b = cross p' a b + sgn (eval a p') := by
+              have hr: cross p a b = cross p' a b + sign (eval a p') := by
                 rw [hp', cross, eval_mul, eval_mul, cross, mul_comm]
                 rw [variation_mult_neg_1 (eval a maxrp) (eval a p') ((eval b p') * (eval b maxrp)) hamaxrpltz]
                 rw [mul_comm, variation_mult_pos2 (eval b maxrp) (eval a p') (eval b p') hbmaxrpgtz]
                 have : eval b maxrp * eval b p' ≠ 0 := by
                   exact mul_ne_zero hbmaxrp hbp'
                 simp [this]
-              have hl: maxr_sign * cross p' a b + jump_val p 1 maxr = - cross p' a b + sgn (eval b p') := by
+              have hl: maxr_sign * cross p' a b + jump_val p 1 maxr = - cross p' a b + sign (eval b p') := by
                 have hsrpos: (sign_r_pos maxr p') = (eval maxr p' > 0) := by
                   rw [sign_r_pos_rec p' maxr hp'z]
-                  simp [hmaxrp'] 
+                  simp [hmaxrp']
                 have hn: (eval maxr p' > 0) = (eval b p' > 0) := by
                   by_contra!
                   have hprodz: (eval maxr p') * (eval b p') < 0 := by
@@ -439,19 +430,20 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                 have hsrposmaxr: sign_r_pos maxr maxrp := by
                   unfold maxrp
                   exact sign_r_pos_power maxr (rootMultiplicity maxr p)
-                unfold maxr_sign jump_val sgn
+                unfold maxr_sign jump_val sign
                 have haux: rootMultiplicity maxr 1 = 0 := by simp
                 simp [H', haux, hpz]
                 rw [mul_one, hp', sign_r_pos_mult p' maxrp maxr hp'z maxrpz, hsrpos, hn]
-                simp [hbp', hsrposmaxr]
-              have hvar: variation (eval a p') (eval b p') + sgn (eval a p') = (-variation (eval a p') (eval b p')) + (sgn (eval b p')) := by
+                simp [hsrposmaxr]
+                rcases lt_or_gt_of_ne hbp' with h | h <;> simp [h, not_lt.mpr h.le]
+              have hvar: variation (eval a p') (eval b p') + sign (eval a p') = (-variation (eval a p') (eval b p')) + (sign (eval b p')) := by
                 clear *- hap' hbp'
-                unfold sgn
+                unfold sign
                 rcases lt_trichotomy (eval b p') 0 with hxz | hxz | hxz <;> rcases lt_trichotomy (eval a p') 0 with hyz | hyz | hyz
-                · have ⟨hasgn, hbsgn⟩ :  (¬ 0 < eval a p') ∧ (¬ 0 < eval b p'):= by constructor <;> linarith
-                  simp [variation_cases, *]; 
-                · exfalso; exact hap' hyz 
-                · have hbsgn :(¬ 0 < eval b p') := by linarith
+                · have ⟨hasign, hbsign⟩ :  (¬ 0 < eval a p') ∧ (¬ 0 < eval b p'):= by constructor <;> linarith
+                  simp [variation_cases, *]
+                · exfalso; exact hap' hyz
+                · have hbsign :(¬ 0 < eval b p') := by linarith
                   simp [variation_cases, *]
                 · exfalso; exact hbp' hxz
                 · exfalso; exact hbp' hxz
@@ -473,7 +465,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                   have : a - maxr ≠ 0 := by clear *-hmaxr_root; linarith
                   exact Even.pow_pos H' this
                 · simp
-                  have :  b - maxr ≠ 0 := by clear *-hmaxr_root; linarith
+                  have : b - maxr ≠ 0 := by clear *-hmaxr_root; linarith
                   exact Even.pow_pos H' this
               have hr: cross p a b = cross p' a b := by
                 unfold cross
@@ -485,7 +477,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
               simp [h_aux2, h_aux, hpz]
               exact (Eq.symm hr)
           rw [hc_sum, hcross, hcross_jp]
-        else  
+        else
           have hlz : cauchyIndex p 1 a b = 0 := by
             unfold cauchyIndex; aesop
           simp at H

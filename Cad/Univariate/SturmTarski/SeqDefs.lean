@@ -1,5 +1,6 @@
 import Mathlib
-import Cad.Univariate.Utils
+
+open SignType
 
 def seqVar {α : Type*} [Ring α] [LinearOrder α] [DecidableEq α] : List α → ℕ
 | [] => 0
@@ -52,19 +53,19 @@ noncomputable def sturmSeq {α : Type*} [Field α] (f g : Polynomial α) : List 
   termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
   decreasing_by exact termination_sturmSeq f g (by assumption)
 
-noncomputable def sgn_pos_inf (p : Polynomial ℝ) : ℤ :=
-  sgn p.leadingCoeff
+noncomputable def sign_pos_inf (p : Polynomial ℝ) : ℤ :=
+  sign p.leadingCoeff
 
-noncomputable def sgn_neg_inf (p : Polynomial ℝ) : ℤ :=
-  if Even p.natDegree then sgn p.leadingCoeff else - sgn p.leadingCoeff
+noncomputable def sign_neg_inf (p : Polynomial ℝ) : ℤ :=
+  if Even p.natDegree then sign p.leadingCoeff else - sign p.leadingCoeff
 
-noncomputable def seq_sgn_pos_inf : List (Polynomial ℝ) → List ℤ := List.map (fun x => sgn_pos_inf x)
+noncomputable def seq_sign_pos_inf : List (Polynomial ℝ) → List ℤ := List.map (fun x => sign_pos_inf x)
 
-noncomputable def seq_sgn_neg_inf : List (Polynomial ℝ) → List ℤ := List.map (fun x => sgn_neg_inf x)
+noncomputable def seq_sign_neg_inf : List (Polynomial ℝ) → List ℤ := List.map (fun x => sign_neg_inf x)
 
 def seqEval {α : Type*} [Semiring α] (k : α) : List (Polynomial α) → List α := List.map (eval k)
 
-noncomputable def seqEvalSgn (k : ℝ) : List (Polynomial ℝ) → List ℤ := List.map (fun a => sgn (eval k a))
+noncomputable def seqEvalSign (k : ℝ) : List (Polynomial ℝ) → List ℤ := List.map (fun a => sign (eval k a))
 
 noncomputable def seqVar_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
   (seqVar (seqEval a P) : Int) - seqVar (seqEval b P)
@@ -73,13 +74,13 @@ noncomputable def seqVarSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
   seqVar_ab (sturmSeq p q) a b
 
 noncomputable def seqVarAbove_a (P: List (Polynomial ℝ)) (a : ℝ) : ℤ :=
-  (seqVar (seqEval a P) : Int) - seqVar (seq_sgn_pos_inf P)
+  (seqVar (seqEval a P) : Int) - seqVar (seq_sign_pos_inf P)
 
 noncomputable def seqVarBelow_b (P: List (Polynomial ℝ)) (b : ℝ) : ℤ :=
-  (seqVar (seq_sgn_neg_inf P) : Int) - seqVar (seqEval b P)
+  (seqVar (seq_sign_neg_inf P) : Int) - seqVar (seqEval b P)
 
 noncomputable def seqVarLine (P : List (Polynomial ℝ)) : ℤ :=
-  (seqVar (seq_sgn_neg_inf P) : Int) - seqVar (seq_sgn_pos_inf P)
+  (seqVar (seq_sign_neg_inf P) : Int) - seqVar (seq_sign_pos_inf P)
 
 noncomputable def seqVarAboveSturm (p q : Polynomial ℝ) (a : ℝ) : ℤ :=
   seqVarAbove_a (sturmSeq p q) a

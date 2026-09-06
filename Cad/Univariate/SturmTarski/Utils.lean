@@ -8,7 +8,7 @@ import Mathlib.Data.Int.Star
 import Mathlib.Data.Real.StarOrdered
 import Mathlib.Topology.Algebra.Polynomial
 
-open Polynomial Set Filter Classical
+open Polynomial Set Filter Classical SignType
 
 noncomputable section
 
@@ -22,7 +22,7 @@ def rootsInInterval (f : Polynomial ℝ) (a b : ℝ) : Finset ℝ :=
   f.roots.toFinset.filter (fun x => x ∈ Ioo a b)
 
 def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
-  ∑ x ∈ rootsInInterval f a b, sgn (g.eval x)
+  ∑ x ∈ rootsInInterval f a b, sign (g.eval x)
 
 lemma rootsInIntervalZero (a b : ℝ) : rootsInInterval 0 a b = ∅ := by simp [rootsInInterval]
 
@@ -38,25 +38,23 @@ lemma rootsInSet_cup (p : Polynomial ℝ) (S T : Set ℝ) :
   simp only [rootsInSet, mem_union]
   exact Finset.filter_union_right (fun x => x ∈ S) (fun x => x ∈ T) p.roots.toFinset
 
-lemma sgn_inf_comp (p : Polynomial ℝ) :
-    sgn_neg_inf p = sgn_pos_inf (p.comp (-Polynomial.X)) := by
+lemma sign_inf_comp (p : Polynomial ℝ) :
+    sign_neg_inf p = sign_pos_inf (p.comp (-Polynomial.X)) := by
   by_cases Even p.natDegree
   next H =>
-    simp [sgn_neg_inf, sgn_pos_inf, H]
+    simp [sign_neg_inf, sign_pos_inf, H]
   next H =>
-    simp [sgn_neg_inf, sgn_pos_inf, H, sgn]
-    simp_all only [Nat.not_even_iff_odd, Odd.neg_one_pow, neg_mul, one_mul, Int.reduceNeg, Left.neg_pos_iff]
+    simp [sign_neg_inf, sign_pos_inf, H, sign]
+    simp_all only [Nat.not_even_iff_odd, Odd.neg_one_pow, neg_mul, one_mul, Left.neg_pos_iff]
     split_ifs
     · linarith
-    · simp_all only [natDegree_zero, Nat.not_odd_zero]
+    · norm_num
+    · simp_all only [not_lt, Left.neg_neg_iff, not_true_eq_false]
+    · norm_num
+    · expose_names
+      simp at h_2
+      exact False.elim (h h_2)
     · rfl
-    · simp_all only [natDegree_zero, Nat.not_odd_zero]
-    · rfl
-    · rfl
-    · simp_all only [not_lt, neg_neg]
-      have : 0 = p.leadingCoeff := by linarith
-      have : p = 0 := leadingCoeff_eq_zero.mp (Eq.symm this)
-      contradiction
 
 lemma next_non_root_interval (p : Polynomial Real) (lb : Real) (hp : p ≠ 0) :
     ∃ ub : Real, lb < ub ∧ (∀ z ∈ Ioc lb ub, eval z p ≠ 0) := by
@@ -366,7 +364,7 @@ lemma mod_minus (p q: Polynomial ℝ) : -p%q = -(p%q) := by
     _ = -p + q * (-(-p/q)) := by ring
     _ = -p + q * (p/q) := by rw[neg_neg_div p q]
 
-lemma bound_sgn_pos_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ ub : ℝ, ∀ x, x ≥ ub → sgn (eval x p) = sgn_pos_inf p := by
+lemma bound_sign_pos_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ ub : ℝ, ∀ x, x ≥ ub → sign (eval x p) = sign_pos_inf p := by
   have : p.degree = ((Polynomial.X : Polynomial ℝ) ^ p.natDegree).degree := by
     simp_all only [ne_eq, degree_pow, degree_X, nsmul_eq_mul, mul_one]
     exact degree_eq_natDegree hp
@@ -382,9 +380,9 @@ lemma bound_sgn_pos_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ ub : ℝ, ∀ 
     apply lt_mem_nhds
     assumption
   obtain ⟨ub, hub⟩ := Filter.eventually_atTop.mp ev_pos
-  simp [sgn_pos_inf]
-  have h_sign_eq : ∀ x, 0 < x → p.eval x * p.leadingCoeff > 0 → sgn (p.eval x) = sgn (p.leadingCoeff) := by
-    intros x hx h; unfold sgn; split_ifs <;> nlinarith;
+  simp [sign_pos_inf]
+  have h_sign_eq : ∀ x, 0 < x → p.eval x * p.leadingCoeff > 0 → sign (p.eval x) = sign (p.leadingCoeff) := by
+    intros x hx h; unfold sign; simp; split_ifs <;> (first | nlinarith | rfl)
   have mul_pos : ∀ x, 0 < x → ub ≤ x → eval x p * p.leadingCoeff > 0 := by
     intros x x_pos hx
     have x_pow_pos : x ^ p.natDegree > 0 := pow_pos x_pos p.natDegree
@@ -396,13 +394,17 @@ lemma bound_sgn_pos_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ ub : ℝ, ∀ 
   if ub_pos: 0 < ub then
     use ub
     intros x hx
-    exact h_sign_eq x (Std.lt_of_lt_of_le ub_pos hx) (mul_pos x (Std.lt_of_lt_of_le ub_pos hx) hx)
+    have := h_sign_eq x (Std.lt_of_lt_of_le ub_pos hx) (mul_pos x (Std.lt_of_lt_of_le ub_pos hx) hx)
+    simp_all only [ne_eq, degree_pow, degree_X, nsmul_eq_mul, mul_one, leadingCoeff_eq_zero,
+      not_false_eq_true, gt_iff_lt, eventually_atTop, ge_iff_le]
   else
     use 1
     intros x hx
-    exact h_sign_eq x (by linarith) (mul_pos x (by linarith) (by linarith))
+    have := h_sign_eq x (by linarith) (mul_pos x (by linarith) (by linarith))
+    simp_all only [ne_eq, degree_pow, degree_X, nsmul_eq_mul, mul_one, leadingCoeff_eq_zero,
+      not_false_eq_true, gt_iff_lt, eventually_atTop, ge_iff_le, not_lt]
 
-lemma bound_sgn_neg_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ lb : ℝ, ∀ x, x ≤ lb → sgn (eval x p) = sgn_neg_inf p := by
+lemma bound_sign_neg_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ lb : ℝ, ∀ x, x ≤ lb → sign (eval x p) = sign_neg_inf p := by
   obtain ⟨s, hs⟩ : ∃ s, p.eval s ≠ 0 := by
     contrapose! hp
     exact zero_of_eval_zero p hp
@@ -418,8 +420,8 @@ lemma bound_sgn_neg_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ lb : ℝ, ∀ 
       rw [abs]
       simp
     exact hs ev_0
-  obtain ⟨ub, hub⟩  := bound_sgn_pos_inf (Polynomial.comp p (-Polynomial.X)) this
-  rw [sgn_inf_comp]
+  obtain ⟨ub, hub⟩  := bound_sign_pos_inf (Polynomial.comp p (-Polynomial.X)) this
+  rw [sign_inf_comp]
   use -ub
   intros x hx
   have := hub (-x) (by linarith)
@@ -427,7 +429,7 @@ lemma bound_sgn_neg_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ lb : ℝ, ∀ 
   exact this
 
 lemma root_ub (p : Polynomial ℝ) (hp : p ≠ 0) :
-    ∃ ub, (∀ x, eval x p = 0 → x < ub) ∧ (∀ x, x ≥ ub → sgn (eval x p) = sgn_pos_inf p) := by
+    ∃ ub, (∀ x, eval x p = 0 → x < ub) ∧ (∀ x, x ≥ ub → sign (eval x p) = sign_pos_inf p) := by
   obtain ⟨ub1, hub1⟩ : ∃ ub1, ∀ x, eval x p = 0 → x < ub1 := by
     by_cases ∃ r, eval r p = 0
     next H =>
@@ -448,7 +450,7 @@ lemma root_ub (p : Polynomial ℝ) (hp : p ≠ 0) :
       use 0
       intros x hx
       aesop
-  obtain ⟨ub2, hub2⟩ : ∃ ub2, ∀ x, x ≥ ub2 → sgn (eval x p) = sgn_pos_inf p := bound_sgn_pos_inf p hp
+  obtain ⟨ub2, hub2⟩ : ∃ ub2, ∀ x, x ≥ ub2 → sign (eval x p) = sign_pos_inf p := bound_sign_pos_inf p hp
   let ub := Max.max ub1 ub2
   have : ub1 ≤ ub := le_max_left ub1 ub2
   have : ub2 ≤ ub := le_max_right ub1 ub2
@@ -461,7 +463,7 @@ lemma root_ub (p : Polynomial ℝ) (hp : p ≠ 0) :
     exact hub2 x (by linarith)
 
 lemma root_lb (p : Polynomial ℝ) (hp : p ≠ 0) :
-    ∃ lb, (∀ x, eval x p = 0 → x > lb) ∧ (∀ x, x ≤ lb → sgn (eval x p) = sgn_neg_inf p) := by
+    ∃ lb, (∀ x, eval x p = 0 → x > lb) ∧ (∀ x, x ≤ lb → sign (eval x p) = sign_neg_inf p) := by
   obtain ⟨lb1, hlb1⟩ : ∃ lb1, ∀ x, eval x p = 0 → x > lb1 := by
     by_cases ∃ r, eval r p = 0
     next H =>
@@ -482,7 +484,7 @@ lemma root_lb (p : Polynomial ℝ) (hp : p ≠ 0) :
       use 0
       intros x hx
       aesop
-  obtain ⟨lb2, hlb2⟩ : ∃ lb2, ∀ x, x ≤ lb2 → sgn (eval x p) = sgn_neg_inf p := bound_sgn_neg_inf p hp
+  obtain ⟨lb2, hlb2⟩ : ∃ lb2, ∀ x, x ≤ lb2 → sign (eval x p) = sign_neg_inf p := bound_sign_neg_inf p hp
   let lb := Min.min lb1 lb2
   have : lb ≤ lb1 := min_le_left lb1 lb2
   have : lb ≤ lb2 := min_le_right lb1 lb2
@@ -498,7 +500,7 @@ lemma root_list_ub (ps : List (Polynomial ℝ)) (a : ℝ) (h0 : 0 ∉ ps) :
     ∃ ub : ℝ,
       ((∀ p ∈ ps, ∀ x : ℝ, eval x p = 0 → x < ub) ∧
        (a < ub) ∧
-       (∀ x : ℝ, x ≥ ub → ∀ p ∈ ps, sgn (eval x p) = sgn_pos_inf p)) := by
+       (∀ x : ℝ, x ≥ ub → ∀ p ∈ ps, sign (eval x p) = sign_pos_inf p)) := by
   cases ps
   next => simp; exact exists_gt a
   next p ps =>
@@ -533,7 +535,7 @@ lemma root_list_lb (ps : List (Polynomial ℝ)) (b : ℝ) (h0 : 0 ∉ ps) :
     ∃ lb : ℝ,
       ((∀ p ∈ ps, ∀ x : ℝ, eval x p = 0 → lb < x) ∧
        (lb < b) ∧
-       (∀ x : ℝ, x ≤ lb → ∀ p ∈ ps, sgn (eval x p) = sgn_neg_inf p)) := by
+       (∀ x : ℝ, x ≤ lb → ∀ p ∈ ps, sign (eval x p) = sign_neg_inf p)) := by
   cases ps
   next => simp; exact exists_lt b
   next p ps =>

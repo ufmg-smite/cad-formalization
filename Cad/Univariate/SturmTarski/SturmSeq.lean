@@ -2,7 +2,7 @@ import Mathlib
 
 import Cad.Univariate.SturmTarski.CauchyIndex
 
-open Polynomial Set Filter Classical
+open Polynomial Set Filter Classical SignType
 
 noncomputable section
 
@@ -25,75 +25,26 @@ lemma no_zero_in_sturmSeq (p q : Polynomial ℝ) : 0 ∉ sturmSeq p q := by
       apply IH q (-p % q)
       exact this
 
-lemma seqVarSgn : ∀ ps : List (Polynomial ℝ), ∀ (k : ℝ), seqVar (seqEval k ps) = seqVar (seqEvalSgn k ps)
-| [] => by intro k; simp [seqVar, seqEval, seqEvalSgn]
-| [p] => by intro k; simp [seqVar, seqEval, seqEvalSgn]
+lemma seqVarSign : ∀ ps : List (Polynomial ℝ), ∀ (k : ℝ), seqVar (seqEval k ps) = seqVar (seqEvalSign k ps)
+| [] => by intro k; simp [seqVar, seqEval, seqEvalSign]
+| [p] => by intro k; simp [seqVar, seqEval, seqEvalSign]
 | p1 :: p2 :: ps => by
   intro k
-  simp [seqVar, seqEval, seqEvalSgn]
-  split_ifs with h1 h2 h3 h4 h5 h6 h7 h8
-  · exact seqVarSgn (p1 :: ps) k
-  · have := (sgn_sgn_zero (eval k p2)).mpr h1
-    exact False.elim (h2 this)
-  · rw [h1] at h2
-    simp only [sgn, gt_iff_lt, lt_self_iff_false, ↓reduceIte, not_true_eq_false] at h2
-  · unfold sgn at h5
-    split_ifs at h5
-    simp only [one_ne_zero] at h5
-  · simp only [add_right_inj]
-    exact seqVarSgn (p2 :: ps) k
-  · push_neg at h6
-    by_cases eval k p2 < 0
-    next H =>
-      have : eval k p1 > 0 := (pos_iff_neg_of_mul_neg h4).mpr H
-      have s1 : 0 < sgn (eval k p1) := (sgn_sgn_pos (eval k p1)).mpr this
-      have s2 : 0 > sgn (eval k p2) := (sgn_sgn_neg (eval k p2)).mpr H
-      have : sgn (eval k p1) * sgn (eval k p2) < 0 := Int.mul_neg_of_pos_of_neg s1 s2
-      norm_cast at h6
-      linarith
-    next H =>
-      push_neg at H
-      exfalso
-      have : 0 < eval k p2 := lt_of_le_of_ne H fun a => h1 (Eq.symm a)
-      have s1 : 0 < sgn (eval k p2) := (sgn_sgn_pos (eval k p2)).mpr this
-      have : eval k p1 < 0 := neg_of_mul_neg_left h4 H
-      have s2 : sgn (eval k p1) < 0 := (sgn_sgn_neg (eval k p1)).mpr this
-      have : sgn (eval k p1) * sgn (eval k p2) < 0 := Int.mul_neg_of_neg_of_pos s2 s1
-      norm_cast at h6
-      linarith
-  · have := (sgn_sgn_zero (eval k p2)).mp h7
-    exact False.elim (h1 this)
-  · push_neg at h4
-    by_cases eval k p2 < 0
-    next H =>
-      have : eval k p1 ≤ 0 := nonpos_of_mul_nonneg_left h4 H
-      cases Decidable.lt_or_eq_of_le this
-      next H1 =>
-        have s1 : sgn (eval k p2) < 0 := (sgn_sgn_neg (eval k p2)).mpr H
-        have s2 : sgn (eval k p1) < 0 := (sgn_sgn_neg (eval k p1)).mpr H1
-        have : sgn (eval k p1) * sgn (eval k p2) > 0 := Int.mul_pos_of_neg_of_neg s2 s1
-        norm_cast at h8
-        linarith
-      next H1 =>
-        have : sgn (eval k p1) = 0 := (sgn_sgn_zero (eval k p1)).mpr H1
-        rw [this] at h8
-        simp at h8
-    next H =>
-      push_neg at H
-      have H : 0 < eval k p2 := lt_of_le_of_ne H fun a => h1 (Eq.symm a)
-      have : 0 ≤ eval k p1 := (mul_nonneg_iff_of_pos_right H).mp h4
-      cases Decidable.lt_or_eq_of_le this
-      next H1 =>
-        have s1 : sgn (eval k p1) > 0 := (sgn_sgn_pos (eval k p1)).mpr H1
-        have s2 : sgn (eval k p2) > 0 := (sgn_sgn_pos (eval k p2)).mpr H
-        have : sgn (eval k p1) * sgn (eval k p2) > 0 := Int.mul_pos s1 s2
-        norm_cast at h8
-        linarith
-      next H1 =>
-        have : sgn (eval k p1) = 0 := (sgn_sgn_zero (eval k p1)).mpr H1.symm
-        rw [this] at h8
-        simp at h8
-  · exact seqVarSgn (p2 :: ps) k
+  have h0 : ((sign (eval k p2) : ℤ) = 0) ↔ eval k p2 = 0 := by
+    rcases lt_trichotomy (eval k p2) 0 with h | h | h
+    · simp [sign_neg h, h.ne]
+    · simp [h]
+    · simp [sign_pos h, h.ne']
+  have hmul : ((sign (eval k p1) : ℤ) * sign (eval k p2) < 0) ↔ eval k p1 * eval k p2 < 0 := by
+    rw [← SignType.coe_mul, ← sign_mul]
+    rcases lt_trichotomy (eval k p1 * eval k p2) 0 with h | h | h
+    · simp [sign_neg h, h]
+    · simp [h]
+    · simp [sign_pos h, h.le]
+  have ih1 := seqVarSign (p1 :: ps) k
+  have ih2 := seqVarSign (p2 :: ps) k
+  simp only [seqEval, seqEvalSign, List.map] at ih1 ih2 ⊢
+  simp only [seqVar, beq_iff_eq, h0, hmul, ih1, ih2]
 
 lemma smod_nil_eq (p q : Polynomial Real) :
     sturmSeq p q = [] ↔ p = 0 := by
@@ -319,13 +270,7 @@ lemma cauchyIndex_poly_rec (p q : Polynomial ℝ) (a b: ℝ) (hab : a < b)
   have : - cauchyIndex q p a b = cauchyIndex q (- p % q) a b := by
     have h1 := cauchyIndex_poly_mod q (-p) a b
     have h2 := cauchyIndex_smult_1 q p a b (-1)
-    simp [sgn] at h2
-    have : (if (1 : Real) < 0 then cauchyIndex q p a b else (-cauchyIndex q p a b)) = -cauchyIndex q p a b := by
-      split
-      next h => linarith
-      next h => rfl
-    rw [this] at h2
-    clear this
+    simp at h2
     rw [<- h2, h1]
   simp only [cross, variation] at *
   linarith
