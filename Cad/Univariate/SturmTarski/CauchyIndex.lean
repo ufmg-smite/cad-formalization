@@ -9,8 +9,10 @@ open Polynomial SignType
 def cauchyIndex (p q : Polynomial ℝ) (a b : ℝ) : ℤ :=
   ∑ x ∈ rootsInInterval p a b, jump_val p q x
 
+/-- Sign change of a pair: `1` if the pair goes from negative to positive, `-1` if it goes from
+positive to negative, and `0` otherwise (in particular whenever one entry is zero). -/
 def variation (a b : Real) : Int :=
-  if a * b ≥ 0 then 0 else if a < b then 1 else -1
+  if a * b < 0 then sign b else 0
 
 def cross (p : Polynomial Real) (a b : Real) : Int :=
   variation (p.eval a) (p.eval b)
@@ -54,138 +56,45 @@ lemma cauchyIndex_smult_1 (p q : Polynomial Real) (a b c : Real) :
   ext x
   exact jump_poly_smult_1 p q c x
 
+lemma mul_neg_iff_of_pos_left {c b : ℝ} (hc : 0 < c) : c * b < 0 ↔ b < 0 :=
+  ⟨fun h => neg_of_mul_neg_right h hc.le, fun h => mul_neg_of_pos_of_neg hc h⟩
+
 theorem variation_mult_pos1 (c x y : ℝ) (hc : c > 0) : variation (c*x) y = variation x y := by
-  rw [variation, variation]
-  have signequals : (0 ≤ x*y) = (0 ≤ c*x*y) := by
-    simp
-    constructor
-    · intro hxy
-      ring_nf; simp_all
-      have : c*x*y = c*(x*y):= by linarith
-      simp_all
-    · intro hcxy
-      ring_nf; simp_all
-      have : c * 0 ≤ c * (x * y) := by
-        simpa [mul_comm, mul_left_comm, mul_assoc] using hcxy
-      simp_all only [mul_zero, mul_nonneg_iff_of_pos_left]
-  have hneg : c * x * y < 0 → (c * x < y ↔ x < y) := by
-    intro hcy
-    simp_all
-    have hxy : x * y < 0 := (lt_iff_lt_of_le_iff_le (Iff.symm signequals)).mp hcy
-    have : (c * x < y) = (x < y) := by
-      simp_all
-      constructor
-      · intro hcxley
-        cases or_neg_of_mul_neg x y hxy
-        next hx0 =>
-          have hy0 : y > 0 := (neg_iff_pos_of_mul_neg hxy).mp hx0
-          exact lt_trans hx0 hy0
-        next hy => nlinarith
-      · intro hxley
-        cases or_neg_of_mul_neg x y hxy
-        next hx0 =>
-          have hy0 : y > 0 := (neg_iff_pos_of_mul_neg hxy).mp hx0
-          have hcx0 : c * x < 0 := mul_neg_of_pos_of_neg hc hx0
-          exact lt_trans hcx0 hy0
-        next hy0 => nlinarith
-    rw[this]
-  have : (if 0 ≤ c * x * y then 0 else if c * x < y then 1 else -1)
-     = (if 0 ≤ c * x * y then 0 else if x < y then 1 else -1) := by
-    by_cases hcy : 0 ≤ c * x * y
-    · simp [hcy]
-    · have hcy' : c * x * y < 0 := lt_of_not_ge hcy
-      have hx : (c * x < y ↔ x < y) := (hneg hcy')
-      simp [hcy, hx]
-  simp_all only [gt_iff_lt, eq_iff_iff, ge_iff_le]
+  simp only [variation, mul_assoc, mul_neg_iff_of_pos_left hc]
 
 theorem variation_mult_pos2 (c x y : ℝ) (hc : c > 0) : variation x (c*y) = variation x y := by
-  rw[variation, variation]
-  have signequals : (0 ≤ x*y) = (0 ≤ c*x*y) := by
-    simp
-    constructor
-    · intro hxy
-      ring_nf; simp_all
-      have : c*x*y = c*(x*y):= by linarith
-      simp_all
-    · intro hcxy
-      ring_nf; simp_all
-      have : c * 0 ≤ c * (x * y) := by
-        simpa [mul_comm, mul_left_comm, mul_assoc] using hcxy
-      simp_all only [mul_zero, mul_nonneg_iff_of_pos_left]
-  have hneg : c * x * y < 0 → (x < c * y ↔ x < y) := by
-    intro hcy
-    simp_all
-    have hxy : x * y < 0 := (lt_iff_lt_of_le_iff_le (Iff.symm signequals)).mp hcy
-    have : (x < c * y) = (x < y) := by
-      simp_all
-      constructor
-      · intro hcxley
-        cases or_neg_of_mul_neg x y hxy
-        next hx0 =>
-          have hy0 : y > 0 := (neg_iff_pos_of_mul_neg hxy).mp hx0
-          exact lt_trans hx0 hy0
-        next hy =>
-          have : 0 < x := (pos_iff_neg_of_mul_neg hxy).mpr hy
-          have : c * y < 0 := mul_neg_of_pos_of_neg hc hy
-          linarith
-      · intro hxley
-        cases or_neg_of_mul_neg x y hxy
-        next hx0 =>
-          have hy0 : y > 0 := (neg_iff_pos_of_mul_neg hxy).mp hx0
-          have : 0 < c * y := Left.mul_pos hc hy0
-          linarith
-        next hy0 => nlinarith
-    rw[this]
-  grind
+  simp only [variation, mul_left_comm x c y, mul_neg_iff_of_pos_left hc, sign_mul, sign_pos hc, one_mul]
 
 theorem variation_mult_pos (c d x y : ℝ) (hc : c > 0) (hd: d > 0): variation (c * x) (d*y) = variation x y := by
-  simp_all [variation_mult_pos1, variation_mult_pos2]
+  rw [variation_mult_pos1 c x (d * y) hc, variation_mult_pos2 d x y hd]
 
 lemma variation_cases (x y: ℝ):
       (x > 0 ∧ y > 0 -> variation x y = 0) ∧
       (x > 0 ∧ y < 0 -> variation x y = -1) ∧
       (x < 0 ∧ y > 0 -> variation x y = 1) ∧
       (x < 0 ∧ y < 0 -> variation x y = 0) := by
-  unfold variation
-  repeat' constructor
-  · rintro ⟨hx, hy⟩
-    have  hxy : x * y ≥ 0 := by nlinarith
-    simp [hxy]
-  · rintro ⟨hx, hy⟩
-    have hxy: ¬ (x * y >= 0) := by nlinarith
-    have hyltx: y <= x := by linarith
-    simp [hxy, hyltx]
-  · rintro ⟨hx, hy⟩
-    have hxy: ¬ (x * y >= 0) := by nlinarith
-    have hygtx: x < y := by linarith
-    simp [hxy, hygtx]
-  · rintro ⟨hx, hy⟩
-    have hxy: x * y ≥ 0 := by nlinarith
-    simp [hxy]
+  refine ⟨fun ⟨hx, hy⟩ => ?_, fun ⟨hx, hy⟩ => ?_, fun ⟨hx, hy⟩ => ?_, fun ⟨hx, hy⟩ => ?_⟩
+  · simp [variation, le_of_lt (mul_pos hx hy)]
+  · simp [variation, mul_neg_of_pos_of_neg hx hy, sign_neg hy]
+  · simp [variation, mul_neg_of_neg_of_pos hx hy, sign_pos hy]
+  · simp [variation, le_of_lt (mul_pos_of_neg_of_neg hx hy)]
 
 lemma variation_mult_neg_1 (c x y: ℝ) (hc: c < 0): variation (c*x) y = variation x y + if y = 0 then 0 else sign x := by
-  rcases lt_trichotomy x 0 with hxz | hxz | hxz <;> rcases lt_trichotomy y 0 with hyz | hyz | hyz
-  · have : c * x > 0 := by nlinarith
-    have hyy: y ≠ 0 := by linarith;
-    have hxx: ¬ 0 < x := by linarith
-    have hxnez: x ≠ 0 := by linarith
-    simp [variation_cases, sign, *]
-  · simp_all [variation]
-  · have : c * x > 0 := by nlinarith
-    have hyy: y ≠ 0 := by linarith
-    have hxx: ¬ 0 < x := by linarith
-    have hxnez: x ≠ 0 := by linarith
-    simp [variation_cases, sign, *]
-  · simp_all [variation, sign]
-  · simp_all [variation]
-  · simp_all [variation, sign]
-  · have : c * x < 0 := by nlinarith
-    have hyy: y ≠ 0 := by linarith
-    simp [variation_cases, sign, *]
-  ·  simp_all [variation]
-  · have : c * x < 0 := by nlinarith
-    have hyy: y ≠ 0 := by linarith
-    simp [variation_cases, sign, *]
+  rcases lt_trichotomy x 0 with hx | rfl | hx <;> rcases lt_trichotomy y 0 with hy | rfl | hy
+  · simp [variation, le_of_lt (mul_pos_of_neg_of_neg hx hy), mul_neg_of_pos_of_neg (mul_pos_of_neg_of_neg hc hx) hy,
+      sign_neg hx, sign_neg hy, hy.ne]
+  · simp [variation]
+  · simp [variation, mul_neg_of_neg_of_pos hx hy, le_of_lt (mul_pos (mul_pos_of_neg_of_neg hc hx) hy),
+      sign_neg hx, sign_pos hy, hy.ne']
+  · simp [variation]
+  · simp [variation]
+  · simp [variation]
+  · simp [variation, mul_neg_of_pos_of_neg hx hy, le_of_lt (mul_pos_of_neg_of_neg (mul_neg_of_neg_of_pos hc hx) hy),
+      sign_pos hx, sign_neg hy, hy.ne]
+  · simp [variation]
+  · simp [variation, le_of_lt (mul_pos hx hy), mul_neg_of_neg_of_pos (mul_neg_of_neg_of_pos hc hx) hy,
+      sign_pos hx, sign_pos hy, hy.ne']
+
 
 @[simp]
 theorem cindex_poly_z_1 (p q: Polynomial ℝ) (a b: ℝ) (hp: p = 0) : cauchyIndex p q a b  = 0 := by 
@@ -259,8 +168,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
           subst hx
           simp_all only [not_lt_zero', ne_eq, cindex_poly_z_1, not_isEmpty_of_nonempty, IsEmpty.forall_iff,
             implies_true, eval_C, not_false_eq_true, map_eq_zero, natDegree_C, C_inj, exists_eq, cindex_poly_const]
-        simp [h_eq]
-        exact mul_self_nonneg (eval b p)
+        simp [h_eq, mul_self_nonneg (eval b p)]
       rw [hlz, hrz]
       | succ k =>
         if H: (rootsInInterval p a b).Nonempty then
