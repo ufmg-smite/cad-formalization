@@ -258,82 +258,13 @@ lemma mul_C_eq_root_multiplicity (p: Polynomial ℝ) (c r: ℝ) (hc: ¬ c = 0):
   rw [roots_C_mul]
   exact hc
 
-theorem div_rem_zero {b c r: Polynomial ℝ} (h_rem: r.degree < b.degree) : (c * b + r)/ b = c := by
-  rw [mul_comm]
-  have h_b : b ≠ 0 := ne_zero_of_degree_gt h_rem
-  if H: r = 0 then
-   simp [H, h_b]
-  else
-    have h_stronger : (b * c + r)/b = c ∧ (b * c + r) % b = r := by
-      by_contra!
-      have h_div_mod: ((b * c + r)/b - c) * b = r - ((b * c + r)% b) := by
-       ring_nf
-       rw [eq_sub_iff_add_eq, add_rotate, ← eq_sub_iff_add_eq, sub_neg_eq_add]
-       simp [EuclideanDomain.div_add_mod]; ring
-      have : (b * c + r) / b ≠ c ∧ (b * c + r) % b ≠ r := by
-        rw [<- if_false_left]
-        split_ifs with H'
-        · simp [H', eq_sub_iff_add_eq'] at h_div_mod
-          exact this H' h_div_mod
-        · intro h_contra
-          simp [h_contra, h_b, sub_eq_iff_eq_add] at h_div_mod
-          exact H' h_div_mod
-      have h_mod_deg : degree ((b * c  + r) % b) < degree b := by
-        refine degree_lt_degree ?_
-        refine natDegree_mod_lt (b * c + r) ?_
-        exact Nat.ne_zero_of_lt ((natDegree_lt_natDegree_iff H).mpr h_rem)
-      have h_r : degree (r - (b * c + r)% b) < degree b := by
-        have h_max := degree_sub_le r ((b * c + r) % b)
-        exact lt_of_le_of_lt h_max (max_lt h_rem h_mod_deg)
-      have h_lt_deg : degree b ≤ degree ((b * c + r) / b - c) + degree b := by
-        refine le_add_of_nonneg_of_le ?_ ?_
-        · exact zero_le_degree_iff.mpr (sub_ne_zero_of_ne this.1)
-        · rfl
-      have h_div_deg : degree ((b * c + r)/b - c) + degree b = degree (((b * c + r) / b - c) * b) := by
-        exact Eq.symm degree_mul
-      have h_deg_plus: degree ((b * c + r)/b - c) + degree b = degree (r - (b * c + r)%b) := by
-        simp_all
-      have h_final : b.degree ≤ degree (r - (b * c + r) % b) := by
-        exact le_of_le_of_eq h_lt_deg h_deg_plus
-      have h_contra: degree (r - (b * c + r) % b) < degree (r - (b * c + r) % b) := by
-        exact Std.lt_of_lt_of_le h_r h_final
-      exact (lt_self_iff_false (r - (b * c + r) % b).degree).mp h_contra
-    exact h_stronger.1
-
-theorem mul_cancel' {p q r: Polynomial ℝ} (hr: r ≠ 0) : (r * p) / (r * q) = p / q := by
-  simp [mul_comm]
-  if H: q.natDegree = 0 then
-    have ⟨x, h_x⟩ := natDegree_eq_zero.mp H
-    rw [<-h_x]
-    rw [div_C_mul, mul_div_cancel_right₀ (hb := hr)]
-    have : p/ C x = p / (C x * 1) := by rw [mul_one]
-    rw [this, div_C_mul]; norm_num
-  else
-    have hq : q ≠ 0 := Ne.symm (ne_of_apply_ne natDegree fun a => H (id (Eq.symm a)))
-    have : p = (p/q) * q + p % q := Eq.symm (EuclideanDomain.div_add_mod' p q)
-    rw[this]; ring_nf
-    if H': p % q = 0 then
-      have h_ne_z : q * r ≠ 0 := (mul_ne_zero_iff_right hr).mpr hq
-      simp [H']
-      rw [mul_assoc, mul_div_cancel_right₀ (hb := h_ne_z), mul_div_cancel_right₀ (hb := hq)]
-    else
-      have h_mod_deg : natDegree (p % q) < natDegree q := by
-        exact natDegree_mod_lt p H
-      have h_mod_r_deg : natDegree ((p % q) * r) < natDegree (q * r) := by
-        simp [natDegree_mul, H', hr, hq]
-        exact h_mod_deg
-      rw [div_rem_zero (degree_lt_degree h_mod_deg), mul_assoc, div_rem_zero (degree_lt_degree h_mod_r_deg)]
-
-lemma mod_eq_sub_div {a b: Polynomial ℝ} : a % b = a - (a/b) * b := by
-  have := EuclideanDomain.div_add_mod' a b
-  exact eq_sub_of_add_eq' this
-
-theorem mod_mul (p q r: Polynomial ℝ) (hr: r ≠ 0) : (r * p) % (r * q) = r * (p % q) := by
-  have : (r * p) % (r * q) = r * p - ((r * p)/(r * q)) * (r * q) := by
-    exact mod_eq_sub_div
-  ring_nf at this
-  rw [mul_cancel' hr, mul_assoc, <-mul_sub, mul_comm q (p/q), <- mod_eq_sub_div (a := p) (b := q)] at this
-  exact this
+theorem mod_mul (p q r : Polynomial ℝ) (hr : r ≠ 0) : (r * p) % (r * q) = r * (p % q) := by
+  rcases eq_or_ne q 0 with rfl | hq
+  · simp
+  · have h1 : (r * p) % (r * q) = (r * (p % q)) % (r * q) :=
+      mod_eq_of_dvd_sub ⟨p / q, by rw [← mul_sub, EuclideanDomain.mod_eq_sub_mul_div]; ring⟩
+    rw [h1, mod_eq_self_iff (mul_ne_zero hr hq), degree_mul, degree_mul]
+    exact WithBot.add_lt_add_left (degree_ne_bot.mpr hr) (degree_mod_lt p hq)
 
 lemma X_sub_C_ne_one (r : ℝ) : X - C r ≠ 1 := by
   rw [sub_eq_neg_add, add_comm, <-C_neg]
@@ -344,25 +275,7 @@ lemma rootsInInterval_mul {p q: Polynomial ℝ} (a b: ℝ) (hpq: p * q ≠ 0): r
   rw [roots_mul hpq, Multiset.toFinset_add]
   exact Finset.filter_union (fun x => x ∈ Ioo a b) p.roots.toFinset q.roots.toFinset
 
-lemma neg_neg_div (p q: Polynomial ℝ) : - (-p/q) = p/q := by
-  have: -1 = (-1:ℝ)⁻¹ := Eq.symm inv_neg_one
-  calc
-    -(-p/q) = -(-1 * p / q) := by simp
-    _ = -1 * (-1 * p / q)  := by simp
-    _ = -1 * (C (-1) * p / q) := by simp
-    _ = (C (-1:ℝ)) * (C (-1) * p / q) := by simp
-    _ = (C (-1:ℝ)⁻¹) * (C (-1) * p / q) := by rw [<-this]
-    _ = p/q := by
-      have hCz : C (-1:ℝ) ≠ 0 := by simp
-      rw [<- div_C_mul, mul_cancel' hCz]
-
-lemma mod_minus (p q: Polynomial ℝ) : -p%q = -(p%q) := by
-  rw [mod_eq_sub_div, mod_eq_sub_div] 
-  ring_nf
-  calc
-    -p - -p / q * q = -p + (- (-p/q * q)) := by ring
-    _ = -p + q * (-(-p/q)) := by ring
-    _ = -p + q * (p/q) := by rw[neg_neg_div p q]
+lemma mod_minus (p q: Polynomial ℝ) : -p%q = -(p%q) := by rw [mod_def, mod_def, neg_modByMonic]
 
 lemma bound_sign_pos_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ ub : ℝ, ∀ x, x ≥ ub → sign (eval x p) = sign_pos_inf p := by
   have : p.degree = ((Polynomial.X : Polynomial ℝ) ^ p.natDegree).degree := by
