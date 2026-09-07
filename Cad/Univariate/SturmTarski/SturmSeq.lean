@@ -25,26 +25,19 @@ lemma no_zero_in_sturmSeq (p q : Polynomial ℝ) : 0 ∉ sturmSeq p q := by
       apply IH q (-p % q)
       exact this
 
-lemma seqVarSign : ∀ ps : List (Polynomial ℝ), ∀ (k : ℝ), seqVar (seqEval k ps) = seqVar (seqEvalSign k ps)
-| [] => by intro k; simp [seqVar, seqEval, seqEvalSign]
-| [p] => by intro k; simp [seqVar, seqEval, seqEvalSign]
-| p1 :: p2 :: ps => by
-  intro k
-  have h0 : ((sign (eval k p2) : ℤ) = 0) ↔ eval k p2 = 0 := by
-    rcases lt_trichotomy (eval k p2) 0 with h | h | h
-    · simp [sign_neg h, h.ne]
-    · simp [h]
-    · simp [sign_pos h, h.ne']
-  have hmul : ((sign (eval k p1) : ℤ) * sign (eval k p2) < 0) ↔ eval k p1 * eval k p2 < 0 := by
-    rw [← SignType.coe_mul, ← sign_mul]
-    rcases lt_trichotomy (eval k p1 * eval k p2) 0 with h | h | h
-    · simp [sign_neg h, h]
-    · simp [h]
-    · simp [sign_pos h, h.le]
-  have ih1 := seqVarSign (p1 :: ps) k
-  have ih2 := seqVarSign (p2 :: ps) k
-  simp only [seqEval, seqEvalSign, List.map] at ih1 ih2 ⊢
-  simp only [seqVar, beq_iff_eq, h0, hmul, ih1, ih2]
+@[simp] lemma SignType.sign_cast {β : Type*} [Ring β] [LinearOrder β] [IsStrictOrderedRing β]
+    (s : SignType) : sign (s : β) = s := by
+  cases s <;> simp [sign_neg]
+
+lemma sign_intCast_sign {α : Type*} [Zero α] [LinearOrder α] (a : α) :
+    sign ((sign a : SignType) : ℤ) = sign a :=
+  SignType.sign_cast _
+
+lemma signVariationsSign : ∀ ps : List (Polynomial ℝ), ∀ (k : ℝ), List.signVariations (seqEval k ps) = List.signVariations (seqEvalSign k ps) := by
+  intro ps k
+  have : seqEvalSign k ps = (seqEval k ps).map (fun x => ((sign x : SignType) : ℤ)) := by
+    simp only [seqEvalSign, seqEval, List.map_map, Function.comp_def]
+  rw [this, List.signVariations_map sign_intCast_sign]
 
 lemma smod_nil_eq (p q : Polynomial Real) :
     sturmSeq p q = [] ↔ p = 0 := by
@@ -66,15 +59,16 @@ lemma smods_s_0_2 (p: Polynomial ℝ) : sturmSeq p 0 = if p = 0 then [] else [p]
   · unfold sturmSeq; simp [H]
 
 @[simp]
-theorem seqVarSturm_ab_z_1 (p: Polynomial ℝ) (a b: ℝ) : seqVarSturm_ab 0 p a b = 0 := by
-  unfold seqVarSturm_ab seqVar_ab seqVar seqEval sturmSeq
-  simp
+theorem seqVarSturm_ab_z_1 (p: Polynomial ℝ) (a b: ℝ) : signVariationsSturm_ab 0 p a b = 0 := by
+  simp [signVariationsSturm_ab, signVariations_ab]
 
 @[simp]
-theorem seqVarSturm_ab_z_2 (p: Polynomial ℝ) (a b: ℝ) : seqVarSturm_ab p 0 a b = 0 := by
-  unfold seqVarSturm_ab seqVar_ab seqVar seqEval
+theorem seqVarSturm_ab_z_2 (p: Polynomial ℝ) (a b: ℝ) : signVariationsSturm_ab p 0 a b = 0 := by
   if H: p = 0 then simp [H]
-  else simp [H]
+  else
+    simp [signVariationsSturm_ab, signVariations_ab, seqEval, H]
+    rw [List.signVariations_singleton, List.signVariations_singleton]
+    norm_num
 
 lemma cauchyIndex_poly_taq (p q : Polynomial ℝ) (a b : ℝ) :
     tarskiQuery p q a b = cauchyIndex p (derivative p * q) a b := by
@@ -90,13 +84,23 @@ lemma cauchyIndex_poly_taq (p q : Polynomial ℝ) (a b : ℝ) :
       exact hx.1.2
     rw [jump_poly_sign p q x hp this]
 
+/-- For nonzero reals, "same sign" versus "product negative", as `signVariations` uses the former
+and the Sturm proofs reason with the latter. -/
+lemma ite_sign_eq {x y : ℝ} (hx : x ≠ 0) (hy : y ≠ 0) :
+    (if sign x = sign y then (0 : ℕ) else 1) = if x * y < 0 then 1 else 0 := by
+  rcases lt_or_gt_of_ne hx with hx | hx <;> rcases lt_or_gt_of_ne hy with hy | hy
+  · simp [sign_neg hx, sign_neg hy, le_of_lt (mul_pos_of_neg_of_neg hx hy)]
+  · simp [sign_neg hx, sign_pos hy, mul_neg_of_neg_of_pos hx hy]
+  · simp [sign_pos hx, sign_neg hy, mul_neg_of_pos_of_neg hx hy]
+  · simp [sign_pos hx, sign_pos hy, le_of_lt (mul_pos hx hy)]
+
 theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p * q)≠ 0) (hpqb: eval b (p * q) ≠ 0) :
-    (seqVarSturm_ab p q a b) = cross (p * q) a b + seqVarSturm_ab q (-p%q) a b := by
+    (signVariationsSturm_ab p q a b) = cross (p * q) a b + signVariationsSturm_ab q (-p%q) a b := by
   if H: p = 0 ∨ q = 0 ∨ p % q = 0 then
     rcases H with h | h | h
     · simp [cross, variation, h]
     · simp [cross, variation, h]
-    · unfold seqVarSturm_ab seqVar_ab seqEval cross seqVar sturmSeq
+    · unfold signVariationsSturm_ab signVariations_ab seqEval cross sturmSeq
       rw [mod_minus, h]
       have ⟨hap, haq⟩: eval a p ≠ 0 ∧ eval a q ≠ 0 := by simp_all only [eval_mul, ne_eq, mul_eq_zero, not_or,
         EuclideanDomain.mod_eq_zero, not_false_eq_true, and_self]
@@ -114,64 +118,55 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
         intro a_1
         subst a_1
         simp_all only [zero_dvd_iff]
-      simp [hpz, hqz, haq, hbq]
+      simp [hpz, hqz]
+      rw [List.signVariations_cons_cons_of_ne_zero _ _ _ hap haq,
+        List.signVariations_cons_cons_of_ne_zero _ _ _ hbp hbq,
+        ite_sign_eq hap haq, ite_sign_eq hbp hbq]
+      simp only [List.signVariations_singleton]
       split_ifs with h1 h2 h3
-      · rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.2.2 ⟨h1, h2⟩];
-        simp [seqVar]
+      · rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.2.2 ⟨h1, h2⟩]
+        simp
       · have : eval b p * eval b q > 0 := by
           rw [eval_mul] at hpqb
           rw [not_lt, <-ge_iff_le] at h2
           exact lt_of_le_of_ne h2 (Ne.symm hpqb)
-        rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.2.1 ⟨h1, this⟩];
-        simp [seqVar]
+        rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.2.1 ⟨h1, this⟩]
+        simp
       · have : eval a p * eval a q > 0 := by
           rw [eval_mul] at hpqa
           rw [not_lt, <-ge_iff_le] at h1
           exact lt_of_le_of_ne h1 (Ne.symm hpqa)
-        rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.1 ⟨this, h3⟩];
-        simp [seqVar]
+        rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.1 ⟨this, h3⟩]
+        simp
       · have : eval a p * eval a q > 0 ∧ eval b p * eval b q > 0 := by
           rw [eval_mul] at hpqa hpqb
           rw [not_lt, <-ge_iff_le] at h1 h3
           exact ⟨lt_of_le_of_ne h1 (Ne.symm hpqa), lt_of_le_of_ne h3 (Ne.symm hpqb)⟩
-        rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).1 this];
-        simp [seqVar]
+        rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).1 this]
+        simp
    else
      simp only [not_or] at H
      have ⟨ps, httl, htlmod⟩ : ∃ ps : List (Polynomial ℝ), sturmSeq p q = p :: q :: -p%q:: ps ∧ sturmSeq q (-p%q) = q :: (-p%q) :: ps := by
        unfold sturmSeq sturmSeq
        rw [sturmSeq]
        simp_all
-     let changes_diff := fun x => ((seqVar (seqEval x (p::q::(-p%q)::ps)): ℤ) - (seqVar (seqEval x (q::(-p%q)::ps))): ℤ)
+     let changes_diff := fun x => ((List.signVariations (seqEval x (p::q::(-p%q)::ps)): ℤ) - (List.signVariations (seqEval x (q::(-p%q)::ps))): ℤ)
      have hz1: ∀ x: ℝ, (eval x p) * (eval x q) < 0 → changes_diff x = 1 := by
        unfold changes_diff
        intros x hx
-       rw [seqVar.eq_def, seqEval]
-       have hxq : eval x q ≠ 0 := by
-         simp_all only [eval_mul, ne_eq, mul_eq_zero, not_or, EuclideanDomain.mod_eq_zero]
-         obtain ⟨left, right⟩ := hpqa
-         obtain ⟨left_1, right_1⟩ := hpqb
-         obtain ⟨left_2, right_2⟩ := H
-         obtain ⟨left_3, right_2⟩ := right_2
-         apply Aesop.BuiltinRules.not_intro
-         intro a_1
-         simp_all only [mul_zero, lt_self_iff_false]
-       simp [seqVar, hxq, hx]
+       obtain ⟨hxp, hxq⟩ := mul_ne_zero_iff.mp hx.ne
+       simp only [seqEval, List.map_cons]
+       rw [List.signVariations_cons_cons_of_ne_zero _ _ _ hxp hxq, ite_sign_eq hxp hxq, if_pos hx]
+       push_cast
+       ring
      have hz2: ∀x, (eval x p) * (eval x q) > 0 → changes_diff x = 0 := by
        unfold changes_diff
        intros x hx
-       rw [seqVar.eq_def, seqEval]
-       have hxq : eval x q ≠ 0 := by
-         simp_all only [eval_mul, ne_eq, mul_eq_zero, not_or, EuclideanDomain.mod_eq_zero, gt_iff_lt, changes_diff]
-         obtain ⟨left, right⟩ := hpqa
-         obtain ⟨left_1, right_1⟩ := hpqb
-         obtain ⟨left_2, right_2⟩ := H
-         obtain ⟨left_3, right_2⟩ := right_2
-         apply Aesop.BuiltinRules.not_intro
-         intro a_1
-         simp_all only [mul_zero, lt_self_iff_false]
-       have  : ¬ eval x p * eval x q < 0 := by nlinarith
-       simp [seqVar, hxq, this]
+       obtain ⟨hxp, hxq⟩ := mul_ne_zero_iff.mp hx.ne'
+       simp only [seqEval, List.map_cons]
+       rw [List.signVariations_cons_cons_of_ne_zero _ _ _ hxp hxq, ite_sign_eq hxp hxq, if_neg (not_lt.mpr (le_of_lt hx))]
+       push_cast
+       ring
      have hf: changes_diff a - changes_diff b = cross (p * q) a b := by
        unfold cross
        rcases lt_or_gt_of_ne hpqa with ha | ha <;> rcases lt_or_gt_of_ne hpqb with hb | hb
@@ -184,9 +179,9 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
        · rw [(variation_cases (eval a (p * q)) (eval b (p * q))).1 ⟨ha, hb⟩]
          simp_all
      unfold changes_diff at hf
-     unfold seqVarSturm_ab
+     unfold signVariationsSturm_ab
      rw [httl, htlmod, ← sub_eq_iff_eq_add]
-     unfold seqVar_ab
+     unfold signVariations_ab
      ring_nf at hf ⊢
      rw [hf]
 
@@ -275,261 +270,99 @@ lemma cauchyIndex_poly_rec (p q : Polynomial ℝ) (a b: ℝ) (hab : a < b)
   simp only [cross, variation] at *
   linarith
 
+lemma sturmSeq_cons {p q : Polynomial ℝ} (hp : p ≠ 0) :
+    sturmSeq p q = p :: sturmSeq q (-p % q) := by
+  conv_lhs => unfold sturmSeq
+  simp [hp]
+
+lemma eval_neg_mod {p q : Polynomial ℝ} {x : ℝ} (hq : eval x q = 0) :
+    eval x (-p % q) = -eval x p := by
+  rw [mod_minus, eval_neg, eval_mod p q x hq]
+
+lemma sign_eq_sign_of_mul_nonneg {x y : ℝ} (hx : x ≠ 0) (hy : y ≠ 0) (h : 0 ≤ x * y) :
+    sign x = sign y := by
+  rcases lt_or_gt_of_ne hx with hx | hx <;> rcases lt_or_gt_of_ne hy with hy | hy
+  · rw [sign_neg hx, sign_neg hy]
+  · exact absurd h (not_le.mpr (mul_neg_of_neg_of_pos hx hy))
+  · exact absurd h (not_le.mpr (mul_neg_of_pos_of_neg hx hy))
+  · rw [sign_pos hx, sign_pos hy]
+
+/-- Sign variations across a nonzero entry `t` sitting between `s` and `-s`: exactly one. -/
+lemma signType_ite_add_ite (s t : SignType) (hs : s ≠ 0) (ht : t ≠ 0) :
+    (if s = t then (0 : ℕ) else 1) + (if t = -s then 0 else 1) = 1 := by
+  cases s <;> cases t <;> simp_all
+
 lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') (hpa : eval a p ≠ 0)
     (no_root : ∀ p' ∈ sturmSeq p q, ∀ x : ℝ, ((a < x ∧ x ≤ a') ∨ (a' ≤ x ∧ x < a)) → eval x p' ≠ 0) :
-    seqVar (seqEval a (sturmSeq p q)) = seqVar (seqEval a' (sturmSeq p q)) := by
-  have p_neq_0 : p ≠ 0 := eval_non_zero p a hpa
-  let r1 := -p%q
-  have r1_def : r1 = -p%q := rfl
-  have a_a'_rel: ∀ pp ∈ sturmSeq p q, eval a pp * eval a' pp ≥ 0 := by
-    by_contra!
-    obtain ⟨pp, hpp1, hpp2⟩ := this
-    if haa': a < a' then
-      obtain ⟨x, hx1, hx2, hx3⟩ : ∃ x : ℝ, a < x ∧ x < a' ∧ eval x pp = 0 := exists_root_ioo_mul (le_of_lt haa') hpp2
-      have := no_root pp hpp1 x (Or.inl (And.intro hx1 (le_of_lt hx2)))
-      exact this hx3
-    else
-      simp at haa'
-      rw [mul_comm] at hpp2
-      obtain ⟨x, hx1, hx2, hx3⟩ : ∃ x : ℝ, a' < x ∧ x < a ∧ eval x pp = 0 := exists_root_ioo_mul haa' hpp2
-      have := no_root pp hpp1 x (Or.inr (And.intro (le_of_lt hx1) hx2))
-      exact this hx3
-
-  if hq: q = 0 then
-    unfold sturmSeq
-    simp [hq, seqEval, seqVar, p_neq_0]
-  else if hq2: eval a q = 0 then
-    let r2 := -(q%r1)
-    have : eval a p = - (eval a r1) := by
-      have h1 := EuclideanDomain.quotient_mul_add_remainder_eq p q
-      have h2 : r1 = EuclideanDomain.remainder (-p) q := by rfl
-      have : eval a p = eval a (q * EuclideanDomain.quotient p q + EuclideanDomain.remainder p q) := by
-        congr
-        exact (Eq.symm h1)
-      rw [this]
-      simp [hq2]
-      rw [h2]
-      have : ∀ p q : Polynomial ℝ, EuclideanDomain.remainder p q = p % q := by intros p q; rfl
-      rw [this, this (-p) q, mod_minus]
-      simp
-    have : eval a r1 = -eval a p := by linarith
-    have h_eval_r : eval a r1 ≠ 0 := by rw [this]; exact neg_ne_zero.mpr hpa
-    have r_neq_0 : r1 ≠ 0 := eval_non_zero r1 a h_eval_r
-    have eval_a_eval_r : eval a p * eval a r1 < 0 := by rw [this]; simp; exact hpa
-    obtain ⟨ps, hps1, hps2⟩ : ∃ ps, sturmSeq p q = p :: q :: r1 :: ps ∧ sturmSeq r1 r2 = r1 :: ps := by
-      unfold sturmSeq
-      simp [p_neq_0, r_neq_0]
-      rw [<- r1_def]
-      nth_rw 1 [sturmSeq]
-      simp [hq]
-      nth_rw 1 [sturmSeq]
-      split_ifs
-      next h => exact r_neq_0 h
-      next h =>
-        congr <;> exact mod_minus q r1
-    have : List.length (sturmSeq r1 r2) < List.length (sturmSeq p q) := by simp [hps1, hps2]
-    have no_root_2_aux := no_root
-    rw [hps1] at no_root_2_aux
-    have no_root_2 : ∀ p' ∈ sturmSeq r1 r2, ∀ (x : ℝ), a < x ∧ x ≤ a' ∨ a' ≤ x ∧ x < a → eval x p' ≠ 0 := by
-      rw [hps2]
-      clear * - no_root_2_aux
-      intros p' hp'
-      have : p' ∈ p :: q :: r1 :: ps := by
-        simp
-        right
-        right
-        simp at hp'
-        exact hp'
-      exact no_root_2_aux p' this
-    have IH := changes_smods_congr r1 r2 a a' haa' h_eval_r no_root_2
-    have rec_a : seqVar (seqEval a (sturmSeq p q)) = 1 + seqVar (seqEval a (sturmSeq r1 r2)) := by
-      rw [hps1, hps2, seqEval]
-      simp [seqVar, hq2]
-      simp [h_eval_r]
-      exact eval_a_eval_r
-    have rec_a' : seqVar (seqEval a' (sturmSeq p q)) = 1 + seqVar (seqEval a' (sturmSeq r1 r2)) := by
-      have hp1 : eval a p * eval a' p ≥ 0 := by
-        rw [hps1] at a_a'_rel
-        apply a_a'_rel
-        exact List.mem_cons_self
-      have hr1 : eval a r1 * eval a' r1 ≥ 0 := by
-        rw [hps1] at a_a'_rel
-        apply a_a'_rel
-        simp only [List.mem_cons, true_or, or_true]
-      have ev_neq_0_p : eval a' p ≠ 0 := by
-        rw [hps1] at no_root
-        apply no_root p List.mem_cons_self
-        aesop
-      have ev_neq_0_r1 : eval a' r1 ≠ 0 := by
-        rw [hps1] at no_root
-        apply no_root r1
-        · simp only [List.mem_cons, true_or, or_true]
-        · aesop
-      have ev_neq_0_q : eval a' q ≠ 0 := by
-        rw [hps1] at no_root
-        apply no_root q
-        · simp only [List.mem_cons, true_or, or_true]
-        · aesop
-      rw [hps1, hps2]
-      rw [seqEval, List.map, List.map]
-      rw [seqVar]
-      simp [ev_neq_0_q]
-      split_ifs
-      next H =>
-        simp [seqVar, ev_neq_0_r1]
-        by_contra!
-        have : (eval a' p * eval a' q) * (eval a' q * eval a' r1) > 0 := mul_pos_of_neg_of_neg H this
-        have h1 : (eval a' p * eval a' r1) * (eval a' q * eval a' q) > 0 := by linarith
-        have h2 : eval a' q * eval a' q > 0 := mul_self_pos.mpr ev_neq_0_q
-        have h_pos : eval a' p * eval a' r1 > 0 := (pos_iff_pos_of_mul_pos h1).mpr h2
-        have : (eval a p * eval a' p) * (eval a r1 * eval a' r1) ≥ 0 := Left.mul_nonneg hp1 hr1
-        have : (eval a p * eval a r1) * (eval a' p * eval a' r1) ≥ 0 := by linarith
-        have : eval a p * eval a r1 ≥ 0 := (mul_nonneg_iff_of_pos_right h_pos).mp this
-        linarith
-      next H =>
-        simp [seqVar, ev_neq_0_r1]
-        simp at H
-        by_contra!
-        have : 0 ≤ (eval a' p * eval a' q) * (eval a' q * eval a' r1) := Left.mul_nonneg H this
-        have h1 : 0 ≤ (eval a' p * eval a' r1) * (eval a' q * eval a' q) := by linarith
-        have h2 : 0 < eval a' q * eval a' q := mul_self_pos.mpr ev_neq_0_q
-        have h_pos : 0 ≤ eval a' p * eval a' r1 := (mul_nonneg_iff_of_pos_right h2).mp h1
-        have ev_pos : 0 < eval a' p * eval a' r1 := by
-          by_contra!
-          have : 0 = eval a' p * eval a' r1 := by linarith
-          have : eval a' p = 0 ∨ eval a' r1 = 0 := mul_eq_zero.mp (id (Eq.symm this))
-          cases this
-          next inl => exact ev_neq_0_p inl
-          next inr => exact ev_neq_0_r1 inr
-        have : (eval a p * eval a' p) * (eval a r1 * eval a' r1) ≥ 0 := Left.mul_nonneg hp1 hr1
-        have : (eval a p * eval a r1) * (eval a' p * eval a' r1) ≥ 0 := by linarith
-        have : eval a p * eval a r1 ≥ 0 := (mul_nonneg_iff_of_pos_right ev_pos).mp this
-        linarith
-    rw [rec_a, rec_a', IH]
-  else
-    obtain ⟨ps, hps1, hps2⟩ : ∃ ps, sturmSeq p q = p :: q :: ps ∧ sturmSeq q r1 = q :: ps := by
-      rw [sturmSeq]
-      simp [p_neq_0]
-      rw [sturmSeq]
-      simp [hq]
-    have : List.length (sturmSeq q r1) < List.length (sturmSeq p q) := by
-      rw [hps1, hps2]
-      simp
-    have no_root_2_aux := no_root
-    rw [hps1] at no_root_2_aux
-    have no_root_2 : ∀ p' ∈ sturmSeq q r1, ∀ (x : ℝ), a < x ∧ x ≤ a' ∨ a' ≤ x ∧ x < a → eval x p' ≠ 0 := by
-      rw [hps2]
-      clear * - no_root_2_aux
-      intros p' hp'
-      have : p' ∈ p :: q :: ps := List.mem_cons_of_mem p hp'
-      exact no_root_2_aux p' this
-    have IH := changes_smods_congr q r1 a a' haa' hq2 no_root_2
-    have hpa' : eval a' p ≠ 0 := by
-      apply no_root p (by rw [hps1]; exact List.mem_cons_self)
-      aesop
-    have hqa' : eval a' q ≠ 0 := by
-      apply no_root q (by rw [hps1]; simp)
-      aesop
-    have ev_pa' : eval a p * eval a' p ≥ 0 := by
-      apply a_a'_rel p (by rw [hps1]; exact List.mem_cons_self)
-    have ev_qa' : eval a q * eval a' q ≥ 0 := by
-      apply a_a'_rel q (by rw [hps1]; simp)
-    rw [hps1]
-    simp [seqEval, seqVar, hq2, hqa']
-    rw [hps2] at IH
-    split_ifs
-    next h1 h2 => simp; finiteness
-    next h1 h2 =>
-      push_neg at h2
-      clear * - h1 h2 ev_pa' ev_qa' hq2 hpa hpa' hqa'
-      by_cases eval a p > 0
-      next h_evap =>
-        have Ha'p : eval a' p > 0 := by
-          by_contra!
-          have : eval a' p < 0 := lt_of_le_of_ne this hpa'
-          have : eval a p * eval a' p < 0 := mul_neg_of_pos_of_neg h_evap this
-          linarith
-        have Haq : eval a q < 0 := by
-          by_contra!
-          have : eval a q > 0 := lt_of_le_of_ne this fun a_1 => hq2 (Eq.symm a_1)
-          have : eval a p * eval a q > 0 := Left.mul_pos h_evap this
-          linarith
-        have Ha'q : eval a' q < 0 := by
-          by_contra!
-          have : eval a' q > 0 := lt_of_le_of_ne this (Ne.symm hqa')
-          have : eval a q * eval a' q < 0 := mul_neg_of_neg_of_pos Haq this
-          linarith
-        have : eval a' q * eval a' p < 0 := mul_neg_of_neg_of_pos Ha'q Ha'p
-        linarith
-      next h_evap =>
-        push_neg at h_evap
-        have h_evap : eval a p < 0 := lt_of_le_of_ne h_evap hpa
-        have Ha'p : eval a' p < 0 := by
-          by_contra!
-          have : eval a' p > 0 := lt_of_le_of_ne this (id (Ne.symm hpa'))
-          have : eval a p * eval a' p < 0 := mul_neg_of_neg_of_pos h_evap this
-          linarith
-        have Haq : eval a q > 0 := by
-          by_contra!
-          have : eval a q < 0 := lt_of_le_of_ne this hq2
-          have : eval a p * eval a q > 0 := mul_pos_of_neg_of_neg h_evap this
-          linarith
-        have Ha'q : eval a' q > 0 := by
-          by_contra!
-          have : eval a' q < 0 := lt_of_le_of_ne this hqa'
-          have : eval a q * eval a' q < 0 := mul_neg_of_pos_of_neg Haq this
-          linarith
-        have : eval a' p * eval a' q < 0 := mul_neg_of_neg_of_pos Ha'p Ha'q
-        linarith
-    next h1 h2 =>
-      clear * - h1 h2 ev_pa' ev_qa' hq2 hpa hpa' hqa'
-      by_cases eval a p > 0
-      next h_evap =>
-        have Ha'p : eval a' p > 0 := by
-          by_contra!
-          have : eval a' p < 0 := lt_of_le_of_ne this hpa'
-          have : eval a p * eval a' p < 0 := mul_neg_of_pos_of_neg h_evap this
-          linarith
-        have Haq : eval a q > 0 := by
-          by_contra!
-          have : eval a q < 0 := lt_of_le_of_ne this hq2
-          have : eval a p * eval a q < 0 := mul_neg_of_pos_of_neg h_evap this
-          linarith
-        have Ha'q : eval a' q > 0 := by
-          by_contra!
-          have : eval a' q < 0 := (pos_iff_neg_of_mul_neg h2).mp Ha'p
-          have : eval a q * eval a' q < 0 := mul_neg_of_pos_of_neg Haq this
-          linarith
-        have : eval a' q * eval a' p > 0 := Left.mul_pos Ha'q Ha'p
-        linarith
-      next h_evap =>
-        push_neg at h_evap
-        have h_evap : eval a p < 0 := lt_of_le_of_ne h_evap hpa
-        have Ha'p : eval a' p < 0 := by
-          by_contra!
-          have : eval a' p > 0 := lt_of_le_of_ne this (id (Ne.symm hpa'))
-          have : eval a p * eval a' p < 0 := mul_neg_of_neg_of_pos h_evap this
-          linarith
-        have Haq : eval a q < 0 := by
-          by_contra!
-          have : eval a q > 0 := lt_of_le_of_ne this fun a_1 => hq2 (id (Eq.symm a_1))
-          have : eval a p * eval a q < 0 := mul_neg_of_neg_of_pos h_evap this
-          linarith
-        have Ha'q : eval a' q < 0 := by
-          by_contra!
-          have : eval a' q > 0 := (neg_iff_pos_of_mul_neg h2).mp Ha'p
-          have : eval a q * eval a' q < 0 := mul_neg_of_neg_of_pos Haq this
-          linarith
-        have : eval a' p * eval a' q > 0 := mul_pos_of_neg_of_neg Ha'p Ha'q
-        linarith
-    next h1 h2 => finiteness
-termination_by List.length (sturmSeq p q)
+    List.signVariations (seqEval a (sturmSeq p q)) = List.signVariations (seqEval a' (sturmSeq p q)) := by
+  induction hn : (sturmSeq p q).length using Nat.strong_induction_on generalizing p q with
+  | _ n ih =>
+  have p_ne : p ≠ 0 := eval_non_zero p a hpa
+  -- `a'` lies in the root-free interval, so nothing in the sequence vanishes at `a'`
+  have ha' : ∀ pp ∈ sturmSeq p q, eval a' pp ≠ 0 := by
+    intro pp hpp
+    apply no_root pp hpp
+    rcases lt_or_gt_of_ne haa' with h | h
+    · exact Or.inl ⟨h, le_rfl⟩
+    · exact Or.inr ⟨le_rfl, h⟩
+  -- no sign change between `a` and `a'` (intermediate value theorem)
+  have hsame : ∀ pp ∈ sturmSeq p q, 0 ≤ eval a pp * eval a' pp := by
+    intro pp hpp
+    by_contra! hneg
+    rcases lt_or_gt_of_ne haa' with h | h
+    · obtain ⟨x, hx1, hx2, hx3⟩ := exists_root_ioo_mul (le_of_lt h) hneg
+      exact no_root pp hpp x (Or.inl ⟨hx1, le_of_lt hx2⟩) hx3
+    · rw [mul_comm] at hneg
+      obtain ⟨x, hx1, hx2, hx3⟩ := exists_root_ioo_mul (le_of_lt h) hneg
+      exact no_root pp hpp x (Or.inr ⟨le_of_lt hx1, hx2⟩) hx3
+  have hsign : ∀ pp ∈ sturmSeq p q, eval a pp ≠ 0 → sign (eval a pp) = sign (eval a' pp) :=
+    fun pp hpp h => sign_eq_sign_of_mul_nonneg h (ha' pp hpp) (hsame pp hpp)
+  have hS : sturmSeq p q = p :: sturmSeq q (-p % q) := sturmSeq_cons p_ne
+  have hp_mem : p ∈ sturmSeq p q := by rw [hS]; exact List.mem_cons_self
+  by_cases hq : q = 0
+  · -- the sequence is `[p]`
+    subst hq
+    rw [hS, smods_s_0_1]
+    simp [seqEval, List.signVariations_singleton]
+  have hS2 : sturmSeq q (-p % q) = q :: sturmSeq (-p % q) (-q % (-p % q)) := sturmSeq_cons hq
+  have hq_mem : q ∈ sturmSeq p q := by rw [hS, hS2]; simp
+  by_cases hqa : eval a q = 0
+  · -- the middle term vanishes at `a`, so its neighbours have opposite signs there
+    have hra : eval a (-p % q) = -eval a p := eval_neg_mod hqa
+    have hra0 : eval a (-p % q) ≠ 0 := by rw [hra]; exact neg_ne_zero.mpr hpa
+    have hS3 : sturmSeq (-p % q) (-q % (-p % q)) =
+        (-p % q) :: sturmSeq (-q % (-p % q)) (-(-p % q) % (-q % (-p % q))) :=
+      sturmSeq_cons (eval_non_zero _ a hra0)
+    have hr_mem : -p % q ∈ sturmSeq p q := by rw [hS, hS2, hS3]; simp
+    have hlen : (sturmSeq (-p % q) (-q % (-p % q))).length < n := by
+      rw [← hn, hS, hS2]; simp
+    have IH := ih _ hlen (-p % q) (-q % (-p % q)) hra0
+      (fun pp hpp => no_root pp (by rw [hS, hS2]; exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ hpp))) rfl
+    rw [hS3] at IH
+    rw [hS, hS2, hS3]
+    simp only [seqEval, List.map_cons] at IH ⊢
+    rw [hqa, List.signVariations_cons_zero_cons, List.signVariations_cons_cons_of_ne_zero _ _ _ hpa hra0,
+      List.signVariations_cons_cons_of_ne_zero _ _ _ (ha' p hp_mem) (ha' q hq_mem),
+      List.signVariations_cons_cons_of_ne_zero _ _ _ (ha' q hq_mem) (ha' _ hr_mem),
+      ← hsign p hp_mem hpa, ← hsign _ hr_mem hra0, IH, hra, Left.sign_neg, ← add_assoc,
+      signType_ite_add_ite _ _ (sign_ne_zero.mpr hpa) (sign_ne_zero.mpr (ha' q hq_mem))]
+    simp [hpa]
+  · -- the middle term is nonzero at `a`: one step of the sequence
+    have hlen : (sturmSeq q (-p % q)).length < n := by rw [← hn, hS]; simp
+    have IH := ih _ hlen q (-p % q) hqa
+      (fun pp hpp => no_root pp (by rw [hS]; exact List.mem_cons_of_mem _ hpp)) rfl
+    rw [hS2] at IH
+    rw [hS, hS2]
+    simp only [seqEval, List.map_cons] at IH ⊢
+    rw [List.signVariations_cons_cons_of_ne_zero _ _ _ hpa hqa,
+      List.signVariations_cons_cons_of_ne_zero _ _ _ (ha' p hp_mem) (ha' q hq_mem),
+      ← hsign p hp_mem hpa, ← hsign q hq_mem hqa, IH]
 
 lemma changes_itv_smods_congr (p q : Polynomial ℝ) (a a' b b' : ℝ) (hpa : eval a p ≠ 0) (hpb : eval b p ≠ 0)
     (haa' : a < a') (hb'b : b' < b)
     (no_root : ∀ p' ∈ sturmSeq p q, ∀ x : ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) → eval x p' ≠ 0) :
-    seqVarSturm_ab p q a b = seqVarSturm_ab p q a' b' := by
-  have h1 : seqVar (seqEval a (sturmSeq p q)) = seqVar (seqEval a' (sturmSeq p q)) := by
+    signVariationsSturm_ab p q a b = signVariationsSturm_ab p q a' b' := by
+  have h1 : List.signVariations (seqEval a (sturmSeq p q)) = List.signVariations (seqEval a' (sturmSeq p q)) := by
     apply changes_smods_congr p q a a'
     · exact ne_of_lt haa'
     · exact hpa
@@ -539,7 +372,7 @@ lemma changes_itv_smods_congr (p q : Polynomial ℝ) (a a' b b' : ℝ) (hpa : ev
       cases hx
       next hx => exact hx
       next hx => linarith
-  have h2 : seqVar (seqEval b (sturmSeq p q)) = seqVar (seqEval b' (sturmSeq p q)) := by
+  have h2 : List.signVariations (seqEval b (sturmSeq p q)) = List.signVariations (seqEval b' (sturmSeq p q)) := by
     apply changes_smods_congr p q b b'
     · exact Ne.symm (ne_of_lt hb'b)
     · exact hpb
@@ -549,16 +382,16 @@ lemma changes_itv_smods_congr (p q : Polynomial ℝ) (a a' b b' : ℝ) (hpa : ev
       cases hx
       next hx => linarith
       next hx => exact hx
-  unfold seqVarSturm_ab seqVar_ab
+  unfold signVariationsSturm_ab signVariations_ab
   rw [h1, h2]
 
 theorem cauchyIndex_sturmSeq (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.eval b ≠ 0) (hab : a < b) :
-    seqVarSturm_ab p q a b = cauchyIndex p q a b := by
+    signVariationsSturm_ab p q a b = cauchyIndex p q a b := by
   induction h: (sturmSeq p q) generalizing p q a b with
   | nil =>
-    unfold seqVarSturm_ab
+    unfold signVariationsSturm_ab
     rw [h]
-    simp [seqVar_ab, seqEval]
+    simp [signVariations_ab, seqEval, List.signVariations_nil]
     have := (smod_nil_eq p q).mp h
     rw [this]
     simp [cauchyIndex, rootsInInterval]

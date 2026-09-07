@@ -148,14 +148,14 @@ lemma variation_cases (x y: ℝ):
       (x < 0 ∧ y < 0 -> variation x y = 0) := by
   unfold variation
   repeat' constructor
-  · rintro ⟨hx, hy⟩;
+  · rintro ⟨hx, hy⟩
     have  hxy : x * y ≥ 0 := by nlinarith
     simp [hxy]
-  · rintro ⟨hx, hy⟩;
+  · rintro ⟨hx, hy⟩
     have hxy: ¬ (x * y >= 0) := by nlinarith
     have hyltx: y <= x := by linarith
     simp [hxy, hyltx]
-  · rintro ⟨hx, hy⟩ 
+  · rintro ⟨hx, hy⟩
     have hxy: ¬ (x * y >= 0) := by nlinarith
     have hygtx: x < y := by linarith
     simp [hxy, hygtx]

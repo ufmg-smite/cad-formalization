@@ -6,7 +6,7 @@ open Polynomial SignType
 namespace Theorem
 
 theorem sturm_tarski_interval (a b : ℝ) (p q : Polynomial ℝ) (hab : a < b) (hpa : eval a p ≠ 0) (hpb : eval b p ≠ 0) :
-    tarskiQuery p q a b = seqVarSturm_ab p (derivative p * q) a b := by
+    tarskiQuery p q a b = signVariationsSturm_ab p (derivative p * q) a b := by
   rw [cauchyIndex_sturmSeq p (derivative p * q) a b hpa hpb hab]
   rw [cauchyIndex_poly_taq p q a b]
 
@@ -43,7 +43,7 @@ lemma seq_sign_pos_inf_seqEvalsign (ub : ℝ) (ps : List (Polynomial ℝ)) (key 
       · exact List.mem_cons_of_mem hd hpp
 
 theorem sturm_tarski_above (a : ℝ) (p q : Polynomial ℝ) (hpa : eval a p ≠ 0) :
-    tarskiQuery_above p q a = seqVarAboveSturm p (derivative p * q) a := by
+    tarskiQuery_above p q a = signVariationsAboveSturm p (derivative p * q) a := by
   let ps := sturmSeq p (derivative p * q)
   have ps_def : ps = sturmSeq p (derivative p * q) := rfl
   have : p ≠ 0 := eval_non_zero p a hpa
@@ -68,9 +68,9 @@ theorem sturm_tarski_above (a : ℝ) (p q : Polynomial ℝ) (hpa : eval a p ≠ 
     apply hub1
     on_goal 2 => { exact a_2 }
     · simp_all only
-  have changes_changes : seqVarAboveSturm p (derivative p * q) a = seqVarSturm_ab p (derivative p * q) a ub := by
-    simp [seqVarSturm_ab, seqVarAboveSturm, seqVarAbove_a, seqVar_ab]
-    rw [seqVarSign, <- ps_def, seq_sign_pos_inf_seqEvalsign ub ps hub3]
+  have changes_changes : signVariationsAboveSturm p (derivative p * q) a = signVariationsSturm_ab p (derivative p * q) a ub := by
+    simp [signVariationsSturm_ab, signVariationsAboveSturm, signVariationsAbove_a, signVariations_ab]
+    rw [signVariationsSign, <- ps_def, seq_sign_pos_inf_seqEvalsign ub ps hub3]
   rw [taq_taq, changes_changes]
   apply sturm_tarski_interval _ _ _ _ hub2 hpa
   intro abs
@@ -91,7 +91,7 @@ lemma seq_sign_neg_inf_seqEvalsign (lb : ℝ) (ps : List (Polynomial ℝ)) (key 
       exact key _ hx _ (List.mem_cons_of_mem hd hpp)
 
 theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpa : eval b p ≠ 0) :
-    tarskiQuery_below p q b = seqVarBelowSturm p (derivative p * q) b := by
+    tarskiQuery_below p q b = signVariationsBelowSturm p (derivative p * q) b := by
   let ps := sturmSeq p (derivative p * q)
   have ps_def : ps = sturmSeq p (derivative p * q) := rfl
   have : p ≠ 0 := eval_non_zero p b hpa
@@ -116,9 +116,9 @@ theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpa : eval b p ≠ 
     apply hlb1
     on_goal 2 => { exact a_1 }
     simp_all only
-  have changes_changes : seqVarBelowSturm p (derivative p * q) b = seqVarSturm_ab p (derivative p * q) lb b := by
-    simp [seqVarSturm_ab, seqVarBelowSturm, seqVarBelow_b, seqVar_ab]
-    rw [seqVarSign, <- ps_def, seq_sign_neg_inf_seqEvalsign lb ps hlb3]
+  have changes_changes : signVariationsBelowSturm p (derivative p * q) b = signVariationsSturm_ab p (derivative p * q) lb b := by
+    simp [signVariationsSturm_ab, signVariationsBelowSturm, signVariationsBelow_b, signVariations_ab]
+    rw [signVariationsSign, <- ps_def, seq_sign_neg_inf_seqEvalsign lb ps hlb3]
   rw [taq_taq, changes_changes]
   apply sturm_tarski_interval _ _ _ _ hlb2 _ hpa
   intro abs
@@ -126,10 +126,10 @@ theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpa : eval b p ≠ 
   simp at this
 
 theorem sturm_tarski_R (p q : Polynomial ℝ) :
-    tarskiQuery_R p q = seqVarLineSturm p (derivative p * q) := by
+    tarskiQuery_R p q = signVariationsLineSturm p (derivative p * q) := by
   if hp: p = 0 then
     rw [hp]
-    simp [tarskiQuery_R, seqVarLineSturm, seqVarLine, seq_sign_neg_inf, seq_sign_pos_inf]
+    simp [tarskiQuery_R, signVariationsLineSturm, signVariationsLine, seq_sign_neg_inf, seq_sign_pos_inf]
   else
     let ps := sturmSeq p (derivative p * q)
     have ps_def : ps = sturmSeq p (derivative p * q) := rfl
@@ -164,10 +164,10 @@ theorem sturm_tarski_R (p q : Polynomial ℝ) :
       · apply hub1
         · exact this
         · simp_all only
-    have changes_changes : seqVarLineSturm p (derivative p * q) = seqVarSturm_ab p (derivative p * q) lb ub := by
-      simp [seqVarLineSturm, seqVarLine, seqVarSturm_ab, seqVar_ab]
-      rw [ seqVarSign
-         , seqVarSign
+    have changes_changes : signVariationsLineSturm p (derivative p * q) = signVariationsSturm_ab p (derivative p * q) lb ub := by
+      simp [signVariationsLineSturm, signVariationsLine, signVariationsSturm_ab, signVariations_ab]
+      rw [ signVariationsSign
+         , signVariationsSign
          , <- ps_def
          , seq_sign_neg_inf_seqEvalsign lb ps hlb3
          , seq_sign_pos_inf_seqEvalsign ub ps hub3
@@ -185,25 +185,25 @@ theorem sturm_tarski_R (p q : Polynomial ℝ) :
     exact sturm_tarski_interval lb ub p q lb_ub lb_neq_0 ub_neq_0
 
 theorem sturm_interval (a b : ℝ) (p : Polynomial ℝ) (hab : a < b) (hpa : eval a p ≠ 0) (hpb : eval b p ≠ 0) :
-    Finset.card (rootsInInterval p a b) = seqVarSturm_ab p (derivative p) a b := by
+    Finset.card (rootsInInterval p a b) = signVariationsSturm_ab p (derivative p) a b := by
   have := sturm_tarski_interval a b p 1 hab hpa hpb
   simp [tarskiQuery, sign] at this
   exact this
 
 theorem sturm_above (a : ℝ) (p : Polynomial ℝ) (hpa : eval a p ≠ 0) :
-    Finset.card (rootsAbove p a) = seqVarAboveSturm p (derivative p) a := by
+    Finset.card (rootsAbove p a) = signVariationsAboveSturm p (derivative p) a := by
   have := sturm_tarski_above a p 1 hpa
   simp [tarskiQuery_above, sign] at this
   exact this
 
 theorem sturm_below (b : ℝ) (p : Polynomial ℝ) (hpa : eval b p ≠ 0) :
-    Finset.card (rootsBelow p b) = seqVarBelowSturm p (derivative p) b := by
+    Finset.card (rootsBelow p b) = signVariationsBelowSturm p (derivative p) b := by
   have := sturm_tarski_below b p 1 hpa
   simp [tarskiQuery_below, sign] at this
   exact this
 
 theorem sturm_R (p : Polynomial ℝ) :
-    Finset.card p.roots.toFinset = seqVarLineSturm p (derivative p) := by
+    Finset.card p.roots.toFinset = signVariationsLineSturm p (derivative p) := by
   have := sturm_tarski_R p 1
   simp [tarskiQuery_R, sign] at this
   exact this
