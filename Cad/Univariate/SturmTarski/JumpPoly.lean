@@ -24,50 +24,9 @@ lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
   next H =>
   rw [not_or] at H; obtain ⟨hp, hq⟩ := H
   have h_sign : sign_r_pos x (p' * q * (p' * p)) = sign_r_pos x (q * p) := by
-    have ⟨b, h_b⟩ : ∃b, b > x ∧ (∀z, x < z ∧ z < b -> eval z (p' * p') > 0)  := by
-      rcases Classical.em (∃z, eval z p' = 0 ∧ z > x) with ⟨z, hz⟩ | hf
-      · have roots_fin : {r: ℝ | eval r p' = 0 ∧ r > x}.Finite := by
-          have := finite_setOf_isRoot hp'
-          unfold IsRoot at this; exact Finite.sep this fun a => a > x
-        let roots_x : Finset ℝ := Finite.toFinset roots_fin
-        have : roots_x.Nonempty := by
-          unfold roots_x; simp; exact Set.nonempty_of_mem hz
-        let lr := Finset.min' (roots_x) this
-        have h_eval_nz: (∀z: ℝ, x < z ∧ z < lr -> eval z p' ≠ 0) ∧ lr > x := by
-          have : lr > x := by
-            unfold lr; unfold roots_x;
-            simp
-          simp only [this, and_true]
-          intros z hz; unfold lr roots_x at hz
-          have hz_n : z ∉ roots_x := by
-            by_contra!
-            simp [roots_x] at this hz
-            simp [this] at hz; have h_contra := hz z this.1 this.2
-            exact (lt_self_iff_false z).mp h_contra
-          simp [roots_x, hz] at hz_n; exact hz_n
-        have h_eval_gz : ∀z: ℝ, x < z ∧ z < lr ->  eval z (p' * p') > 0 := by
-          intros z hz; simp; exact h_eval_nz.1 z hz
-        use lr; exact ⟨h_eval_nz.2, h_eval_gz⟩
-      · have h_eval_nz: ∀z:ℝ, x < z ∧ z < x + 1 -> eval z p' ≠ 0 := by
-          intros z hz; simp at hf
-          have := (hf z)
-          contrapose this; simp at this ⊢
-          exact ⟨this, hz.1⟩
-        have h_eval_gz: ∀z:ℝ, x < z ∧ z < x + 1 -> eval z (p' * p') > 0 := by
-          intros z hz; simp; exact h_eval_nz z hz
-        have h_trivial : x + 1 > x := lt_add_one x
-        use x+1
-    have h_bb : ∃b, b > x ∧ ∀z: ℝ, x < z ∧ z < b -> ((0 < eval z (p' * q * (p' * p))) = (0 < eval z (q * p))) := by
-        use b; simp only [h_b, true_and];
-        intros z hz; simp; have := h_b.2 z hz
-        simp only [eval_mul] at this; ring_nf at this ⊢
-        simp [gt_iff_lt] at this
-        have ans := mul_pos_iff_of_pos_left (b := eval z q * eval z p) this
-        ring_nf at ans; exact ans
-    simp only [eventually_at_right_equiv']
-    have := eventually_subst (fun a => eval a (p' * q * (p' * p)) > 0)  (fun a => eval a (q * p) > 0) (rightNear x)
-    simp only [<-eventually_at_right_def, eventually_at_right_equiv] at this
-    exact this h_bb
+    have : p' * q * (p' * p) = (p' * p') * (q * p) := by ring
+    rw [this, sign_r_pos_mult _ _ _ (mul_ne_zero hp' hp') (mul_ne_zero hp hq), eq_iff_iff]
+    simp [sign_r_pos_mul_self x hp']
   have h_odd : Odd (rootMultiplicity x (p' * p) - rootMultiplicity x (p' * q)) =
                Odd (rootMultiplicity x p - rootMultiplicity x q) := by
     have hp'p : p' * p ≠ 0 := (mul_ne_zero_iff_right hq).mpr hp'
