@@ -62,47 +62,25 @@ lemma signVariations_map {β : Type*} [Zero β] [LinearOrder β] {f : α → β}
 
 end List
 
-/- def seqVar {α : Type*} [Ring α] [LinearOrder α] [DecidableEq α] : List α → ℕ -/
-/- | [] => 0 -/
-/- | _::[] => 0 -/
-/- | a::(b::as) => -/
-/-   if b == 0 then -/
-/-     seqVar (a::as) -/
-/-   else if a * b < 0 then -/
-/-     1 + seqVar (b::as) -/
-/-   else -/
-/-     seqVar (b::as) -/
-
 section RealPoly
 
 open Polynomial
 
 open Classical in
 theorem termination_sturmSeq {α : Type*} [Field α] (f g : Polynomial α) (hf : f ≠ 0) :
-    (if g = 0 then 0 else if -f % g = 0 then 1 else 2 + (-f % g).degree) <
-    if f = 0 then 0 else if g = 0 then 1 else 2 + g.degree := by
+    (if g = 0 then 0 else if -f % g = 0 then 1 else 2 + (-f % g).natDegree) <
+    if f = 0 then 0 else if g = 0 then 1 else 2 + g.natDegree := by
   if g1: g = 0 then
     simp_all
   else if h : g ∣ f then
     simp_all
-    have gnatdeg : g.degree ≥ 0 := zero_le_degree_iff.mpr g1
-    refine lt_add_of_lt_of_nonneg ?_ gnatdeg; simp
+    refine lt_add_of_lt_of_nonneg ?_ (Nat.zero_le g.natDegree); simp
   else
     simp_all only [↓reduceIte, EuclideanDomain.mod_eq_zero, dvd_neg]
-    have : (-f % g).degree < g.degree := by
-      refine degree_lt_degree ?_; refine natDegree_mod_lt (-f) ?_
-      have : g.natDegree = 0 → g ∣ f := by
-        intro hg
-        have : ∃ c : α, C c = g := natDegree_eq_zero.mp hg
-        rcases this with ⟨c, rfl⟩; use C c⁻¹ * f
-        have hds : c ≠ 0 := by
-          intro abs; rw [abs] at hg; simp at g1; exact g1 abs
-        ext x
-        simp_all only [map_eq_zero, not_false_eq_true, isUnit_map_iff, isUnit_iff_ne_zero, ne_eq,
-          IsUnit.dvd, not_true_eq_false]
-      have : g.natDegree ≠ 0 := by simp_all only [imp_false, ne_eq, not_false_eq_true]
-      exact this
-    refine WithBot.add_lt_add_left ?_ this; simp_all
+    have : (-f % g).natDegree < g.natDegree := by
+      apply natDegree_lt_natDegree ?_ (degree_mod_lt (-f) g1)
+      simp_all only [ne_eq, EuclideanDomain.mod_eq_zero, dvd_neg, not_false_eq_true]
+    exact Nat.add_lt_add_left this 2
 
 open Classical in
 noncomputable def sturmSeq {α : Type*} [Field α] (f g : Polynomial α) : List (Polynomial α) :=
@@ -110,7 +88,7 @@ noncomputable def sturmSeq {α : Type*} [Field α] (f g : Polynomial α) : List 
     []
   else
     f::(sturmSeq g (-f%g))
-  termination_by if f=0 then 0 else if g=0 then 1 else 2 + degree g
+  termination_by if f=0 then 0 else if g=0 then 1 else 2 + natDegree g
   decreasing_by exact termination_sturmSeq f g (by assumption)
 
 noncomputable def sign_pos_inf (p : Polynomial ℝ) : ℤ :=
