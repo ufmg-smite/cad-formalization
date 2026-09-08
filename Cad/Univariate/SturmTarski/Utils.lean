@@ -1,22 +1,12 @@
 import Cad.Univariate.SturmTarski.SeqDefs
-import Mathlib.Algebra.Lie.OfAssociative
-import Mathlib.Algebra.Order.Ring.Star
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.Calculus.Deriv.Polynomial
 import Mathlib.Analysis.Polynomial.Basic
-import Mathlib.Data.Int.Star
-import Mathlib.Data.Real.StarOrdered
 import Mathlib.Topology.Algebra.Polynomial
 
-open Polynomial Set Filter Classical SignType
+open Polynomial Set Filter Classical SignType Topology
 
 noncomputable section
-
-lemma or_neg_of_mul_neg (a b : ℝ) : a * b < 0 → a < 0 ∨ b < 0 := by
-  intro h
-  apply or_iff_not_imp_left.mpr
-  intro ha
-  nlinarith
 
 def rootsInInterval (f : Polynomial ℝ) (a b : ℝ) : Finset ℝ :=
   f.roots.toFinset.filter (fun x => x ∈ Ioo a b)
@@ -38,124 +28,90 @@ lemma rootsInSet_cup (p : Polynomial ℝ) (S T : Set ℝ) :
   simp only [rootsInSet, mem_union]
   exact Finset.filter_union_right (fun x => x ∈ S) (fun x => x ∈ T) p.roots.toFinset
 
+lemma rootsInInterval_mul {p q: Polynomial ℝ} (a b: ℝ) (hpq: p * q ≠ 0): rootsInInterval (p * q) a b = rootsInInterval p a b ∪ rootsInInterval q a b := by
+  unfold rootsInInterval
+  rw [roots_mul hpq, Multiset.toFinset_add]
+  exact Finset.filter_union (fun x => x ∈ Ioo a b) p.roots.toFinset q.roots.toFinset
+
+/-! ### Algebraic facts -/
+
+lemma eval_non_zero (p: Polynomial ℝ) (x: ℝ) (h: eval x p ≠ 0) : p ≠ 0 := by
+  rintro rfl
+  simp at h
+
+lemma derivative_ne_0 (p : Polynomial Real) (x : Real) (hev : eval x p = 0) (hp : p ≠ 0) : derivative p ≠ 0 := by
+  intro abs
+  obtain ⟨c, rfl⟩ := natDegree_eq_zero.mp (natDegree_eq_zero_of_derivative_eq_zero abs)
+  simp at hev
+  simp [hev] at hp
+
+lemma eval_mod (p q: Polynomial ℝ) (x: ℝ) (h: eval x q = 0) : eval x (p % q) = eval x p := by
+ have : eval x (p % q) = eval x (p / q * q) + eval x (p % q) := by simp; exact Or.inr h
+ rw [<- eval_add, EuclideanDomain.div_add_mod'] at this; exact this
+
+lemma mul_C_eq_root_multiplicity (p: Polynomial ℝ) (c r: ℝ) (hc: ¬ c = 0):
+    (rootMultiplicity r p = rootMultiplicity r (C c * p)) := by
+  simp only [<-count_roots]
+  rw [roots_C_mul]
+  exact hc
+
+theorem mod_mul (p q r : Polynomial ℝ) (hr : r ≠ 0) : (r * p) % (r * q) = r * (p % q) := by
+  rcases eq_or_ne q 0 with rfl | hq
+  · simp
+  · have h1 : (r * p) % (r * q) = (r * (p % q)) % (r * q) :=
+      mod_eq_of_dvd_sub ⟨p / q, by rw [← mul_sub, EuclideanDomain.mod_eq_sub_mul_div]; ring⟩
+    rw [h1, mod_eq_self_iff (mul_ne_zero hr hq), degree_mul, degree_mul]
+    exact WithBot.add_lt_add_left (degree_ne_bot.mpr hr) (degree_mod_lt p hq)
+
+lemma mod_minus (p q: Polynomial ℝ) : -p%q = -(p%q) := by rw [mod_def, mod_def, neg_modByMonic]
+
+lemma X_sub_C_ne_one (r : ℝ) : X - C r ≠ 1 := by
+  rw [sub_eq_neg_add, add_comm, <-C_neg]
+  exact X_add_C_ne_one (-r)
+
+lemma comp_neg_X_leadingCoeff (p : Polynomial ℝ) :
+    (p.comp (-X)).leadingCoeff = (-1) ^ p.natDegree * p.leadingCoeff := by
+  rw [leadingCoeff_comp (by simp), leadingCoeff_neg, leadingCoeff_X, mul_comm]
+
+lemma comp_neg_X_ne_zero {p : Polynomial ℝ} (hp : p ≠ 0) : p.comp (-X) ≠ 0 := by
+  intro h
+  have := congrArg leadingCoeff h
+  rw [comp_neg_X_leadingCoeff, leadingCoeff_zero, mul_eq_zero] at this
+  rcases this with h1 | h1
+  · exact pow_ne_zero _ (by norm_num) h1
+  · exact hp (leadingCoeff_eq_zero.mp h1)
+
 lemma sign_inf_comp (p : Polynomial ℝ) :
     sign_neg_inf p = sign_pos_inf (p.comp (-Polynomial.X)) := by
-  by_cases Even p.natDegree
-  next H =>
-    simp [sign_neg_inf, sign_pos_inf, H]
-  next H =>
-    simp [sign_neg_inf, sign_pos_inf, H, sign]
-    simp_all only [Nat.not_even_iff_odd, Odd.neg_one_pow, neg_mul, one_mul, Left.neg_pos_iff]
-    split_ifs
-    · linarith
-    · norm_num
-    · simp_all only [not_lt, Left.neg_neg_iff, not_true_eq_false]
-    · norm_num
-    · expose_names
-      simp at h_2
-      exact False.elim (h h_2)
-    · rfl
+  rw [sign_pos_inf, comp_neg_X_leadingCoeff, sign_mul, sign_neg_inf]
+  rcases Nat.even_or_odd p.natDegree with h | h
+  · simp [h, h.neg_one_pow]
+  · simp [h.neg_one_pow, Nat.not_even_iff_odd.mpr h, sign_neg neg_one_lt_zero]
+
+/-! ### Root-free neighbourhoods and the intermediate value theorem -/
+
+/-- A nonzero polynomial has no roots in a punctured neighbourhood of any point. -/
+lemma eventually_eval_ne_zero {p : Polynomial ℝ} (hp : p ≠ 0) (x : ℝ) :
+    ∀ᶠ z in 𝓝[≠] x, eval z p ≠ 0 := by
+  have hfin : ({z | IsRoot p z} \ {x}).Finite := (finite_setOf_isRoot hp).diff
+  have hmem : ({z | IsRoot p z} \ {x})ᶜ ∈ 𝓝 x :=
+    hfin.isClosed.isOpen_compl.mem_nhds (by simp)
+  filter_upwards [nhdsWithin_le_nhds hmem, self_mem_nhdsWithin] with z hz hzx h0
+  exact hz ⟨h0, hzx⟩
 
 lemma next_non_root_interval (p : Polynomial Real) (lb : Real) (hp : p ≠ 0) :
     ∃ ub : Real, lb < ub ∧ (∀ z ∈ Ioc lb ub, eval z p ≠ 0) := by
-  by_cases ∃ r : Real, eval r p = 0 ∧ r > lb
-  next hr =>
-    obtain ⟨r, hr1, hr2⟩ := hr
-    let S := p.roots.toFinset.filter (fun w => w > lb)
-    if hS: Finset.Nonempty S then
-      obtain ⟨lr, hlr⟩ := Finset.min_of_nonempty hS
-      have : lr ∈ S := Finset.mem_of_min hlr
-      simp [S] at this
-      have H2 : ∀ z ∈ Ioo lb lr, eval z p ≠ 0 := by
-        intros z hz
-        simp at hz
-        obtain ⟨hz1, hz2⟩ := hz
-        intro abs
-        have : z ∉ S := Finset.notMem_of_lt_min hz2 hlr
-        simp [S] at this
-        have := this hp abs
-        linarith
-      use (lb + lr) / 2
-      simp
-      constructor
-      · linarith
-      · intros z hz1 hz2 abs
-        have : z ∈ Ioo lb lr := by
-          simp
-          constructor
-          · exact hz1
-          · linarith
-        have := H2 z this
-        exact this abs
-    else
-      use lb + 1
-      simp only [lt_add_iff_pos_right, zero_lt_one, mem_Ioc, ne_eq, and_imp, true_and]
-      intros z hz1 hz2 abs
-      have : z ∈ S := by simp [S, hp, abs, hz1]
-      have : Finset.Nonempty S := by simp_all only [ne_eq, gt_iff_lt,
-        Finset.not_nonempty_iff_eq_empty, Finset.notMem_empty]
-      exact hS this
-  next hr =>
-    push_neg at hr
-    use lb + 1
-    simp only [lt_add_iff_pos_right, zero_lt_one, mem_Ioc, ne_eq, and_imp, true_and]
-    intros z hz1 hz2 abs
-    have := hr z abs
-    linarith
+  obtain ⟨u, hu, hsub⟩ := mem_nhdsGT_iff_exists_Ioo_subset.mp
+    ((eventually_eval_ne_zero hp lb).filter_mono (nhdsGT_le_nhdsNE lb))
+  have hu : lb < u := hu
+  exact ⟨(lb + u) / 2, by linarith, fun z hz => hsub ⟨hz.1, by linarith [hz.2]⟩⟩
 
 lemma last_non_root_interval (p : Polynomial Real) (ub : Real) (hp : p ≠ 0) :
     ∃ lb : Real, lb < ub ∧ (∀ z ∈ Ico lb ub, eval z p ≠ 0) := by
-  by_cases ∃ r : Real, eval r p = 0 ∧ r < ub
-  next hr =>
-    obtain ⟨r, hr1, hr2⟩ := hr
-    let S := p.roots.toFinset.filter (fun w => w < ub)
-    if hS: Finset.Nonempty S then
-      obtain ⟨mr, hmr⟩ := Finset.max_of_nonempty hS
-      have : mr ∈ S := Finset.mem_of_max hmr
-      simp [S] at this
-      have H2 : ∀ z ∈ Ioo mr ub, eval z p ≠ 0 := by
-        intros z hz
-        simp at hz
-        obtain ⟨hz1, hz2⟩ := hz
-        intro abs
-        have : z ∉ S := Finset.notMem_of_max_lt hz1 hmr
-        simp [S] at this
-        have := this hp abs
-        linarith
-      use (mr + ub) / 2
-      simp
-      constructor
-      · linarith
-      · intros z hz1 hz2 abs
-        have : z ∈ Ioo mr ub := by
-          simp
-          constructor
-          · linarith
-          · exact hz2
-        have := H2 z this
-        exact this abs
-    else
-      use ub - 1
-      simp
-      intros z hz1 hz2 abs
-      have : z ∈ S := by simp [S, abs, hz2, hp]
-      have : Finset.Nonempty S := by simp_all only [ne_eq, Finset.not_nonempty_iff_eq_empty,
-        Finset.notMem_empty]
-      exact hS this
-  next hr =>
-    push_neg at hr
-    use ub - 1
-    simp
-    intros z hz1 hz2 abs
-    have := hr z abs
-    linarith
-
-theorem exists_root_interval : ∀ p: Polynomial Real, ∀ (a b : ℝ), a <= b → eval a p <= 0 → 0 <= eval b p -> ∃ r: ℝ, r >= a ∧ r <= b ∧ eval r p = 0 := by
-  intros p a b hab ha hb
-  have intermediate_value_app := intermediate_value_Icc hab p.continuousOn
-  have zero_in_image : 0 ∈ p.eval '' Set.Icc a b := by aesop
-  obtain ⟨x, ⟨hxa, hxb⟩, hx_root⟩ := zero_in_image
-  use x
+  obtain ⟨l, hl, hsub⟩ := mem_nhdsLT_iff_exists_Ioo_subset.mp
+    ((eventually_eval_ne_zero hp ub).filter_mono (nhdsLT_le_nhdsNE ub))
+  have hl : l < ub := hl
+  exact ⟨(l + ub) / 2, by linarith, fun z hz => hsub ⟨by linarith [hz.1], hz.2⟩⟩
 
 theorem exists_root_ioo {p: Polynomial ℝ} {a b : ℝ} (hab: a <= b) (hap: eval a p < 0) (hbp: eval b p > 0): ∃ r: ℝ, r > a ∧ r < b ∧ eval r p = 0 := by
   have intermediate_value_app := intermediate_value_Ioo hab p.continuousOn
@@ -180,52 +136,16 @@ theorem exists_root_ioo_mul {p: Polynomial ℝ} {a b: ℝ} (hab: a ≤ b) (hap: 
 
 lemma not_eq_pos_or_neg_iff_1 (p : Polynomial Real) (lb ub : Real) :
     (∀ z ∈ Ioc lb ub, eval z p ≠ 0) ↔ ((∀ z ∈ Ioc lb ub, eval z p < 0) ∨ (∀ z ∈ Ioc lb ub, 0 < eval z p)) := by
-  by_contra!
-  cases this
-  next H =>
-    obtain ⟨H₁, ⟨z₁, hz₁, hz₁'⟩, ⟨z₂, hz₂, hz₂'⟩⟩ := H
-    have z1Neq0 : eval z₁ p ≠ 0 := by aesop
-    have z1Pos : 0 < eval z₁ p := lt_of_le_of_ne hz₁' (id (Ne.symm z1Neq0))
-    have z2Neg : eval z₂ p < 0 := lt_of_le_of_ne hz₂' (H₁ z₂ hz₂)
-    by_cases z₁ < z₂
-    next hle =>
-      obtain ⟨r, hr₁, hr₂, hr₃⟩ := exists_root_interval (-p) z₁ z₂ (le_of_lt hle) (by simp; exact hz₁') (by simp; exact hz₂')
-      simp at hr₃
-      have : r ∈ Set.Ioc lb ub := by
-        simp at hz₁ hz₂ ⊢
-        constructor <;> linarith
-      exact H₁ r this hr₃
-    next hge =>
-      push_neg at hge
-      obtain ⟨r, hr₁, hr₂, hr₃⟩ := exists_root_interval p z₂ z₁ hge (le_of_lt z2Neg) (le_of_lt z1Pos)
-      have : r ∈ Set.Ioc lb ub := by
-        simp at hz₁ hz₂ ⊢
-        constructor
-        · linarith
-        · linarith
-      exact H₁ r this hr₃
-  next H =>
-    obtain ⟨⟨z, hz1, hz2⟩, H₂⟩ := H
-    cases H₂
-    next H₂ =>
-      have := H₂ z hz1
-      linarith
-    next H₂ =>
-      have := H₂ z hz1
-      linarith
-
-lemma derivative_ne_0 (p : Polynomial Real) (x : Real) (hev : eval x p = 0) (hp : p ≠ 0) : derivative p ≠ 0 := by
-  intro abs
-  have := natDegree_eq_zero_of_derivative_eq_zero abs
-  obtain ⟨c, hc⟩  := (natDegree_eq_zero.mp this)
-  have : c ≠ 0 := by
-    intro abs2
-    rw [abs2] at hc
-    rw [<- hc] at hp
-    simp at hp
-  rw [<- hc] at hev
-  simp at hev
-  exact this hev
+  refine ⟨fun h => ?_, fun h z hz => h.elim (fun h => (h z hz).ne) (fun h => (h z hz).ne')⟩
+  by_contra! hcon
+  obtain ⟨⟨z₁, hz₁, h₁⟩, ⟨z₂, hz₂, h₂⟩⟩ := hcon
+  have h₁' : 0 < eval z₁ p := lt_of_le_of_ne h₁ (h z₁ hz₁).symm
+  have h₂' : eval z₂ p < 0 := lt_of_le_of_ne h₂ (h z₂ hz₂)
+  rcases le_total z₁ z₂ with hle | hle
+  · obtain ⟨r, hr₁, hr₂, hr₃⟩ := exists_root_ioo' hle h₁' h₂'
+    exact h r ⟨lt_of_lt_of_le hz₁.1 (le_of_lt hr₁), le_trans (le_of_lt hr₂) hz₂.2⟩ hr₃
+  · obtain ⟨r, hr₁, hr₂, hr₃⟩ := exists_root_ioo hle h₂' h₁'
+    exact h r ⟨lt_of_lt_of_le hz₂.1 (le_of_lt hr₁), le_trans (le_of_lt hr₂) hz₁.2⟩ hr₃
 
 lemma exists_deriv_eq_slope_poly (a b : Real) (hab : a < b) (p : Polynomial Real) :
     ∃ c : Real, c > a ∧ c < b ∧ eval b p - eval a p = (b - a) * eval c (derivative p) := by
@@ -241,243 +161,74 @@ lemma exists_deriv_eq_slope_poly (a b : Real) (hab : a < b) (p : Polynomial Real
   have : (b - a) ≠ 0 := by linarith
   field_simp
 
-lemma eval_mod (p q: Polynomial ℝ) (x: ℝ) (h: eval x q = 0) : eval x (p % q) = eval x p := by
- have : eval x (p % q) = eval x (p / q * q) + eval x (p % q) := by simp; exact Or.inr h
- rw [<- eval_add, EuclideanDomain.div_add_mod'] at this; exact this
+/-! ### Behaviour at infinity -/
 
-lemma eval_non_zero (p: Polynomial ℝ) (x: ℝ) (h: eval x p ≠ 0) : p ≠ 0 := by
-  simp_all only [ne_eq]
-  apply Aesop.BuiltinRules.not_intro
-  intro a
-  subst a
-  simp_all only [eval_zero, not_true_eq_false]
+/-- Far to the right, the sign of a polynomial is the sign of its leading coefficient. -/
+lemma eventually_sign_eq_atTop {p : Polynomial ℝ} (hp : p ≠ 0) :
+    ∀ᶠ x in atTop, sign (eval x p) = sign_pos_inf p := by
+  rcases eq_or_ne p.natDegree 0 with hdeg | hdeg
+  · obtain ⟨c, rfl⟩ := natDegree_eq_zero.mp hdeg
+    simp [sign_pos_inf]
+  · have hdeg' : 0 < p.degree := natDegree_pos_iff_degree_pos.mp (Nat.pos_of_ne_zero hdeg)
+    rcases lt_or_gt_of_ne (leadingCoeff_ne_zero.mpr hp) with hlc | hlc
+    · filter_upwards [(tendsto_atBot_of_leadingCoeff_nonpos p hdeg' (le_of_lt hlc)).eventually_lt_atBot 0]
+        with x hx
+      rw [sign_pos_inf, sign_neg hx, sign_neg hlc]
+    · filter_upwards [(tendsto_atTop_of_leadingCoeff_nonneg p hdeg' (le_of_lt hlc)).eventually_gt_atTop 0]
+        with x hx
+      rw [sign_pos_inf, sign_pos hx, sign_pos hlc]
 
-lemma mul_C_eq_root_multiplicity (p: Polynomial ℝ) (c r: ℝ) (hc: ¬ c = 0):
-    (rootMultiplicity r p = rootMultiplicity r (C c * p)) := by
-  simp only [<-count_roots]
-  rw [roots_C_mul]
-  exact hc
-
-theorem mod_mul (p q r : Polynomial ℝ) (hr : r ≠ 0) : (r * p) % (r * q) = r * (p % q) := by
-  rcases eq_or_ne q 0 with rfl | hq
-  · simp
-  · have h1 : (r * p) % (r * q) = (r * (p % q)) % (r * q) :=
-      mod_eq_of_dvd_sub ⟨p / q, by rw [← mul_sub, EuclideanDomain.mod_eq_sub_mul_div]; ring⟩
-    rw [h1, mod_eq_self_iff (mul_ne_zero hr hq), degree_mul, degree_mul]
-    exact WithBot.add_lt_add_left (degree_ne_bot.mpr hr) (degree_mod_lt p hq)
-
-lemma X_sub_C_ne_one (r : ℝ) : X - C r ≠ 1 := by
-  rw [sub_eq_neg_add, add_comm, <-C_neg]
-  exact X_add_C_ne_one (-r)
-
-lemma rootsInInterval_mul {p q: Polynomial ℝ} (a b: ℝ) (hpq: p * q ≠ 0): rootsInInterval (p * q) a b = rootsInInterval p a b ∪ rootsInInterval q a b := by
-  unfold rootsInInterval
-  rw [roots_mul hpq, Multiset.toFinset_add]
-  exact Finset.filter_union (fun x => x ∈ Ioo a b) p.roots.toFinset q.roots.toFinset
-
-lemma mod_minus (p q: Polynomial ℝ) : -p%q = -(p%q) := by rw [mod_def, mod_def, neg_modByMonic]
-
-lemma bound_sign_pos_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ ub : ℝ, ∀ x, x ≥ ub → sign (eval x p) = sign_pos_inf p := by
-  have : p.degree = ((Polynomial.X : Polynomial ℝ) ^ p.natDegree).degree := by
-    simp_all only [ne_eq, degree_pow, degree_X, nsmul_eq_mul, mul_one]
-    exact degree_eq_natDegree hp
-  have := Polynomial.div_tendsto_leadingCoeff_div_of_degree_eq p (Polynomial.X ^ p.natDegree) this
-  simp only [eval_pow, eval_X, monic_X_pow, Monic.leadingCoeff, div_one] at this
-  have h_sign :
-      Filter.Tendsto (fun x => p.eval x / x ^ p.natDegree * p.leadingCoeff) Filter.atTop (nhds (p.leadingCoeff ^ 2)) := by
-    simpa only [sq] using this.mul tendsto_const_nhds
-  have lcoef_pos : p.leadingCoeff ≠ 0 := leadingCoeff_ne_zero.mpr hp
-  have : 0 < p.leadingCoeff ^ 2 := pow_two_pos_of_ne_zero lcoef_pos
-  have ev_pos : Filter.Eventually (fun x => p.eval x / x ^ p.natDegree * p.leadingCoeff > 0) Filter.atTop := by
-    apply h_sign.eventually
-    apply lt_mem_nhds
-    assumption
-  obtain ⟨ub, hub⟩ := Filter.eventually_atTop.mp ev_pos
-  simp [sign_pos_inf]
-  have h_sign_eq : ∀ x, 0 < x → p.eval x * p.leadingCoeff > 0 → sign (p.eval x) = sign (p.leadingCoeff) := by
-    intros x hx h; unfold sign; simp; split_ifs <;> (first | nlinarith | rfl)
-  have mul_pos : ∀ x, 0 < x → ub ≤ x → eval x p * p.leadingCoeff > 0 := by
-    intros x x_pos hx
-    have x_pow_pos : x ^ p.natDegree > 0 := pow_pos x_pos p.natDegree
-    have : eval x p / x ^ p.natDegree * p.leadingCoeff * x ^ p.natDegree > 0 := Left.mul_pos (hub x hx) x_pow_pos
-    have eq : (eval x p / x ^ p.natDegree * x ^ p.natDegree) * p.leadingCoeff > 0 := by linarith
-    have : (eval x p / x ^ p.natDegree) * x ^ p.natDegree = eval x p := div_mul_cancel₀ (eval x p) (Ne.symm (ne_of_lt x_pow_pos))
-    rw [this] at eq
-    exact eq
-  if ub_pos: 0 < ub then
-    use ub
-    intros x hx
-    have := h_sign_eq x (Std.lt_of_lt_of_le ub_pos hx) (mul_pos x (Std.lt_of_lt_of_le ub_pos hx) hx)
-    simp_all only [ne_eq, degree_pow, degree_X, nsmul_eq_mul, mul_one, leadingCoeff_eq_zero,
-      not_false_eq_true, gt_iff_lt, eventually_atTop, ge_iff_le]
-  else
-    use 1
-    intros x hx
-    have := h_sign_eq x (by linarith) (mul_pos x (by linarith) (by linarith))
-    simp_all only [ne_eq, degree_pow, degree_X, nsmul_eq_mul, mul_one, leadingCoeff_eq_zero,
-      not_false_eq_true, gt_iff_lt, eventually_atTop, ge_iff_le, not_lt]
-
-lemma bound_sign_neg_inf (p : Polynomial ℝ) (hp : p ≠ 0) : ∃ lb : ℝ, ∀ x, x ≤ lb → sign (eval x p) = sign_neg_inf p := by
-  obtain ⟨s, hs⟩ : ∃ s, p.eval s ≠ 0 := by
-    contrapose! hp
-    exact zero_of_eval_zero p hp
-  let p' := Polynomial.comp p (-Polynomial.X)
-  obtain ⟨s, hs⟩ : ∃ s, p'.eval s ≠ 0 := by
-    use -s
-    unfold p'
-    simp
-    assumption
-  have : p' ≠ 0 := by
-    intro abs
-    have ev_0 : eval s p' = 0 := by
-      rw [abs]
-      simp
-    exact hs ev_0
-  obtain ⟨ub, hub⟩  := bound_sign_pos_inf (Polynomial.comp p (-Polynomial.X)) this
+lemma eventually_sign_eq_atBot {p : Polynomial ℝ} (hp : p ≠ 0) :
+    ∀ᶠ x in atBot, sign (eval x p) = sign_neg_inf p := by
   rw [sign_inf_comp]
-  use -ub
-  intros x hx
-  have := hub (-x) (by linarith)
-  simp at this
-  exact this
+  filter_upwards [tendsto_neg_atBot_atTop.eventually
+    (eventually_sign_eq_atTop (comp_neg_X_ne_zero hp))] with x hx
+  simpa using hx
 
-lemma root_ub (p : Polynomial ℝ) (hp : p ≠ 0) :
-    ∃ ub, (∀ x, eval x p = 0 → x < ub) ∧ (∀ x, x ≥ ub → sign (eval x p) = sign_pos_inf p) := by
-  obtain ⟨ub1, hub1⟩ : ∃ ub1, ∀ x, eval x p = 0 → x < ub1 := by
-    by_cases ∃ r, eval r p = 0
-    next H =>
-      let roots := p.roots.toFinset
-      obtain ⟨r, hr⟩ := H
-      have : r ∈ p.roots.toFinset := Multiset.mem_toFinset.mpr ((mem_roots_iff_aeval_eq_zero hp).mpr hr)
-      have : roots.Nonempty := by tauto
-      obtain ⟨max_r, hm⟩ := Finset.max_of_nonempty this
-      have : ∀ x, eval x p = 0 → x ≤ max_r := by
-        intros x hx
-        have := Multiset.mem_toFinset.mpr ((mem_roots_iff_aeval_eq_zero hp).mpr hx)
-        exact Finset.le_max_of_eq this hm
-      use max_r + 1
-      intros x hx
-      have := this x hx
-      linarith
-    next H =>
-      use 0
-      intros x hx
-      aesop
-  obtain ⟨ub2, hub2⟩ : ∃ ub2, ∀ x, x ≥ ub2 → sign (eval x p) = sign_pos_inf p := bound_sign_pos_inf p hp
-  let ub := Max.max ub1 ub2
-  have : ub1 ≤ ub := le_max_left ub1 ub2
-  have : ub2 ≤ ub := le_max_right ub1 ub2
-  use ub
-  constructor
-  · intros x hx
-    have := hub1 x hx
-    linarith
-  · intros x hx
-    exact hub2 x (by linarith)
+lemma eventually_roots_lt_atTop {p : Polynomial ℝ} (hp : p ≠ 0) :
+    ∀ᶠ x in atTop, ∀ y, eval y p = 0 → y < x := by
+  obtain ⟨M, hM⟩ := (finite_setOf_isRoot hp).bddAbove
+  filter_upwards [eventually_gt_atTop M] with x hx y hy
+  exact lt_of_le_of_lt (hM hy) hx
 
-lemma root_lb (p : Polynomial ℝ) (hp : p ≠ 0) :
-    ∃ lb, (∀ x, eval x p = 0 → x > lb) ∧ (∀ x, x ≤ lb → sign (eval x p) = sign_neg_inf p) := by
-  obtain ⟨lb1, hlb1⟩ : ∃ lb1, ∀ x, eval x p = 0 → x > lb1 := by
-    by_cases ∃ r, eval r p = 0
-    next H =>
-      let roots := p.roots.toFinset
-      obtain ⟨r, hr⟩ := H
-      have : r ∈ p.roots.toFinset := Multiset.mem_toFinset.mpr ((mem_roots_iff_aeval_eq_zero hp).mpr hr)
-      have : roots.Nonempty := by tauto
-      obtain ⟨min_r, hm⟩ := Finset.min_of_nonempty this
-      have : ∀ x, eval x p = 0 → x ≥ min_r := by
-        intros x hx
-        have := Multiset.mem_toFinset.mpr ((mem_roots_iff_aeval_eq_zero hp).mpr hx)
-        exact Finset.min_le_of_eq this hm
-      use min_r - 1
-      intros x hx
-      have := this x hx
-      linarith
-    next H =>
-      use 0
-      intros x hx
-      aesop
-  obtain ⟨lb2, hlb2⟩ : ∃ lb2, ∀ x, x ≤ lb2 → sign (eval x p) = sign_neg_inf p := bound_sign_neg_inf p hp
-  let lb := Min.min lb1 lb2
-  have : lb ≤ lb1 := min_le_left lb1 lb2
-  have : lb ≤ lb2 := min_le_right lb1 lb2
-  use lb
-  constructor
-  · intros x hx
-    have := hlb1 x hx
-    linarith
-  · intros x hx
-    exact hlb2 x (by linarith)
+lemma eventually_lt_roots_atBot {p : Polynomial ℝ} (hp : p ≠ 0) :
+    ∀ᶠ x in atBot, ∀ y, eval y p = 0 → x < y := by
+  obtain ⟨M, hM⟩ := (finite_setOf_isRoot hp).bddBelow
+  filter_upwards [eventually_lt_atBot M] with x hx y hy
+  exact lt_of_lt_of_le hx (hM hy)
 
 lemma root_list_ub (ps : List (Polynomial ℝ)) (a : ℝ) (h0 : 0 ∉ ps) :
     ∃ ub : ℝ,
       ((∀ p ∈ ps, ∀ x : ℝ, eval x p = 0 → x < ub) ∧
        (a < ub) ∧
        (∀ x : ℝ, x ≥ ub → ∀ p ∈ ps, sign (eval x p) = sign_pos_inf p)) := by
-  cases ps
-  next => simp; exact exists_gt a
-  next p ps =>
-    have p_not_zero : p ≠ 0 := Ne.symm (List.ne_of_not_mem_cons h0)
-    have not_zero : 0 ∉ ps := List.not_mem_of_not_mem_cons h0
-    obtain ⟨ub1, hub1, hub2, hub3⟩ := root_list_ub ps a not_zero
-    obtain ⟨ub2, hub21, hub22⟩ := root_ub p p_not_zero
-    let ub := Max.max ub1 ub2
-    have : ub1 ≤ ub := le_max_left ub1 ub2
-    have : ub2 ≤ ub := le_max_right ub1 ub2
-    use ub
-    constructor
-    · intros pp hpp x hx
-      have : pp = p ∨ pp ∈ ps := List.mem_cons.mp hpp
-      cases this
-      next hmem =>
-        rw [hmem] at hx
-        exact lt_sup_of_lt_right (hub21 x hx)
-      next hmem => exact lt_sup_of_lt_left (hub1 pp hmem x hx)
-    · constructor
-      · linarith
-      · intros x hx pp hpp
-        have : pp = p ∨ pp ∈ ps := List.mem_cons.mp hpp
-        cases this
-        next hmem =>
-          rw [hmem]
-          exact hub22 x (by linarith)
-        next hmem =>
-          exact hub3 x (by linarith) pp hmem
+  have h : ∀ᶠ x in atTop, ∀ p ∈ ps,
+      (∀ y, eval y p = 0 → y < x) ∧ sign (eval x p) = sign_pos_inf p := by
+    induction ps with
+    | nil => simp
+    | cons p ps ih =>
+      have hp : p ≠ 0 := fun h => h0 (by rw [← h]; exact List.mem_cons_self)
+      simp only [List.mem_cons, forall_eq_or_imp]
+      exact eventually_and.mpr ⟨(eventually_roots_lt_atTop hp).and (eventually_sign_eq_atTop hp),
+        ih (fun h => h0 (List.mem_cons_of_mem p h))⟩
+  obtain ⟨ub, hub⟩ := eventually_atTop.mp (h.and (eventually_gt_atTop a))
+  exact ⟨ub, fun p hp x hx => ((hub ub le_rfl).1 p hp).1 x hx, (hub ub le_rfl).2,
+    fun x hx p hp => ((hub x hx).1 p hp).2⟩
 
 lemma root_list_lb (ps : List (Polynomial ℝ)) (b : ℝ) (h0 : 0 ∉ ps) :
     ∃ lb : ℝ,
       ((∀ p ∈ ps, ∀ x : ℝ, eval x p = 0 → lb < x) ∧
        (lb < b) ∧
        (∀ x : ℝ, x ≤ lb → ∀ p ∈ ps, sign (eval x p) = sign_neg_inf p)) := by
-  cases ps
-  next => simp; exact exists_lt b
-  next p ps =>
-    have p_not_zero : p ≠ 0 := Ne.symm (List.ne_of_not_mem_cons h0)
-    have not_zero : 0 ∉ ps := List.not_mem_of_not_mem_cons h0
-    obtain ⟨lb1, hlb1, hlb2, hlb3⟩ := root_list_lb ps b not_zero
-    obtain ⟨lb2, hlb21, hlb22⟩ := root_lb p p_not_zero
-    let lb := Min.min lb1 lb2
-    have : lb ≤ lb1 := min_le_left lb1 lb2
-    have : lb ≤ lb2 := min_le_right lb1 lb2
-    use lb
-    constructor
-    · intros pp hpp x hx
-      have : pp = p ∨ pp ∈ ps := List.mem_cons.mp hpp
-      cases this
-      next hmem =>
-        rw [hmem] at hx
-        exact inf_lt_of_right_lt (hlb21 x hx)
-      next hmem => exact inf_lt_of_left_lt (hlb1 pp hmem x hx)
-    · constructor
-      · exact inf_lt_of_left_lt hlb2
-      · intros x hx pp hpp
-        have : pp = p ∨ pp ∈ ps := List.mem_cons.mp hpp
-        cases this
-        next hmem =>
-          rw [hmem]
-          apply hlb22
-          linarith
-        next hmem =>
-          apply hlb3
-          · linarith
-          · exact hmem
+  have h : ∀ᶠ x in atBot, ∀ p ∈ ps,
+      (∀ y, eval y p = 0 → x < y) ∧ sign (eval x p) = sign_neg_inf p := by
+    induction ps with
+    | nil => simp
+    | cons p ps ih =>
+      have hp : p ≠ 0 := fun h => h0 (by rw [← h]; exact List.mem_cons_self)
+      simp only [List.mem_cons, forall_eq_or_imp]
+      exact eventually_and.mpr ⟨(eventually_lt_roots_atBot hp).and (eventually_sign_eq_atBot hp),
+        ih (fun h => h0 (List.mem_cons_of_mem p h))⟩
+  obtain ⟨lb, hlb⟩ := eventually_atBot.mp (h.and (eventually_lt_atBot b))
+  exact ⟨lb, fun p hp x hx => ((hlb lb le_rfl).1 p hp).1 x hx, (hlb lb le_rfl).2,
+    fun x hx p hp => ((hlb x hx).1 p hp).2⟩
