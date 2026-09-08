@@ -5,11 +5,6 @@ open Polynomial SignType
 
 namespace Theorem
 
-theorem sturm_tarski_interval (a b : ℝ) (p q : Polynomial ℝ) (hab : a < b) (hpa : eval a p ≠ 0) (hpb : eval b p ≠ 0) :
-    tarskiQuery p q a b = signVariationsSturm_ab p (derivative p * q) a b := by
-  rw [cauchyIndex_sturmSeq p (derivative p * q) a b hpa hpb hab]
-  rw [cauchyIndex_poly_taq p q a b]
-
 noncomputable def rootsAbove (f : Polynomial ℝ) (a : ℝ) : Finset ℝ :=
   f.roots.toFinset.filter (fun x => x > a)
 
@@ -25,164 +20,98 @@ noncomputable def tarskiQuery_below (p q : Polynomial ℝ) (b : ℝ) : ℤ :=
 noncomputable def tarskiQuery_R (p q : Polynomial ℝ) : ℤ :=
   ∑ x ∈ p.roots.toFinset, sign (q.eval x)
 
-lemma seq_sign_pos_inf_seqEvalsign (ub : ℝ) (ps : List (Polynomial ℝ)) (key : ∀ x ≥ ub, ∀ pp ∈ ps, sign (eval x pp) = sign_pos_inf pp) :
-    seq_sign_pos_inf ps = seqEvalSign ub ps := by
-  cases ps
-  next => simp only [seq_sign_pos_inf, seqEvalSign, List.map]
-  next hd tl =>
-    simp only [seq_sign_pos_inf, seqEvalSign, List.cons.injEq, List.map]
-    constructor
-    · apply Eq.symm
-      apply key
-      · exact Preorder.le_refl ub
-      · exact List.mem_cons_self
-    · apply seq_sign_pos_inf_seqEvalsign ub tl
-      intros x hx pp hpp
-      apply key
-      · exact hx
-      · exact List.mem_cons_of_mem hd hpp
+/-! ### Pushing an interval endpoint to infinity
+
+Once `ub` is beyond every root of `p`, the roots above `a` are the roots in `(a, ub)`; and once
+`ub` is beyond every root of a sequence, the signs of the sequence at `ub` are its signs at `+∞`.
+Symmetrically for lower bounds. -/
+
+lemma rootsAbove_eq_rootsInInterval {p : Polynomial ℝ} {a ub : ℝ} (h : ∀ x, eval x p = 0 → x < ub) :
+    rootsAbove p a = rootsInInterval p a ub := by
+  ext z
+  simp only [rootsAbove, rootsInInterval, Finset.mem_filter, Multiset.mem_toFinset, mem_roots',
+    IsRoot.def, Set.mem_Ioo, gt_iff_lt]
+  exact ⟨fun ⟨h1, h2⟩ => ⟨h1, h2, h z h1.2⟩, fun ⟨h1, h2, _⟩ => ⟨h1, h2⟩⟩
+
+lemma rootsBelow_eq_rootsInInterval {p : Polynomial ℝ} {b lb : ℝ} (h : ∀ x, eval x p = 0 → lb < x) :
+    rootsBelow p b = rootsInInterval p lb b := by
+  ext z
+  simp only [rootsBelow, rootsInInterval, Finset.mem_filter, Multiset.mem_toFinset, mem_roots',
+    IsRoot.def, Set.mem_Ioo]
+  exact ⟨fun ⟨h1, h2⟩ => ⟨h1, h z h1.2, h2⟩, fun ⟨h1, _, h2⟩ => ⟨h1, h2⟩⟩
+
+lemma roots_toFinset_eq_rootsInInterval {p : Polynomial ℝ} {lb ub : ℝ}
+    (hlb : ∀ x, eval x p = 0 → lb < x) (hub : ∀ x, eval x p = 0 → x < ub) :
+    p.roots.toFinset = rootsInInterval p lb ub := by
+  ext z
+  simp only [rootsInInterval, Finset.mem_filter, Multiset.mem_toFinset, mem_roots', IsRoot.def,
+    Set.mem_Ioo]
+  exact ⟨fun h1 => ⟨h1, hlb z h1.2, hub z h1.2⟩, fun ⟨h1, _, _⟩ => h1⟩
+
+lemma seq_sign_pos_inf_eq_seqEvalSign {ub : ℝ} {ps : List (Polynomial ℝ)}
+    (key : ∀ pp ∈ ps, sign (eval ub pp) = sign_pos_inf pp) :
+    seq_sign_pos_inf ps = seqEvalSign ub ps :=
+  List.map_congr_left fun pp hpp => (key pp hpp).symm
+
+lemma seq_sign_neg_inf_eq_seqEvalSign {lb : ℝ} {ps : List (Polynomial ℝ)}
+    (key : ∀ pp ∈ ps, sign (eval lb pp) = sign_neg_inf pp) :
+    seq_sign_neg_inf ps = seqEvalSign lb ps :=
+  List.map_congr_left fun pp hpp => (key pp hpp).symm
+
+lemma mem_sturmSeq_self {p q : Polynomial ℝ} (hp : p ≠ 0) : p ∈ sturmSeq p q := by
+  rw [sturmSeq_cons hp]; exact List.mem_cons_self
+
+theorem sturm_tarski_interval (a b : ℝ) (p q : Polynomial ℝ) (hab : a < b) (hpa : eval a p ≠ 0) (hpb : eval b p ≠ 0) :
+    tarskiQuery p q a b = signVariationsSturm_ab p (derivative p * q) a b := by
+  rw [cauchyIndex_sturmSeq p (derivative p * q) a b hpa hpb hab]
+  rw [cauchyIndex_poly_taq p q a b]
 
 theorem sturm_tarski_above (a : ℝ) (p q : Polynomial ℝ) (hpa : eval a p ≠ 0) :
     tarskiQuery_above p q a = signVariationsAboveSturm p (derivative p * q) a := by
-  let ps := sturmSeq p (derivative p * q)
-  have ps_def : ps = sturmSeq p (derivative p * q) := rfl
-  have : p ≠ 0 := eval_non_zero p a hpa
-  have : p ∈ ps := by
-    unfold ps sturmSeq
-    simp [this]
-  obtain ⟨ub, hub1, hub2, hub3⟩ : ∃ ub,
-      (∀ pp ∈ ps, (∀ x, eval x pp = 0 → x < ub)) ∧
-      a < ub ∧
-      (∀ x, x ≥ ub → (∀ pp ∈ ps, sign (eval x pp) = sign_pos_inf pp)) := by
-    apply root_list_ub
-    exact no_zero_in_sturmSeq p (derivative p * q)
-  have taq_taq : tarskiQuery_above p q a = tarskiQuery p q a ub := by
-    simp only [tarskiQuery_above, tarskiQuery]
-    congr
-    simp only [rootsAbove, rootsInInterval]
-    ext z
-    simp only [gt_iff_lt, Finset.mem_filter, Multiset.mem_toFinset, mem_roots', ne_eq, IsRoot.def,
-      Set.mem_Ioo, and_congr_right_iff, iff_self_and, and_imp]
-    intro a_1 a_2 a_3
-    simp_all only [ne_eq, not_false_eq_true, ge_iff_le, ps]
-    apply hub1
-    on_goal 2 => { exact a_2 }
-    · simp_all only
-  have changes_changes : signVariationsAboveSturm p (derivative p * q) a = signVariationsSturm_ab p (derivative p * q) a ub := by
-    simp [signVariationsSturm_ab, signVariationsAboveSturm, signVariationsAbove_a, signVariations_ab]
-    rw [signVariationsSign, <- ps_def, seq_sign_pos_inf_seqEvalsign ub ps hub3]
-  rw [taq_taq, changes_changes]
-  apply sturm_tarski_interval _ _ _ _ hub2 hpa
-  intro abs
-  have := hub1 p this ub abs
-  simp at this
+  obtain ⟨ub, hroots, hab, hsign⟩ :=
+    root_list_ub (sturmSeq p (derivative p * q)) a (no_zero_in_sturmSeq _ _)
+  have hp_mem := mem_sturmSeq_self (q := derivative p * q) (eval_non_zero p a hpa)
+  have hpub : eval ub p ≠ 0 := fun h => lt_irrefl ub (hroots p hp_mem ub h)
+  have taq : tarskiQuery_above p q a = tarskiQuery p q a ub := by
+    unfold tarskiQuery_above tarskiQuery
+    rw [rootsAbove_eq_rootsInInterval (hroots p hp_mem)]
+  rw [taq, sturm_tarski_interval a ub p q hab hpa hpub, signVariationsAboveSturm,
+    signVariationsAbove_a, signVariationsSturm_ab, signVariations_ab,
+    seq_sign_pos_inf_eq_seqEvalSign (hsign ub le_rfl), signVariationsSign _ ub]
 
-lemma seq_sign_neg_inf_seqEvalsign (lb : ℝ) (ps : List (Polynomial ℝ)) (key : ∀ x ≤ lb, ∀ pp ∈ ps, sign (eval x pp) = sign_neg_inf pp) :
-    seq_sign_neg_inf ps = seqEvalSign lb ps := by
-  cases ps
-  next => simp only [seq_sign_neg_inf, seqEvalSign, List.map]
-  next hd tl =>
-    simp only [seq_sign_neg_inf, seqEvalSign, List.cons.injEq, List.map]
-    constructor
-    · apply Eq.symm
-      exact key _ (Preorder.le_refl lb) _ List.mem_cons_self
-    · apply seq_sign_neg_inf_seqEvalsign lb tl
-      intros x hx pp hpp
-      exact key _ hx _ (List.mem_cons_of_mem hd hpp)
-
-theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpa : eval b p ≠ 0) :
+theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpb : eval b p ≠ 0) :
     tarskiQuery_below p q b = signVariationsBelowSturm p (derivative p * q) b := by
-  let ps := sturmSeq p (derivative p * q)
-  have ps_def : ps = sturmSeq p (derivative p * q) := rfl
-  have : p ≠ 0 := eval_non_zero p b hpa
-  have : p ∈ ps := by
-    unfold ps sturmSeq
-    simp [this]
-  obtain ⟨lb, hlb1, hlb2, hlb3⟩ : ∃ lb,
-      (∀ pp ∈ ps, (∀ x, eval x pp = 0 → x > lb)) ∧
-      b > lb ∧
-      (∀ x, x ≤ lb → (∀ pp ∈ ps, sign (eval x pp) = sign_neg_inf pp)) := by
-    apply root_list_lb
-    exact no_zero_in_sturmSeq p (derivative p * q)
-  have taq_taq : tarskiQuery_below p q b = tarskiQuery p q lb b := by
-    simp [tarskiQuery_below, tarskiQuery]
-    congr
-    simp [rootsBelow, rootsInInterval]
-    ext z
-    simp only [Finset.mem_filter, Multiset.mem_toFinset, mem_roots', ne_eq, IsRoot.def,
-      and_congr_right_iff, iff_and_self, and_imp]
-    intro a a_1 a_2
-    simp_all only [ne_eq, not_false_eq_true, gt_iff_lt, ps]
-    apply hlb1
-    on_goal 2 => { exact a_1 }
-    simp_all only
-  have changes_changes : signVariationsBelowSturm p (derivative p * q) b = signVariationsSturm_ab p (derivative p * q) lb b := by
-    simp [signVariationsSturm_ab, signVariationsBelowSturm, signVariationsBelow_b, signVariations_ab]
-    rw [signVariationsSign, <- ps_def, seq_sign_neg_inf_seqEvalsign lb ps hlb3]
-  rw [taq_taq, changes_changes]
-  apply sturm_tarski_interval _ _ _ _ hlb2 _ hpa
-  intro abs
-  have := hlb1 p this lb abs
-  simp at this
+  obtain ⟨lb, hroots, hlb, hsign⟩ :=
+    root_list_lb (sturmSeq p (derivative p * q)) b (no_zero_in_sturmSeq _ _)
+  have hp_mem := mem_sturmSeq_self (q := derivative p * q) (eval_non_zero p b hpb)
+  have hplb : eval lb p ≠ 0 := fun h => lt_irrefl lb (hroots p hp_mem lb h)
+  have taq : tarskiQuery_below p q b = tarskiQuery p q lb b := by
+    unfold tarskiQuery_below tarskiQuery
+    rw [rootsBelow_eq_rootsInInterval (hroots p hp_mem)]
+  rw [taq, sturm_tarski_interval lb b p q hlb hplb hpb, signVariationsBelowSturm,
+    signVariationsBelow_b, signVariationsSturm_ab, signVariations_ab,
+    seq_sign_neg_inf_eq_seqEvalSign (hsign lb le_rfl), signVariationsSign _ lb]
 
 theorem sturm_tarski_R (p q : Polynomial ℝ) :
     tarskiQuery_R p q = signVariationsLineSturm p (derivative p * q) := by
-  if hp: p = 0 then
-    rw [hp]
-    simp [tarskiQuery_R, signVariationsLineSturm, signVariationsLine, seq_sign_neg_inf, seq_sign_pos_inf]
-  else
-    let ps := sturmSeq p (derivative p * q)
-    have ps_def : ps = sturmSeq p (derivative p * q) := rfl
-    have : p ∈ ps := by
-      unfold ps sturmSeq
-      simp [hp]
-    obtain ⟨lb, hlb1, hlb2, hlb3⟩ : ∃ lb,
-        (∀ pp ∈ ps, (∀ x, eval x pp = 0 → x > lb)) ∧
-        0 > lb ∧
-        (∀ x, x ≤ lb → (∀ pp ∈ ps, sign (eval x pp) = sign_neg_inf pp)) := by
-      apply root_list_lb
-      exact no_zero_in_sturmSeq p (derivative p * q)
-    obtain ⟨ub, hub1, hub2, hub3⟩ : ∃ ub,
-        (∀ pp ∈ ps, (∀ x, eval x pp = 0 → x < ub)) ∧
-        0 < ub ∧
-        (∀ x, x ≥ ub → (∀ pp ∈ ps, sign (eval x pp) = sign_pos_inf pp)) := by
-      apply root_list_ub
-      exact no_zero_in_sturmSeq p (derivative p * q)
-    have taq_taq : tarskiQuery_R p q = tarskiQuery p q lb ub := by
-      simp [tarskiQuery_R, tarskiQuery]
-      congr
-      unfold rootsInInterval
-      ext z
-      simp only [Multiset.mem_toFinset, mem_roots', ne_eq, IsRoot.def, Set.mem_Ioo,
-        Finset.mem_filter, iff_self_and, and_imp]
-      intro a a_1
-      simp_all only [not_false_eq_true, gt_iff_lt, ge_iff_le, ps]
-      apply And.intro
-      · apply hlb1
-        on_goal 2 => { exact a_1 }
-        · simp_all only
-      · apply hub1
-        · exact this
-        · simp_all only
-    have changes_changes : signVariationsLineSturm p (derivative p * q) = signVariationsSturm_ab p (derivative p * q) lb ub := by
-      simp [signVariationsLineSturm, signVariationsLine, signVariationsSturm_ab, signVariations_ab]
-      rw [ signVariationsSign
-         , signVariationsSign
-         , <- ps_def
-         , seq_sign_neg_inf_seqEvalsign lb ps hlb3
-         , seq_sign_pos_inf_seqEvalsign ub ps hub3
-         ]
-    have lb_neq_0 : eval lb p ≠ 0 := by
-      intro abs
-      have := hlb1 p this lb abs
-      simp at this
-    have ub_neq_0 : eval ub p ≠ 0 := by
-      intro abs
-      have := hub1 p this ub abs
-      simp at this
-    have lb_ub : lb < ub := by linarith
-    rw [taq_taq, changes_changes]
-    exact sturm_tarski_interval lb ub p q lb_ub lb_neq_0 ub_neq_0
+  rcases eq_or_ne p 0 with rfl | hp
+  · simp [tarskiQuery_R, signVariationsLineSturm, signVariationsLine, seq_sign_neg_inf,
+      seq_sign_pos_inf, sturmSeq_zero]
+  obtain ⟨lb, hroots_lb, hlb, hsign_lb⟩ :=
+    root_list_lb (sturmSeq p (derivative p * q)) 0 (no_zero_in_sturmSeq _ _)
+  obtain ⟨ub, hroots_ub, hub, hsign_ub⟩ :=
+    root_list_ub (sturmSeq p (derivative p * q)) 0 (no_zero_in_sturmSeq _ _)
+  have hp_mem := mem_sturmSeq_self (q := derivative p * q) hp
+  have hplb : eval lb p ≠ 0 := fun h => lt_irrefl lb (hroots_lb p hp_mem lb h)
+  have hpub : eval ub p ≠ 0 := fun h => lt_irrefl ub (hroots_ub p hp_mem ub h)
+  have taq : tarskiQuery_R p q = tarskiQuery p q lb ub := by
+    unfold tarskiQuery_R tarskiQuery
+    rw [roots_toFinset_eq_rootsInInterval (hroots_lb p hp_mem) (hroots_ub p hp_mem)]
+  rw [taq, sturm_tarski_interval lb ub p q (by linarith) hplb hpub, signVariationsLineSturm,
+    signVariationsLine, signVariationsSturm_ab, signVariations_ab,
+    seq_sign_neg_inf_eq_seqEvalSign (hsign_lb lb le_rfl),
+    seq_sign_pos_inf_eq_seqEvalSign (hsign_ub ub le_rfl), signVariationsSign _ lb,
+    signVariationsSign _ ub]
 
 theorem sturm_interval (a b : ℝ) (p : Polynomial ℝ) (hab : a < b) (hpa : eval a p ≠ 0) (hpb : eval b p ≠ 0) :
     Finset.card (rootsInInterval p a b) = signVariationsSturm_ab p (derivative p) a b := by
