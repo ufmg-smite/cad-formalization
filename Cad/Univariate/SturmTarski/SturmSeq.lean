@@ -8,11 +8,10 @@ noncomputable section
 
 lemma no_zero_in_sturmSeq (p q : Polynomial ℝ) : 0 ∉ sturmSeq p q := by
   induction p, q using sturmSeq.induct
-  next p => simp [sturmSeq]
+  next q => simp
   next p q h_zero IH =>
-    have h_zero' : ¬ 0 = p := Ne.intro fun a => h_zero (Eq.symm a)
     rw [sturmSeq_cons h_zero]
-    simp [h_zero', IH]
+    simp [Ne.symm h_zero, IH]
 
 @[simp] lemma SignType.sign_cast {β : Type*} [Ring β] [LinearOrder β] [IsStrictOrderedRing β]
     (s : SignType) : sign (s : β) = s := by
@@ -34,13 +33,9 @@ lemma smod_nil_eq (p q : Polynomial Real) :
   · intro hs
     by_contra!
     rw [sturmSeq_cons this] at hs
-    trivial
+    exact List.cons_ne_nil _ _ hs
   · intro hp
-    rw [hp]
-    exact sturmSeq_zero (q := q)
-
-@[simp]
-lemma smods_s_0_1 (p: Polynomial ℝ) : sturmSeq 0 p = [] := (smod_nil_eq 0 p).mpr rfl
+    simp [hp]
 
 @[simp]
 lemma smods_s_0_2 (p: Polynomial ℝ) : sturmSeq p 0 = if p = 0 then [] else [p] := by
@@ -137,8 +132,9 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
    else
      simp only [not_or] at H
      have ⟨ps, httl, htlmod⟩ : ∃ ps : List (Polynomial ℝ), sturmSeq p q = p :: q :: -p%q:: ps ∧ sturmSeq q (-p%q) = q :: (-p%q) :: ps := by
-       rw [sturmSeq_cons H.1, sturmSeq_cons H.2.1, sturmSeq]
-       simp_all
+       rw [sturmSeq_cons H.1, sturmSeq_cons H.2.1, sturmSeq_cons]
+       · exact ⟨_, rfl, rfl⟩
+       · rw [mod_minus]; exact neg_ne_zero.mpr H.2.2
      let changes_diff := fun x => ((List.signVariations (seqEval x (p::q::(-p%q)::ps)): ℤ) - (List.signVariations (seqEval x (q::(-p%q)::ps))): ℤ)
      have hz1: ∀ x: ℝ, (eval x p) * (eval x q) < 0 → changes_diff x = 1 := by
        unfold changes_diff
@@ -176,17 +172,14 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
 
 theorem cauchyIndex_sturmSeq_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): ∃ (a' b': ℝ), a < a' ∧ a' < b' ∧ b' < b ∧ (∀p' ∈ sturmSeq p q, (∀ x: ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) -> eval x p' ≠ 0)) := by
   induction p, q using sturmSeq.induct
-  next H =>
-      let a' := 2/3 * a + 1/3 * b
-      let b' := 1/3 * a + 2/3 * b
-      have ⟨haa', ha'b', hbb'⟩ : a < a' ∧ a' < b' ∧ b' < b := by constructor <;> grind
-      use a', b'
-      simp_all only [List.not_mem_nil, ne_eq, not_isEmpty_of_nonempty, IsEmpty.forall_iff,
-        implies_true, smods_s_0_1, and_self]
+  next q =>
+      let a_ := 2/3 * a + 1/3 * b
+      let b_ := 1/3 * a + 2/3 * b
+      have ⟨haa_, ha_b_, hbb'⟩ : a < a_ ∧ a_ < b_ ∧ b_ < b := by constructor <;> grind
+      use a_, b_
+      exact ⟨haa_, ha_b_, hbb', by simp [sturmSeq_zero]⟩
   next p q h_zero IH =>
-      let r := - (p % q)
-      have ⟨a1, b1, haa1, ha1b1, hbb1, ha1b1_nroot⟩: ∃ (a1 b1: ℝ), a < a1 ∧ a1 < b1 ∧ b1 < b ∧
-           (∀p' ∈ sturmSeq q (-p%q), (∀ x: ℝ, ((a < x ∧ x ≤ a1) ∨ (b1 ≤ x ∧ x < b)) -> eval x p' ≠ 0)) := by gcongr
+      obtain ⟨a1, b1, haa1, ha1b1, hbb1, ha1b1_nroot⟩ := IH
       have ⟨a2, b2, haa2, ha2_nroot, hbb2, hb2_nroot⟩ :
           ∃ (a2 b2: ℝ), a < a2 ∧ (∀x: ℝ, (a < x ∧ x ≤ a2) -> eval x p ≠ 0) ∧
             (b2 < b) ∧ (∀x: ℝ, (b2 ≤ x ∧ x < b) -> eval x p ≠ 0) := by
@@ -194,20 +187,20 @@ theorem cauchyIndex_sturmSeq_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): 
         have ⟨b2, hbb2, hb2_nroot⟩ := last_non_root_interval p b h_zero
         use a2, b2
         simp_all
-      let a' := if b2 > a then min a1 (min b2 a2) else min a1 a2
-      let b' := if a2 < b then max b1 (max a2 b2) else max b1 b2
-      have ⟨haa', ha'b', hbb'⟩ : a < a' ∧ a' < b' ∧ b' < b := by grind
-      have h_rec: ∀p' ∈ sturmSeq q (-p%q), ∀x: ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b))  -> eval x p' ≠ 0 := by
-        have ha'a1: a' ≤ a1 := by unfold a'; split_ifs <;> simp
-        have hb'b: b1 ≤ b' := by unfold b'; split_ifs <;> simp
+      let a_ := if b2 > a then min a1 (min b2 a2) else min a1 a2
+      let b_ := if a2 < b then max b1 (max a2 b2) else max b1 b2
+      have ⟨haa_, ha_b_, hbb_⟩ : a < a_ ∧ a_ < b_ ∧ b_ < b := by grind
+      have h_rec: ∀p' ∈ sturmSeq q (-p%q), ∀x: ℝ, ((a < x ∧ x ≤ a_) ∨ (b_ ≤ x ∧ x < b))  -> eval x p' ≠ 0 := by
+        have ha'a1: a_ ≤ a1 := by unfold a_; split_ifs <;> simp
+        have hb'b: b1 ≤ b_ := by unfold b_; split_ifs <;> simp
         intros p' haux x hx
         rcases hx with hl | hr
         · have : a < x ∧ x ≤ a1 := by constructor <;> linarith
           exact ha1b1_nroot p' haux x (Or.inl this)
         · have : b1 ≤ x ∧ x < b := by constructor <;> linarith
           exact ha1b1_nroot p' haux x (Or.inr this)
-      have h_final: ∀ x: ℝ, ((a < x ∧ x ≤ a') ∨ (b' ≤ x ∧ x < b)) -> eval x p ≠ 0 := by
-        unfold a' b'; intros x
+      have h_final: ∀ x: ℝ, ((a < x ∧ x ≤ a_) ∨ (b_ ≤ x ∧ x < b)) -> eval x p ≠ 0 := by
+        unfold a_ b_; intros x
         split_ifs <;> intros hx <;> simp only [le_inf_iff, sup_le_iff] at hx
         · rcases hx with hl | hr
           · exact ha2_nroot x ⟨hl.1, hl.2.2.2⟩
@@ -221,8 +214,8 @@ theorem cauchyIndex_sturmSeq_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): 
         · rcases hx with hl | hr
           · exact ha2_nroot x ⟨hl.1, hl.2.2⟩
           · exact hb2_nroot x ⟨hr.1.2, hr.2⟩
-      use a', b'
-      simp [haa', ha'b', hbb']
+      use a_, b_
+      simp [haa_, ha_b_, hbb_]
       rw [sturmSeq_cons h_zero]
       simp only [List.mem_cons, forall_eq_or_imp]
       exact ⟨h_final, h_rec⟩
@@ -287,7 +280,7 @@ lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') 
   by_cases hq : q = 0
   · -- the sequence is `[p]`
     subst hq
-    rw [hS, smods_s_0_1]
+    rw [hS, sturmSeq_zero]
     simp [seqEval, List.signVariations_singleton]
   have hS2 : sturmSeq q (-p % q) = q :: sturmSeq (-p % q) (-q % (-p % q)) := sturmSeq_cons hq
   have hq_mem : q ∈ sturmSeq p q := by rw [hS, hS2]; simp
@@ -353,26 +346,26 @@ lemma changes_itv_smods_congr (p q : Polynomial ℝ) (a a' b b' : ℝ) (hpa : ev
 theorem cauchyIndex_sturmSeq (p q: Polynomial ℝ) (a b : ℝ) (hpa: p.eval a ≠ 0) (hpb : p.eval b ≠ 0) (hab : a < b) :
     signVariationsSturm_ab p q a b = cauchyIndex p q a b := by
   induction p, q using sturmSeq.induct generalizing a b
-  next p =>
+  next q =>
     rw [signVariationsSturm_ab, sturmSeq_zero]
     simp [signVariations_ab, cauchyIndex, rootsInInterval]
   next p q h_zero IH =>
     if H: q = 0 then simp [H]
     else
       have ⟨a_, b_, haa_, ha_b_, hbb_, hn_root⟩ := cauchyIndex_sturmSeq_aux p q a b hab
-      let r := (-p % q)
-      have ⟨ps, hps, hpsqr, htlps⟩: ∃ps : List (Polynomial ℝ), sturmSeq p q = p :: q :: ps ∧ sturmSeq q r = q :: ps ∧ sturmSeq q (-p%q) = q :: ps := by
-        use sturmSeq (-p % q) (-q % (-p % q))
-        rw [sturmSeq_cons h_zero, sturmSeq_cons H]
-        simp
-      have ⟨hpa_, hpb_, hqa_, hqb_⟩ : eval a_ p ≠ 0 ∧ eval b_ p ≠ 0 ∧  eval a_ q ≠ 0 ∧ eval b_ q ≠ 0 := by aesop
+      have hp_mem : p ∈ sturmSeq p q := by rw [sturmSeq_cons h_zero]; exact List.mem_cons_self
+      have hq_mem : q ∈ sturmSeq p q := by rw [sturmSeq_cons h_zero, sturmSeq_cons H]; simp
+      have hpa_ : eval a_ p ≠ 0 := hn_root p hp_mem a_ (Or.inl ⟨haa_, le_rfl⟩)
+      have hpb_ : eval b_ p ≠ 0 := hn_root p hp_mem b_ (Or.inr ⟨le_rfl, hbb_⟩)
+      have hqa_ : eval a_ q ≠ 0 := hn_root q hq_mem a_ (Or.inl ⟨haa_, le_rfl⟩)
+      have hqb_ : eval b_ q ≠ 0 := hn_root q hq_mem b_ (Or.inr ⟨le_rfl, hbb_⟩)
       have t0 : a_ < b_ := by linarith
       have : (∀ p' ∈ sturmSeq p q, ∀ (x : ℝ), a < x ∧ x ≤ a_ ∨ b_ ≤ x ∧ x < b → eval x p' ≠ 0) :=
         fun p' a_1 x a => hn_root p' a_1 x a
       rw [changes_itv_smods_congr p q a a_ b b_ hpa hpb haa_ hbb_ this]
       have : (∀ (x : ℝ), a < x ∧ x ≤ a_ ∨ b_ ≤ x ∧ x < b → eval x p ≠ 0) := by
         intro x hx
-        rcases hn_root p (by rw [hps]; simp) x hx with hneq
+        rcases hn_root p (by rw [sturmSeq_cons h_zero]; simp) x hx with hneq
         exact hneq
       have h_congr_cindex := cindex_poly_congr p q a a_ b b_ haa_ hbb_ t0 this
       have t1 : eval a_ (p * q) ≠ 0 := by simp [Polynomial.eval_mul, hpa_, hqa_]

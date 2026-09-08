@@ -91,7 +91,7 @@ noncomputable def sturmSeq {α : Type*} [Field α] (f g : Polynomial α) : List 
   termination_by if f=0 then 0 else if g=0 then 1 else 2 + natDegree g
   decreasing_by exact termination_sturmSeq f g (by assumption)
 
-lemma sturmSeq_zero {α : Type*} [Field α] {q : Polynomial α} :
+@[simp] lemma sturmSeq_zero {α : Type*} [Field α] {q : Polynomial α} :
     sturmSeq 0 q = [] := by simp [sturmSeq]
 
 lemma sturmSeq_cons {α : Type*} [Field α] {p q : Polynomial α} (hp : p ≠ 0) :
