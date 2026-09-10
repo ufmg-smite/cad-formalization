@@ -69,66 +69,27 @@ lemma cauchyIndex_poly_taq (p q : Polynomial ℝ) (a b : ℝ) :
       exact hx.1.2
     rw [jump_poly_sign p q x hp this]
 
-/-- For nonzero reals, "same sign" versus "product negative", as `signVariations` uses the former
-and the Sturm proofs reason with the latter. -/
-lemma ite_sign_eq {x y : ℝ} (hx : x ≠ 0) (hy : y ≠ 0) :
-    (if sign x = sign y then (0 : ℕ) else 1) = if x * y < 0 then 1 else 0 := by
-  rcases lt_or_gt_of_ne hx with hx | hx <;> rcases lt_or_gt_of_ne hy with hy | hy
-  · simp [sign_neg hx, sign_neg hy, le_of_lt (mul_pos_of_neg_of_neg hx hy)]
-  · simp [sign_neg hx, sign_pos hy, mul_neg_of_neg_of_pos hx hy]
-  · simp [sign_pos hx, sign_neg hy, mul_neg_of_pos_of_neg hx hy]
-  · simp [sign_pos hx, sign_pos hy, le_of_lt (mul_pos hx hy)]
-
 theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p * q)≠ 0) (hpqb: eval b (p * q) ≠ 0) :
     (signVariationsSturm_ab p q a b) = cross (p * q) a b + signVariationsSturm_ab q (-p%q) a b := by
   if H: p = 0 ∨ q = 0 ∨ p % q = 0 then
     rcases H with h | h | h
     · simp [cross, variation, h]
     · simp [cross, variation, h]
-    · unfold signVariationsSturm_ab signVariations_ab seqEval cross sturmSeq
-      rw [mod_minus, h]
-      have ⟨hap, haq⟩: eval a p ≠ 0 ∧ eval a q ≠ 0 := by simp_all only [eval_mul, ne_eq, mul_eq_zero, not_or,
-        EuclideanDomain.mod_eq_zero, not_false_eq_true, and_self]
-      have ⟨hbp, hbq⟩: eval b p ≠ 0 ∧ eval b q ≠ 0:= by simp_all only [eval_mul, ne_eq, mul_eq_zero, or_self,
-        not_false_eq_true, not_or, EuclideanDomain.mod_eq_zero, and_self]
-      have hpz: p ≠ 0 := by
-        simp_all only [eval_mul, ne_eq, mul_eq_zero, or_self, not_false_eq_true, EuclideanDomain.mod_eq_zero]
-        apply Aesop.BuiltinRules.not_intro
-        intro a_1
-        subst a_1
-        simp_all only [dvd_zero, eval_zero, not_true_eq_false]
-      have hqz: q ≠ 0 := by
-        simp_all only [eval_mul, ne_eq, mul_eq_zero, or_self, not_false_eq_true, EuclideanDomain.mod_eq_zero]
-        apply Aesop.BuiltinRules.not_intro
-        intro a_1
-        subst a_1
-        simp_all only [zero_dvd_iff]
-      simp [hpz, hqz]
-      rw [List.signVariations_cons_cons_of_ne_zero _ _ _ hap haq,
-        List.signVariations_cons_cons_of_ne_zero _ _ _ hbp hbq,
-        ite_sign_eq hap haq, ite_sign_eq hbp hbq]
-      simp only [List.signVariations_singleton]
-      split_ifs with h1 h2 h3
-      · rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.2.2 ⟨h1, h2⟩]
-        simp
-      · have : eval b p * eval b q > 0 := by
-          rw [eval_mul] at hpqb
-          rw [not_lt, <-ge_iff_le] at h2
-          exact lt_of_le_of_ne h2 (Ne.symm hpqb)
-        rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.2.1 ⟨h1, this⟩]
-        simp
-      · have : eval a p * eval a q > 0 := by
-          rw [eval_mul] at hpqa
-          rw [not_lt, <-ge_iff_le] at h1
-          exact lt_of_le_of_ne h1 (Ne.symm hpqa)
-        rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).2.1 ⟨this, h3⟩]
-        simp
-      · have : eval a p * eval a q > 0 ∧ eval b p * eval b q > 0 := by
-          rw [eval_mul] at hpqa hpqb
-          rw [not_lt, <-ge_iff_le] at h1 h3
-          exact ⟨lt_of_le_of_ne h1 (Ne.symm hpqa), lt_of_le_of_ne h3 (Ne.symm hpqb)⟩
-        rw [(variation_cases (eval a p * eval a q) (eval b p * eval b q)).1 this]
-        simp
+    · have hpz : p ≠ 0 := by rintro rfl; simp at hpqa
+      have hqz : q ≠ 0 := by rintro rfl; simp at hpqa
+      rw [eval_mul] at hpqa hpqb
+      obtain ⟨hap, haq⟩ := mul_ne_zero_iff.mp hpqa
+      obtain ⟨hbp, hbq⟩ := mul_ne_zero_iff.mp hpqb
+      have hS : sturmSeq p q = [p, q] := by
+        rw [sturmSeq_cons hpz, mod_minus, h, neg_zero, smods_s_0_2, if_neg hqz]
+      have hS' : sturmSeq q (-p % q) = [q] := by
+        rw [mod_minus, h, neg_zero, smods_s_0_2, if_neg hqz]
+      simp only [signVariationsSturm_ab, signVariations_ab, hS, hS', seqEval, List.map_cons,
+        List.map_nil, cross, eval_mul, variation_mul_eq hap haq hbp hbq,
+        List.signVariations_cons_cons_of_ne_zero _ _ _ hap haq,
+        List.signVariations_cons_cons_of_ne_zero _ _ _ hbp hbq, List.signVariations_singleton]
+      push_cast
+      ring
    else
      simp only [not_or] at H
      have ⟨ps, httl, htlmod⟩ : ∃ ps : List (Polynomial ℝ), sturmSeq p q = p :: q :: -p%q:: ps ∧ sturmSeq q (-p%q) = q :: (-p%q) :: ps := by
@@ -136,33 +97,16 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
        · exact ⟨_, rfl, rfl⟩
        · rw [mod_minus]; exact neg_ne_zero.mpr H.2.2
      let changes_diff := fun x => ((List.signVariations (seqEval x (p::q::(-p%q)::ps)): ℤ) - (List.signVariations (seqEval x (q::(-p%q)::ps))): ℤ)
-     have hz1: ∀ x: ℝ, (eval x p) * (eval x q) < 0 → changes_diff x = 1 := by
-       unfold changes_diff
-       intros x hx
-       obtain ⟨hxp, hxq⟩ := mul_ne_zero_iff.mp hx.ne
-       simp only [seqEval, List.map_cons]
-       rw [List.signVariations_cons_cons_of_ne_zero _ _ _ hxp hxq, ite_sign_eq hxp hxq, if_pos hx]
+     have hf : changes_diff a - changes_diff b = cross (p * q) a b := by
+       rw [eval_mul] at hpqa hpqb
+       obtain ⟨hap, haq⟩ := mul_ne_zero_iff.mp hpqa
+       obtain ⟨hbp, hbq⟩ := mul_ne_zero_iff.mp hpqb
+       simp only [changes_diff, seqEval, List.map_cons, cross, eval_mul,
+         variation_mul_eq hap haq hbp hbq,
+         List.signVariations_cons_cons_of_ne_zero _ _ _ hap haq,
+         List.signVariations_cons_cons_of_ne_zero _ _ _ hbp hbq]
        push_cast
        ring
-     have hz2: ∀x, (eval x p) * (eval x q) > 0 → changes_diff x = 0 := by
-       unfold changes_diff
-       intros x hx
-       obtain ⟨hxp, hxq⟩ := mul_ne_zero_iff.mp hx.ne'
-       simp only [seqEval, List.map_cons]
-       rw [List.signVariations_cons_cons_of_ne_zero _ _ _ hxp hxq, ite_sign_eq hxp hxq, if_neg (not_lt.mpr (le_of_lt hx))]
-       push_cast
-       ring
-     have hf: changes_diff a - changes_diff b = cross (p * q) a b := by
-       unfold cross
-       rcases lt_or_gt_of_ne hpqa with ha | ha <;> rcases lt_or_gt_of_ne hpqb with hb | hb
-       · rw [(variation_cases (eval a (p * q)) (eval b (p * q))).2.2.2 ⟨ha, hb⟩]
-         simp_all
-       · rw [(variation_cases (eval a (p * q)) (eval b (p * q))).2.2.1 ⟨ha, hb⟩]
-         simp_all
-       · rw [(variation_cases (eval a (p * q)) (eval b (p * q))).2.1 ⟨ha, hb⟩]
-         simp_all
-       · rw [(variation_cases (eval a (p * q)) (eval b (p * q))).1 ⟨ha, hb⟩]
-         simp_all
      unfold changes_diff at hf
      unfold signVariationsSturm_ab
      rw [httl, htlmod, ← sub_eq_iff_eq_add]

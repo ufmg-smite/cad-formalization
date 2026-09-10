@@ -68,16 +68,31 @@ theorem variation_mult_pos2 (c x y : ℝ) (hc : c > 0) : variation x (c*y) = var
 theorem variation_mult_pos (c d x y : ℝ) (hc : c > 0) (hd: d > 0): variation (c * x) (d*y) = variation x y := by
   rw [variation_mult_pos1 c x (d * y) hc, variation_mult_pos2 d x y hd]
 
-lemma variation_cases (x y: ℝ):
-      (x > 0 ∧ y > 0 -> variation x y = 0) ∧
-      (x > 0 ∧ y < 0 -> variation x y = -1) ∧
-      (x < 0 ∧ y > 0 -> variation x y = 1) ∧
-      (x < 0 ∧ y < 0 -> variation x y = 0) := by
-  refine ⟨fun ⟨hx, hy⟩ => ?_, fun ⟨hx, hy⟩ => ?_, fun ⟨hx, hy⟩ => ?_, fun ⟨hx, hy⟩ => ?_⟩
-  · simp [variation, le_of_lt (mul_pos hx hy)]
-  · simp [variation, mul_neg_of_pos_of_neg hx hy, sign_neg hy]
-  · simp [variation, mul_neg_of_neg_of_pos hx hy, sign_pos hy]
-  · simp [variation, le_of_lt (mul_pos_of_neg_of_neg hx hy)]
+/-- For nonzero reals, "same sign" versus "product negative", as `signVariations` uses the former
+and the Sturm proofs reason with the latter. -/
+lemma ite_sign_eq {R : Type*} [Zero R] [One R] {x y : ℝ} (hx : x ≠ 0) (hy : y ≠ 0) :
+    (if sign x = sign y then (0 : R) else 1) = if x * y < 0 then 1 else 0 := by
+  rcases lt_or_gt_of_ne hx with hx | hx <;> rcases lt_or_gt_of_ne hy with hy | hy
+  · simp [sign_neg hx, sign_neg hy, le_of_lt (mul_pos_of_neg_of_neg hx hy)]
+  · simp [sign_neg hx, sign_pos hy, mul_neg_of_neg_of_pos hx hy]
+  · simp [sign_pos hx, sign_neg hy, mul_neg_of_pos_of_neg hx hy]
+  · simp [sign_pos hx, sign_pos hy, le_of_lt (mul_pos hx hy)]
+
+lemma variation_eq_of_ne_zero {u v : ℝ} (hu : u ≠ 0) (hv : v ≠ 0) :
+    variation u v = (if u < 0 then 1 else 0) - (if v < 0 then 1 else 0) := by
+  rcases lt_or_gt_of_ne hu with hu | hu <;> rcases lt_or_gt_of_ne hv with hv | hv
+  · simp [variation, le_of_lt (mul_pos_of_neg_of_neg hu hv), hu, hv]
+  · simp [variation, mul_neg_of_neg_of_pos hu hv, sign_pos hv, hu, not_lt.mpr (le_of_lt hv)]
+  · simp [variation, mul_neg_of_pos_of_neg hu hv, sign_neg hv, not_lt.mpr (le_of_lt hu), hv]
+  · simp [variation, le_of_lt (mul_pos hu hv), not_lt.mpr (le_of_lt hu), not_lt.mpr (le_of_lt hv)]
+
+/-- The sign change of a product pair, in terms of sign (dis)agreement within each pair: this is
+the form in which `variation` meets `List.signVariations`. -/
+lemma variation_mul_eq {x y x' y' : ℝ} (hx : x ≠ 0) (hy : y ≠ 0) (hx' : x' ≠ 0) (hy' : y' ≠ 0) :
+    variation (x * y) (x' * y') =
+      (if sign x = sign y then 0 else 1) - (if sign x' = sign y' then 0 else 1) := by
+  rw [variation_eq_of_ne_zero (mul_ne_zero hx hy) (mul_ne_zero hx' hy'), ite_sign_eq hx hy,
+    ite_sign_eq hx' hy']
 
 lemma variation_mult_neg_1 (c x y: ℝ) (hc: c < 0): variation (c*x) y = variation x y + if y = 0 then 0 else sign x := by
   rcases lt_trichotomy x 0 with hx | rfl | hx <;> rcases lt_trichotomy y 0 with hy | rfl | hy
@@ -345,21 +360,12 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                 simp [hsrposmaxr]
                 rcases lt_or_gt_of_ne hbp' with h | h <;> simp [h, not_lt.mpr h.le]
               have hvar: variation (eval a p') (eval b p') + sign (eval a p') = (-variation (eval a p') (eval b p')) + (sign (eval b p')) := by
-                clear *- hap' hbp'
-                unfold sign
-                rcases lt_trichotomy (eval b p') 0 with hxz | hxz | hxz <;> rcases lt_trichotomy (eval a p') 0 with hyz | hyz | hyz
-                · have ⟨hasign, hbsign⟩ :  (¬ 0 < eval a p') ∧ (¬ 0 < eval b p'):= by constructor <;> linarith
-                  simp [variation_cases, *]
-                · exfalso; exact hap' hyz
-                · have hbsign :(¬ 0 < eval b p') := by linarith
-                  simp [variation_cases, *]
-                · exfalso; exact hbp' hxz
-                · exfalso; exact hbp' hxz
-                · exfalso; exact hbp' hxz
-                · have : ¬ 0 < eval a p' := by linarith
-                  simp [variation_cases, *]
-                · exfalso; exact hap' hyz
-                . simp [variation_cases, *]
+                rw [variation_eq_of_ne_zero hap' hbp']
+                rcases lt_or_gt_of_ne hap' with ha | ha <;> rcases lt_or_gt_of_ne hbp' with hb | hb
+                · simp [ha, hb, sign_neg ha, sign_neg hb]
+                · simp [ha, not_lt.mpr (le_of_lt hb), sign_neg ha, sign_pos hb]
+                · simp [not_lt.mpr (le_of_lt ha), hb, sign_pos ha, sign_neg hb]
+                · simp [not_lt.mpr (le_of_lt ha), not_lt.mpr (le_of_lt hb), sign_pos ha, sign_pos hb]
               rw [hr, hl]
               unfold cross
               exact (Eq.symm hvar)
