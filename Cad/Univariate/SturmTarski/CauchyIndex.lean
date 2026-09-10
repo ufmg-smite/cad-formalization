@@ -68,16 +68,6 @@ theorem variation_mult_pos2 (c x y : ℝ) (hc : c > 0) : variation x (c*y) = var
 theorem variation_mult_pos (c d x y : ℝ) (hc : c > 0) (hd: d > 0): variation (c * x) (d*y) = variation x y := by
   rw [variation_mult_pos1 c x (d * y) hc, variation_mult_pos2 d x y hd]
 
-/-- For nonzero reals, "same sign" versus "product negative", as `signVariations` uses the former
-and the Sturm proofs reason with the latter. -/
-lemma ite_sign_eq {R : Type*} [Zero R] [One R] {x y : ℝ} (hx : x ≠ 0) (hy : y ≠ 0) :
-    (if sign x = sign y then (0 : R) else 1) = if x * y < 0 then 1 else 0 := by
-  rcases lt_or_gt_of_ne hx with hx | hx <;> rcases lt_or_gt_of_ne hy with hy | hy
-  · simp [sign_neg hx, sign_neg hy, le_of_lt (mul_pos_of_neg_of_neg hx hy)]
-  · simp [sign_neg hx, sign_pos hy, mul_neg_of_neg_of_pos hx hy]
-  · simp [sign_pos hx, sign_neg hy, mul_neg_of_pos_of_neg hx hy]
-  · simp [sign_pos hx, sign_pos hy, le_of_lt (mul_pos hx hy)]
-
 lemma variation_eq_of_ne_zero {u v : ℝ} (hu : u ≠ 0) (hv : v ≠ 0) :
     variation u v = (if u < 0 then 1 else 0) - (if v < 0 then 1 else 0) := by
   rcases lt_or_gt_of_ne hu with hu | hu <;> rcases lt_or_gt_of_ne hv with hv | hv
@@ -318,38 +308,21 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
                   rw [sign_r_pos_rec p' maxr hp'z]
                   simp [hmaxrp']
                 have hn: (eval maxr p' > 0) = (eval b p' > 0) := by
-                  by_contra!
-                  have hprodz: (eval maxr p') * (eval b p') < 0 := by
-                      clear *- hmaxrp' this hbp'
-                      if H'': eval maxr p' > 0 then
-                        simp [H''] at this
-                        have haux: eval b p' < 0 := lt_of_le_of_ne this hbp'
-                        nlinarith
-                      else
-                        simp [H''] at this
-                        have haux: eval maxr p' < 0 := by simp at H''; exact lt_of_le_of_ne H'' hmaxrp'
-                        nlinarith
-                  have ⟨r, hr, ⟨hrmaxr, hrp'⟩⟩ : ∃r:ℝ, (r > maxr) ∧ ( r < b) ∧ (eval r p' = 0):= by
-                    clear *- hprodz hmaxr_root
-                    have ⟨_, ⟨_, hmaxrb⟩⟩ := hmaxr_root
-                    have hmaxrb: maxr ≤ b := le_of_lt hmaxrb
-                    exact exists_root_ioo_mul hmaxrb hprodz
-                  have hrint: r ∈ rootsInInterval p a b := by
-                    clear *- hp' hr hrmaxr hrp' hp'z hmaxr_root hpz
-                    have haux: r ∈ rootsInInterval p' a b := by
-                      have ⟨_, ⟨hamaxrb, hmaxrb⟩⟩ := hmaxr_root
-                      unfold rootsInInterval
-                      have ha: a < r := by linarith
-                      simp_all
-                    rw [hp'] at hpz ⊢
-                    rw [rootsInInterval_mul a b hpz]
-                    simp_all
-                  clear *- hr hrmaxr hrp' hmaxr_root hrint
-                  have : ¬ r > maxr := by
-                    simp
-                    unfold maxr
-                    exact Finset.le_max' (rootsInInterval p a b) r hrint
-                  exact this hr
+                  -- `p'` has no root in `(maxr, b)`, so its sign there is constant
+                  have hprod : 0 ≤ eval maxr p' * eval b p' := by
+                    by_contra! hneg
+                    obtain ⟨r, hr, hrb, hrp'⟩ := exists_root_ioo_mul (le_of_lt hmaxr_root.2.2) hneg
+                    have hrint : r ∈ rootsInInterval p a b := by
+                      rw [hp'] at hpz ⊢
+                      rw [rootsInInterval_mul a b hpz]
+                      apply Finset.mem_union_left
+                      simp only [rootsInInterval, Finset.mem_filter, Multiset.mem_toFinset, mem_roots',
+                        IsRoot.def, Set.mem_Ioo]
+                      exact ⟨⟨hp'z, hrp'⟩, lt_trans hmaxr_root.2.1 hr, hrb⟩
+                    have : r ≤ maxr := Finset.le_max' (rootsInInterval p a b) r hrint
+                    exact absurd hr (not_lt.mpr this)
+                  rw [eq_iff_iff, gt_iff_lt, gt_iff_lt, ← sign_eq_one_iff, ← sign_eq_one_iff,
+                    sign_eq_sign_of_mul_nonneg hmaxrp' hbp' hprod]
                 have hsrposmaxr: sign_r_pos maxr maxrp := by
                   unfold maxrp
                   exact sign_r_pos_power maxr (rootMultiplicity maxr p)

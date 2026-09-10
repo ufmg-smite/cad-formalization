@@ -58,9 +58,6 @@ lemma seq_sign_neg_inf_eq_seqEvalSign {lb : ℝ} {ps : List (Polynomial ℝ)}
     seq_sign_neg_inf ps = seqEvalSign lb ps :=
   List.map_congr_left fun pp hpp => (key pp hpp).symm
 
-lemma mem_sturmSeq_self {p q : Polynomial ℝ} (hp : p ≠ 0) : p ∈ sturmSeq p q := by
-  rw [sturmSeq_cons hp]; exact List.mem_cons_self
-
 theorem sturm_tarski_interval (a b : ℝ) (p q : Polynomial ℝ) (hab : a < b) (hpa : eval a p ≠ 0) (hpb : eval b p ≠ 0) :
     tarskiQuery p q a b = signVariationsSturm_ab p (derivative p * q) a b := by
   rw [cauchyIndex_sturmSeq p (derivative p * q) a b hpa hpb hab]
@@ -69,7 +66,7 @@ theorem sturm_tarski_interval (a b : ℝ) (p q : Polynomial ℝ) (hab : a < b) (
 theorem sturm_tarski_above (a : ℝ) (p q : Polynomial ℝ) (hpa : eval a p ≠ 0) :
     tarskiQuery_above p q a = signVariationsAboveSturm p (derivative p * q) a := by
   obtain ⟨ub, hroots, hab, hsign⟩ :=
-    root_list_ub (sturmSeq p (derivative p * q)) a (no_zero_in_sturmSeq _ _)
+    root_list_ub (sturmSeq p (derivative p * q)) a (zero_notMem_sturmSeq _ _)
   have hp_mem := mem_sturmSeq_self (q := derivative p * q) (eval_non_zero p a hpa)
   have hpub : eval ub p ≠ 0 := fun h => lt_irrefl ub (hroots p hp_mem ub h)
   have taq : tarskiQuery_above p q a = tarskiQuery p q a ub := by
@@ -82,7 +79,7 @@ theorem sturm_tarski_above (a : ℝ) (p q : Polynomial ℝ) (hpa : eval a p ≠ 
 theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpb : eval b p ≠ 0) :
     tarskiQuery_below p q b = signVariationsBelowSturm p (derivative p * q) b := by
   obtain ⟨lb, hroots, hlb, hsign⟩ :=
-    root_list_lb (sturmSeq p (derivative p * q)) b (no_zero_in_sturmSeq _ _)
+    root_list_lb (sturmSeq p (derivative p * q)) b (zero_notMem_sturmSeq _ _)
   have hp_mem := mem_sturmSeq_self (q := derivative p * q) (eval_non_zero p b hpb)
   have hplb : eval lb p ≠ 0 := fun h => lt_irrefl lb (hroots p hp_mem lb h)
   have taq : tarskiQuery_below p q b = tarskiQuery p q lb b := by
@@ -98,9 +95,9 @@ theorem sturm_tarski_R (p q : Polynomial ℝ) :
   · simp [tarskiQuery_R, signVariationsLineSturm, signVariationsLine, seq_sign_neg_inf,
       seq_sign_pos_inf, sturmSeq_zero]
   obtain ⟨lb, hroots_lb, hlb, hsign_lb⟩ :=
-    root_list_lb (sturmSeq p (derivative p * q)) 0 (no_zero_in_sturmSeq _ _)
+    root_list_lb (sturmSeq p (derivative p * q)) 0 (zero_notMem_sturmSeq _ _)
   obtain ⟨ub, hroots_ub, hub, hsign_ub⟩ :=
-    root_list_ub (sturmSeq p (derivative p * q)) 0 (no_zero_in_sturmSeq _ _)
+    root_list_ub (sturmSeq p (derivative p * q)) 0 (zero_notMem_sturmSeq _ _)
   have hp_mem := mem_sturmSeq_self (q := derivative p * q) hp
   have hplb : eval lb p ≠ 0 := fun h => lt_irrefl lb (hroots_lb p hp_mem lb h)
   have hpub : eval ub p ≠ 0 := fun h => lt_irrefl ub (hroots_ub p hp_mem ub h)

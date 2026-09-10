@@ -65,6 +65,10 @@ theorem mod_mul (p q r : Polynomial ℝ) (hr : r ≠ 0) : (r * p) % (r * q) = r 
 
 lemma mod_minus (p q: Polynomial ℝ) : -p%q = -(p%q) := by rw [mod_def, mod_def, neg_modByMonic]
 
+lemma eval_neg_mod {p q : Polynomial ℝ} {x : ℝ} (hq : eval x q = 0) :
+    eval x (-p % q) = -eval x p := by
+  rw [mod_minus, eval_neg, eval_mod p q x hq]
+
 lemma X_sub_C_ne_one (r : ℝ) : X - C r ≠ 1 := by
   rw [sub_eq_neg_add, add_comm, <-C_neg]
   exact X_add_C_ne_one (-r)

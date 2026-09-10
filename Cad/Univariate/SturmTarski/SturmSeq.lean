@@ -6,42 +6,11 @@ open Polynomial Set Filter Classical SignType
 
 noncomputable section
 
-lemma no_zero_in_sturmSeq (p q : Polynomial ℝ) : 0 ∉ sturmSeq p q := by
-  induction p, q using sturmSeq.induct
-  next q => simp
-  next p q h_zero IH =>
-    rw [sturmSeq_cons h_zero]
-    simp [Ne.symm h_zero, IH]
-
-@[simp] lemma SignType.sign_cast {β : Type*} [Ring β] [LinearOrder β] [IsStrictOrderedRing β]
-    (s : SignType) : sign (s : β) = s := by
-  cases s <;> simp [sign_neg]
-
-lemma sign_intCast_sign {α : Type*} [Zero α] [LinearOrder α] (a : α) :
-    sign ((sign a : SignType) : ℤ) = sign a :=
-  SignType.sign_cast _
-
 lemma signVariationsSign : ∀ ps : List (Polynomial ℝ), ∀ (k : ℝ), List.signVariations (seqEval k ps) = List.signVariations (seqEvalSign k ps) := by
   intro ps k
   have : seqEvalSign k ps = (seqEval k ps).map (fun x => ((sign x : SignType) : ℤ)) := by
     simp only [seqEvalSign, seqEval, List.map_map, Function.comp_def]
   rw [this, List.signVariations_map sign_intCast_sign]
-
-lemma smod_nil_eq (p q : Polynomial Real) :
-    sturmSeq p q = [] ↔ p = 0 := by
-  constructor
-  · intro hs
-    by_contra!
-    rw [sturmSeq_cons this] at hs
-    exact List.cons_ne_nil _ _ hs
-  · intro hp
-    simp [hp]
-
-@[simp]
-lemma smods_s_0_2 (p: Polynomial ℝ) : sturmSeq p 0 = if p = 0 then [] else [p] := by
-  split_ifs with H
-  · exact (smod_nil_eq p 0).mpr H
-  · rw [sturmSeq_cons H, sturmSeq_zero]
 
 @[simp]
 theorem seqVarSturm_ab_z_1 (p: Polynomial ℝ) (a b: ℝ) : signVariationsSturm_ab 0 p a b = 0 := by
@@ -81,9 +50,9 @@ theorem changes_itv_smods_rec {a b: ℝ} {p q: Polynomial ℝ} (hpqa: eval a (p 
       obtain ⟨hap, haq⟩ := mul_ne_zero_iff.mp hpqa
       obtain ⟨hbp, hbq⟩ := mul_ne_zero_iff.mp hpqb
       have hS : sturmSeq p q = [p, q] := by
-        rw [sturmSeq_cons hpz, mod_minus, h, neg_zero, smods_s_0_2, if_neg hqz]
+        rw [sturmSeq_cons hpz, mod_minus, h, neg_zero, sturmSeq_zero_right, if_neg hqz]
       have hS' : sturmSeq q (-p % q) = [q] := by
-        rw [mod_minus, h, neg_zero, smods_s_0_2, if_neg hqz]
+        rw [mod_minus, h, neg_zero, sturmSeq_zero_right, if_neg hqz]
       simp only [signVariationsSturm_ab, signVariations_ab, hS, hS', seqEval, List.map_cons,
         List.map_nil, cross, eval_mul, variation_mul_eq hap haq hbp hbq,
         List.signVariations_cons_cons_of_ne_zero _ _ _ hap haq,
@@ -176,23 +145,6 @@ lemma cauchyIndex_poly_rec (p q : Polynomial ℝ) (a b: ℝ) (hab : a < b)
     rw [<- h2, h1]
   simp only [cross, variation] at *
   linarith
-
-lemma eval_neg_mod {p q : Polynomial ℝ} {x : ℝ} (hq : eval x q = 0) :
-    eval x (-p % q) = -eval x p := by
-  rw [mod_minus, eval_neg, eval_mod p q x hq]
-
-lemma sign_eq_sign_of_mul_nonneg {x y : ℝ} (hx : x ≠ 0) (hy : y ≠ 0) (h : 0 ≤ x * y) :
-    sign x = sign y := by
-  rcases lt_or_gt_of_ne hx with hx | hx <;> rcases lt_or_gt_of_ne hy with hy | hy
-  · rw [sign_neg hx, sign_neg hy]
-  · exact absurd h (not_le.mpr (mul_neg_of_neg_of_pos hx hy))
-  · exact absurd h (not_le.mpr (mul_neg_of_pos_of_neg hx hy))
-  · rw [sign_pos hx, sign_pos hy]
-
-/-- Sign variations across a nonzero entry `t` sitting between `s` and `-s`: exactly one. -/
-lemma signType_ite_add_ite (s t : SignType) (hs : s ≠ 0) (ht : t ≠ 0) :
-    (if s = t then (0 : ℕ) else 1) + (if t = -s then 0 else 1) = 1 := by
-  cases s <;> cases t <;> simp_all
 
 lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') (hpa : eval a p ≠ 0)
     (no_root : ∀ p' ∈ sturmSeq p q, ∀ x : ℝ, ((a < x ∧ x ≤ a') ∨ (a' ≤ x ∧ x < a)) → eval x p' ≠ 0) :

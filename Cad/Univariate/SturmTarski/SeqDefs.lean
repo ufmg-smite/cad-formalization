@@ -62,6 +62,39 @@ lemma signVariations_map {β : Type*} [Zero β] [LinearOrder β] {f : α → β}
 
 end List
 
+/-! ### Facts about `SignType.sign` -/
+
+@[simp] lemma SignType.sign_cast {β : Type*} [Ring β] [LinearOrder β] [IsStrictOrderedRing β]
+    (s : SignType) : sign (s : β) = s := by
+  cases s <;> simp [sign_neg]
+
+lemma sign_intCast_sign {α : Type*} [Zero α] [LinearOrder α] (a : α) :
+    sign ((sign a : SignType) : ℤ) = sign a :=
+  SignType.sign_cast _
+
+lemma sign_eq_sign_of_mul_nonneg {x y : ℝ} (hx : x ≠ 0) (hy : y ≠ 0) (h : 0 ≤ x * y) :
+    sign x = sign y := by
+  rcases lt_or_gt_of_ne hx with hx | hx <;> rcases lt_or_gt_of_ne hy with hy | hy
+  · rw [sign_neg hx, sign_neg hy]
+  · exact absurd h (not_le.mpr (mul_neg_of_neg_of_pos hx hy))
+  · exact absurd h (not_le.mpr (mul_neg_of_pos_of_neg hx hy))
+  · rw [sign_pos hx, sign_pos hy]
+
+/-- For nonzero reals, "same sign" versus "product negative", as `signVariations` uses the former
+and the Sturm proofs reason with the latter. -/
+lemma ite_sign_eq {R : Type*} [Zero R] [One R] {x y : ℝ} (hx : x ≠ 0) (hy : y ≠ 0) :
+    (if sign x = sign y then (0 : R) else 1) = if x * y < 0 then 1 else 0 := by
+  rcases lt_or_gt_of_ne hx with hx | hx <;> rcases lt_or_gt_of_ne hy with hy | hy
+  · simp [sign_neg hx, sign_neg hy, le_of_lt (mul_pos_of_neg_of_neg hx hy)]
+  · simp [sign_neg hx, sign_pos hy, mul_neg_of_neg_of_pos hx hy]
+  · simp [sign_pos hx, sign_neg hy, mul_neg_of_pos_of_neg hx hy]
+  · simp [sign_pos hx, sign_pos hy, le_of_lt (mul_pos hx hy)]
+
+/-- Sign variations across a nonzero entry `t` sitting between `s` and `-s`: exactly one. -/
+lemma signType_ite_add_ite (s t : SignType) (hs : s ≠ 0) (ht : t ≠ 0) :
+    (if s = t then (0 : ℕ) else 1) + (if t = -s then 0 else 1) = 1 := by
+  cases s <;> cases t <;> simp_all
+
 section RealPoly
 
 open Polynomial
@@ -98,6 +131,35 @@ lemma sturmSeq_cons {α : Type*} [Field α] {p q : Polynomial α} (hp : p ≠ 0)
     sturmSeq p q = p :: sturmSeq q (-p % q) := by
   conv_lhs => unfold sturmSeq
   simp [hp]
+
+lemma sturmSeq_eq_nil_iff {α : Type*} [Field α] {p q : Polynomial α} :
+    sturmSeq p q = [] ↔ p = 0 := by
+  constructor
+  · intro hs
+    by_contra hp
+    rw [sturmSeq_cons hp] at hs
+    exact List.cons_ne_nil _ _ hs
+  · rintro rfl
+    exact sturmSeq_zero
+
+open Classical in
+@[simp]
+lemma sturmSeq_zero_right {α : Type*} [Field α] (p : Polynomial α) :
+    sturmSeq p 0 = if p = 0 then [] else [p] := by
+  split_ifs with hp
+  · exact sturmSeq_eq_nil_iff.mpr hp
+  · rw [sturmSeq_cons hp, sturmSeq_zero]
+
+lemma mem_sturmSeq_self {α : Type*} [Field α] {p q : Polynomial α} (hp : p ≠ 0) :
+    p ∈ sturmSeq p q := by
+  rw [sturmSeq_cons hp]; exact List.mem_cons_self
+
+lemma zero_notMem_sturmSeq {α : Type*} [Field α] (p q : Polynomial α) : 0 ∉ sturmSeq p q := by
+  induction p, q using sturmSeq.induct
+  next q => simp [sturmSeq_zero]
+  next p q hp ih =>
+    rw [sturmSeq_cons hp]
+    simp [Ne.symm hp, ih]
 
 noncomputable def sign_pos_inf (p : Polynomial ℝ) : ℤ :=
   sign p.leadingCoeff
