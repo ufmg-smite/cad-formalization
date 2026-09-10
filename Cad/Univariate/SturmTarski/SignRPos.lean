@@ -1,6 +1,6 @@
 import Cad.Univariate.SturmTarski.Utils
 
-open Polynomial Set Filter Classical SignType Topology
+open Polynomial Set Filter SignType Topology
 
 noncomputable section
 

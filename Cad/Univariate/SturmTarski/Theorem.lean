@@ -93,7 +93,7 @@ theorem sturm_tarski_R (p q : Polynomial ℝ) :
     tarskiQuery_R p q = signVariationsLineSturm p (derivative p * q) := by
   rcases eq_or_ne p 0 with rfl | hp
   · simp [tarskiQuery_R, signVariationsLineSturm, signVariationsLine, seq_sign_neg_inf,
-      seq_sign_pos_inf, sturmSeq_zero]
+      seq_sign_pos_inf]
   obtain ⟨lb, hroots_lb, hlb, hsign_lb⟩ :=
     root_list_lb (sturmSeq p (derivative p * q)) 0 (zero_notMem_sturmSeq _ _)
   obtain ⟨ub, hroots_ub, hub, hsign_ub⟩ :=

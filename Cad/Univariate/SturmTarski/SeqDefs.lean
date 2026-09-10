@@ -99,8 +99,7 @@ section RealPoly
 
 open Polynomial
 
-open Classical in
-theorem termination_sturmSeq {α : Type*} [Field α] (f g : Polynomial α) (hf : f ≠ 0) :
+theorem termination_sturmSeq {α : Type*} [Field α] [DecidableEq α] (f g : Polynomial α) (hf : f ≠ 0) :
     (if g = 0 then 0 else if -f % g = 0 then 1 else 2 + (-f % g).natDegree) <
     if f = 0 then 0 else if g = 0 then 1 else 2 + g.natDegree := by
   rw [if_neg hf]
@@ -119,8 +118,7 @@ theorem termination_sturmSeq {α : Type*} [Field α] (f g : Polynomial α) (hf :
   have := natDegree_mod_lt (-f) hdeg
   omega
 
-open Classical in
-noncomputable def sturmSeq {α : Type*} [Field α] (f g : Polynomial α) : List (Polynomial α) :=
+noncomputable def sturmSeq {α : Type*} [Field α] [DecidableEq α] (f g : Polynomial α) : List (Polynomial α) :=
   if f = 0 then
     []
   else
@@ -128,15 +126,15 @@ noncomputable def sturmSeq {α : Type*} [Field α] (f g : Polynomial α) : List 
   termination_by if f=0 then 0 else if g=0 then 1 else 2 + natDegree g
   decreasing_by exact termination_sturmSeq f g (by assumption)
 
-@[simp] lemma sturmSeq_zero {α : Type*} [Field α] {q : Polynomial α} :
+@[simp] lemma sturmSeq_zero {α : Type*} [Field α] [DecidableEq α] {q : Polynomial α} :
     sturmSeq 0 q = [] := by simp [sturmSeq]
 
-lemma sturmSeq_cons {α : Type*} [Field α] {p q : Polynomial α} (hp : p ≠ 0) :
+lemma sturmSeq_cons {α : Type*} [Field α] [DecidableEq α] {p q : Polynomial α} (hp : p ≠ 0) :
     sturmSeq p q = p :: sturmSeq q (-p % q) := by
   conv_lhs => unfold sturmSeq
   simp [hp]
 
-lemma sturmSeq_eq_nil_iff {α : Type*} [Field α] {p q : Polynomial α} :
+lemma sturmSeq_eq_nil_iff {α : Type*} [Field α] [DecidableEq α] {p q : Polynomial α} :
     sturmSeq p q = [] ↔ p = 0 := by
   constructor
   · intro hs
@@ -146,19 +144,18 @@ lemma sturmSeq_eq_nil_iff {α : Type*} [Field α] {p q : Polynomial α} :
   · rintro rfl
     exact sturmSeq_zero
 
-open Classical in
 @[simp]
-lemma sturmSeq_zero_right {α : Type*} [Field α] (p : Polynomial α) :
+lemma sturmSeq_zero_right {α : Type*} [Field α] [DecidableEq α] (p : Polynomial α) :
     sturmSeq p 0 = if p = 0 then [] else [p] := by
   split_ifs with hp
   · exact sturmSeq_eq_nil_iff.mpr hp
   · rw [sturmSeq_cons hp, sturmSeq_zero]
 
-lemma mem_sturmSeq_self {α : Type*} [Field α] {p q : Polynomial α} (hp : p ≠ 0) :
+lemma mem_sturmSeq_self {α : Type*} [Field α] [DecidableEq α] {p q : Polynomial α} (hp : p ≠ 0) :
     p ∈ sturmSeq p q := by
   rw [sturmSeq_cons hp]; exact List.mem_cons_self
 
-lemma zero_notMem_sturmSeq {α : Type*} [Field α] (p q : Polynomial α) : 0 ∉ sturmSeq p q := by
+lemma zero_notMem_sturmSeq {α : Type*} [Field α] [DecidableEq α] (p q : Polynomial α) : 0 ∉ sturmSeq p q := by
   induction p, q using sturmSeq.induct
   next q => simp [sturmSeq_zero]
   next p q hp ih =>

@@ -1,11 +1,12 @@
 import Cad.Univariate.SturmTarski.SignRPos
 
-open Polynomial Set Filter Classical SignType
+open Polynomial Set Filter SignType
 
 noncomputable section
 
 -- 1 if p / q goes from -inf to +inf at x, -1 if goes from +inf to -inf
 -- 0 otherwise
+open scoped Classical in
 def jump_val (p q : Polynomial ℝ) (x : ℝ) : ℤ :=
   let orderP : Nat := rootMultiplicity x p
   let orderQ : Nat := rootMultiplicity x q
@@ -27,6 +28,7 @@ lemma jump_poly_not_root {p q: Polynomial ℝ} {x: ℝ} (hp: eval x p ≠ 0) : j
 
 lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
                     jump_val (p' * p) (p'* q) x = jump_val p q x := by
+  classical
   rcases eq_or_ne q 0 with rfl | hq
   · simp
   rcases eq_or_ne p 0 with rfl | hp
@@ -153,6 +155,7 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jump_val p q x = jump_val p
 
 lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
     jump_val p (Polynomial.C c * q) x = (sign c) * jump_val p q x := by
+  classical
   rcases eq_or_ne c 0 with rfl | hc
   · simp
   rcases eq_or_ne q 0 with rfl | hq
@@ -169,6 +172,7 @@ lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
   · simp [sign_pos hc, hc]
 
 lemma jump_poly_coprime {p q: Polynomial ℝ} {x: ℝ} (hp: eval x p = 0) (hpq_coprime : IsCoprime p q) : jump_val p q x = jump_val (q*p) 1 x := by
+  classical
   if hpqz: (p = 0 ∨ q  = 0) then
     rcases hpqz with h | h <;> simp[h]
   else
@@ -190,6 +194,7 @@ lemma jump_poly_coprime {p q: Polynomial ℝ} {x: ℝ} (hp: eval x p = 0) (hpq_c
 /-- The jump of `p * q` at a point where `p` does not vanish is the jump of `q`, signed by `p`. -/
 lemma jump_poly_1_mult_left {p q : Polynomial ℝ} {x : ℝ} (hp : eval x p ≠ 0) :
     jump_val (p * q) 1 x = sign (eval x p) * jump_val q 1 x := by
+  classical
   rcases eq_or_ne q 0 with rfl | hq
   · simp
   have hp0 : p ≠ 0 := eval_non_zero p x hp
@@ -214,6 +219,7 @@ lemma jump_poly_1_mult {p q: Polynomial ℝ} {x: ℝ} (hnroot: eval x p ≠ 0 �
 
 lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
     p ≠ 0 → p.eval x = 0 → jump_val p (derivative p * q) x = sign (q.eval x) := by
+  classical
   intros hp hev
   if hq : q = 0 then
     rw [hq]

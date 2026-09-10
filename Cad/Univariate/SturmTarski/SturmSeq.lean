@@ -2,7 +2,7 @@ import Mathlib
 
 import Cad.Univariate.SturmTarski.CauchyIndex
 
-open Polynomial Set Filter Classical SignType
+open Polynomial Set Filter SignType
 
 noncomputable section
 

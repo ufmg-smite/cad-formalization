@@ -4,7 +4,7 @@ import Mathlib.Analysis.Calculus.Deriv.Polynomial
 import Mathlib.Analysis.Polynomial.Basic
 import Mathlib.Topology.Algebra.Polynomial
 
-open Polynomial Set Filter Classical SignType Topology
+open Polynomial Set Filter SignType Topology
 
 noncomputable section
 
@@ -20,6 +20,7 @@ lemma mem_rootsInInterval {p : Polynomial ℝ} {a b x : ℝ} :
     x ∈ rootsInInterval p a b ↔ (p ≠ 0 ∧ eval x p = 0) ∧ a < x ∧ x < b := by
   simp [rootsInInterval, mem_roots']
 
+open scoped Classical in
 @[simp]
 def rootsInSet (p : Polynomial ℝ) (S : Set ℝ) : Finset ℝ :=
   p.roots.toFinset.filter (fun x => x ∈ S)
@@ -27,6 +28,7 @@ def rootsInSet (p : Polynomial ℝ) (S : Set ℝ) : Finset ℝ :=
 lemma rootsInSet_interval (p : Polynomial ℝ) (a b : ℝ) :
     rootsInInterval p a b = rootsInSet p (Set.Ioo a b) := by simp [rootsInInterval]
 
+open scoped Classical in
 lemma rootsInSet_cup (p : Polynomial ℝ) (S T : Set ℝ) :
     rootsInSet p S ∪ rootsInSet p T = rootsInSet p (S ∪ T) := by
   simp only [rootsInSet, mem_union]
