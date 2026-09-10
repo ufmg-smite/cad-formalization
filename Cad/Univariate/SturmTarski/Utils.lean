@@ -16,6 +16,10 @@ def tarskiQuery (f g : Polynomial ℝ) (a b : ℝ) : ℤ :=
 
 lemma rootsInIntervalZero (a b : ℝ) : rootsInInterval 0 a b = ∅ := by simp [rootsInInterval]
 
+lemma mem_rootsInInterval {p : Polynomial ℝ} {a b x : ℝ} :
+    x ∈ rootsInInterval p a b ↔ (p ≠ 0 ∧ eval x p = 0) ∧ a < x ∧ x < b := by
+  simp [rootsInInterval, mem_roots']
+
 @[simp]
 def rootsInSet (p : Polynomial ℝ) (S : Set ℝ) : Finset ℝ :=
   p.roots.toFinset.filter (fun x => x ∈ S)
@@ -69,10 +73,6 @@ lemma eval_neg_mod {p q : Polynomial ℝ} {x : ℝ} (hq : eval x q = 0) :
     eval x (-p % q) = -eval x p := by
   rw [mod_minus, eval_neg, eval_mod p q x hq]
 
-lemma X_sub_C_ne_one (r : ℝ) : X - C r ≠ 1 := by
-  rw [sub_eq_neg_add, add_comm, <-C_neg]
-  exact X_add_C_ne_one (-r)
-
 lemma comp_neg_X_leadingCoeff (p : Polynomial ℝ) :
     (p.comp (-X)).leadingCoeff = (-1) ^ p.natDegree * p.leadingCoeff := by
   rw [leadingCoeff_comp (by simp), leadingCoeff_neg, leadingCoeff_X, mul_comm]
@@ -118,16 +118,12 @@ lemma last_non_root_interval (p : Polynomial Real) (ub : Real) (hp : p ≠ 0) :
   exact ⟨(l + ub) / 2, by linarith, fun z hz => hsub ⟨by linarith [hz.1], hz.2⟩⟩
 
 theorem exists_root_ioo {p: Polynomial ℝ} {a b : ℝ} (hab: a <= b) (hap: eval a p < 0) (hbp: eval b p > 0): ∃ r: ℝ, r > a ∧ r < b ∧ eval r p = 0 := by
-  have intermediate_value_app := intermediate_value_Ioo hab p.continuousOn
-  have zero_in_image : 0 ∈ p.eval '' Set.Ioo a b := by aesop
-  obtain ⟨x, ⟨hxa, hxb⟩, hx_root⟩ := zero_in_image
-  use x
+  obtain ⟨x, ⟨hxa, hxb⟩, hx⟩ := intermediate_value_Ioo hab p.continuousOn ⟨hap, hbp⟩
+  exact ⟨x, hxa, hxb, hx⟩
 
 theorem exists_root_ioo' {p: Polynomial ℝ} {a b : ℝ} (hab: a <= b) (hap: eval a p > 0) (hbp: eval b p < 0): ∃ r: ℝ, r > a ∧ r < b ∧ eval r p = 0 := by
-  have intermediate_value_app := intermediate_value_Ioo' hab p.continuousOn
-  have zero_in_image : 0 ∈ p.eval '' Set.Ioo a b := by aesop
-  obtain ⟨x, ⟨hxa, hxb⟩, hx_root⟩ := zero_in_image
-  use x
+  obtain ⟨x, ⟨hxa, hxb⟩, hx⟩ := intermediate_value_Ioo' hab p.continuousOn ⟨hbp, hap⟩
+  exact ⟨x, hxa, hxb, hx⟩
 
 theorem exists_root_ioo_mul {p: Polynomial ℝ} {a b: ℝ} (hab: a ≤ b) (hap: (eval a p) * (eval b p) < 0) : ∃ r: ℝ, r > a ∧ r < b ∧ eval r p = 0 := by
   if H: eval a p > 0 then

@@ -107,17 +107,9 @@ lemma sign_r_pos_deriv (p : Polynomial Real) (x : Real) (hp : p ≠ 0) (hev : ev
 
 lemma sign_r_pos_add {x : ℝ} (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq_eval: eval x q ≠ 0) :
     (sign_r_pos x (p + q) = sign_r_pos x q) := by
-  by_cases (eval x (p + q) = 0)
-  next => aesop
-  next hf =>
-    have h_pq : p + q ≠ 0 := eval_non_zero (p + q) x hf
-    have h: sign_r_pos x (p + q) = (eval x q > 0) := by
-      have := sign_r_pos_rec (p + q) x h_pq
-      simp [hp_eval, hq_eval] at this; simp [this]
-    have : sign_r_pos x q = (eval x q > 0) := by
-      have := sign_r_pos_rec q x (eval_non_zero q x hq_eval)
-      simp [hq_eval] at this; simp [this]
-    simp [this, h]
+  have hf : eval x (p + q) ≠ 0 := by rw [eval_add, hp_eval, zero_add]; exact hq_eval
+  rw [sign_r_pos_rec (p + q) x (eval_non_zero _ x hf), if_neg hf,
+    sign_r_pos_rec q x (eval_non_zero q x hq_eval), if_neg hq_eval, eval_add, hp_eval, zero_add]
 
 lemma sign_r_pos_mod {x : ℝ} (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq_eval: eval x q ≠ 0) :
     sign_r_pos x (q % p) = sign_r_pos x q := by

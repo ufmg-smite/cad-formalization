@@ -93,7 +93,7 @@ lemma ite_sign_eq {R : Type*} [Zero R] [One R] {x y : ℝ} (hx : x ≠ 0) (hy : 
 /-- Sign variations across a nonzero entry `t` sitting between `s` and `-s`: exactly one. -/
 lemma signType_ite_add_ite (s t : SignType) (hs : s ≠ 0) (ht : t ≠ 0) :
     (if s = t then (0 : ℕ) else 1) + (if t = -s then 0 else 1) = 1 := by
-  cases s <;> cases t <;> simp_all
+  revert hs ht; revert s t; decide
 
 section RealPoly
 
@@ -103,17 +103,21 @@ open Classical in
 theorem termination_sturmSeq {α : Type*} [Field α] (f g : Polynomial α) (hf : f ≠ 0) :
     (if g = 0 then 0 else if -f % g = 0 then 1 else 2 + (-f % g).natDegree) <
     if f = 0 then 0 else if g = 0 then 1 else 2 + g.natDegree := by
-  if g1: g = 0 then
-    simp_all
-  else if h : g ∣ f then
-    simp_all
-    refine lt_add_of_lt_of_nonneg ?_ (Nat.zero_le g.natDegree); simp
-  else
-    simp_all only [↓reduceIte, EuclideanDomain.mod_eq_zero, dvd_neg]
-    have : (-f % g).natDegree < g.natDegree := by
-      apply natDegree_lt_natDegree ?_ (degree_mod_lt (-f) g1)
-      simp_all only [ne_eq, EuclideanDomain.mod_eq_zero, dvd_neg, not_false_eq_true]
-    exact Nat.add_lt_add_left this 2
+  rw [if_neg hf]
+  by_cases hg : g = 0
+  · simp [hg]
+  rw [if_neg hg, if_neg hg]
+  by_cases hmod : -f % g = 0
+  · rw [if_pos hmod]; omega
+  rw [if_neg hmod]
+  -- a nonzero constant divides everything, so `g` is not constant
+  have hdeg : g.natDegree ≠ 0 := by
+    intro h0
+    obtain ⟨c, rfl⟩ := natDegree_eq_zero.mp h0
+    have hc : c ≠ 0 := by rintro rfl; simp at hg
+    exact hmod (EuclideanDomain.mod_eq_zero.mpr (isUnit_C.mpr (isUnit_iff_ne_zero.mpr hc)).dvd)
+  have := natDegree_mod_lt (-f) hdeg
+  omega
 
 open Classical in
 noncomputable def sturmSeq {α : Type*} [Field α] (f g : Polynomial α) : List (Polynomial α) :=

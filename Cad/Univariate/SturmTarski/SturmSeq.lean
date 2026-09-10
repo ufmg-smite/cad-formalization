@@ -88,7 +88,8 @@ theorem cauchyIndex_sturmSeq_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): 
   next q =>
       let a_ := 2/3 * a + 1/3 * b
       let b_ := 1/3 * a + 2/3 * b
-      have ⟨haa_, ha_b_, hbb'⟩ : a < a_ ∧ a_ < b_ ∧ b_ < b := by constructor <;> grind
+      have ⟨haa_, ha_b_, hbb'⟩ : a < a_ ∧ a_ < b_ ∧ b_ < b := by
+        refine ⟨?_, ?_, ?_⟩ <;> simp only [a_, b_] <;> linarith
       use a_, b_
       exact ⟨haa_, ha_b_, hbb', by simp [sturmSeq_zero]⟩
   next p q h_zero IH =>
@@ -98,8 +99,7 @@ theorem cauchyIndex_sturmSeq_aux (p q: Polynomial ℝ) (a b: ℝ) (hab: a < b): 
             (b2 < b) ∧ (∀x: ℝ, (b2 ≤ x ∧ x < b) -> eval x p ≠ 0) := by
         have ⟨a2, haa2, ha2_nroot⟩ := next_non_root_interval p a h_zero
         have ⟨b2, hbb2, hb2_nroot⟩ := last_non_root_interval p b h_zero
-        use a2, b2
-        simp_all
+        exact ⟨a2, b2, haa2, ha2_nroot, hbb2, hb2_nroot⟩
       let a_ := if b2 > a then min a1 (min b2 a2) else min a1 a2
       let b_ := if a2 < b then max b1 (max a2 b2) else max b1 b2
       have ⟨haa_, ha_b_, hbb_⟩ : a < a_ ∧ a_ < b_ ∧ b_ < b := by grind

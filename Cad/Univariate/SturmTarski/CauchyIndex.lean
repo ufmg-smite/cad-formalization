@@ -19,27 +19,15 @@ def cross (p : Polynomial Real) (a b : Real) : Int :=
 
 lemma cross_no_root {a b: ℝ} {p: Polynomial ℝ} (hab: a < b) (hxnroot: rootsInInterval p a b = ∅) :
       (cross p a b = 0) := by
-  have hone : ¬ (eval a p > 0 ∧ eval b p < 0) := by
-    by_contra!
-    have ⟨r, hr⟩ := exists_root_ioo' (le_of_lt hab) (this.1) (this.2)
-    have hr_int: r ∈ rootsInInterval p a b := by unfold rootsInInterval; aesop
-    simp_all only [gt_iff_lt, Finset.notMem_empty]
-  have htwo: ¬ (eval a p < 0 ∧ eval b p > 0) := by
-    by_contra!
-    have ⟨r, hr⟩ := exists_root_ioo (le_of_lt hab) (this.1) (this.2)
-    have hr_int: r ∈ rootsInInterval p a b := by unfold rootsInInterval; aesop
-    simp_all only [gt_iff_lt, not_and, not_lt, Finset.notMem_empty]
-  have : (eval a p) * (eval b p) >= 0 := by
-    if H: eval a p = 0 then simp [H]
-    else
-    if H': eval a p >  0 then
-      have hbp : eval b p >= 0 := by simp_all
-      nlinarith
-    else
-      have H' : eval a p < 0 := by simp at H'; exact lt_of_le_of_ne H' H
-      have hbp : eval b p <= 0 := by simp_all
-      nlinarith
-  simp [cross, variation, this]
+  rcases eq_or_ne p 0 with rfl | hp0
+  · simp [cross, variation]
+  have hnr : 0 ≤ eval a p * eval b p := by
+    by_contra! hneg
+    obtain ⟨r, har, hrb, hr⟩ := exists_root_ioo_mul (le_of_lt hab) hneg
+    have : r ∈ rootsInInterval p a b := mem_rootsInInterval.mpr ⟨⟨hp0, hr⟩, har, hrb⟩
+    rw [hxnroot] at this
+    exact Finset.notMem_empty r this
+  simp [cross, variation, hnr]
 
 lemma cauchyIndex_poly_mod (p q : Polynomial Real) (a b : Real) :
     cauchyIndex p q a b = cauchyIndex p (q % p) a b := by
@@ -111,7 +99,7 @@ theorem cindex_poly_z_2 (p q: Polynomial ℝ) (a b: ℝ) (hq: q = 0) : cauchyInd
 
 theorem cindex_poly_const (p q: Polynomial ℝ) (a b x: ℝ) (hp_const: C x = p): cauchyIndex p q a b = 0 := by
   have hp_nroots : p.roots = 0 := by rw [<-hp_const]; exact roots_C x
-  simp_all only [cauchyIndex, rootsInInterval, Set.mem_Ioo, Multiset.toFinset_zero, Finset.filter_empty, Finset.sum_empty]
+  simp [cauchyIndex, rootsInInterval, hp_nroots]
 
 theorem cindex_poly_mult {p q p': Polynomial ℝ} {a b: ℝ} (hp' : p' ≠ 0) :
     (cauchyIndex (p' * p) (p' * q) a b) = cauchyIndex p q a b := by
@@ -120,46 +108,23 @@ theorem cindex_poly_mult {p q p': Polynomial ℝ} {a b: ℝ} (hp' : p' ≠ 0) :
   else
     unfold cauchyIndex
     simp only [ne_eq, not_false_eq_true, jump_poly_mult, hp']
-    have : ∑ x ∈ rootsInInterval p' a b \ rootsInInterval p a b, jump_val p q x = 0 := by
+    have hsum : ∑ x ∈ rootsInInterval p' a b \ rootsInInterval p a b, jump_val p q x = 0 := by
       apply Finset.sum_eq_zero
-      intros x hx
-      simp only [Finset.mem_sdiff] at hx
-      unfold rootsInInterval at hx
-      have : eval x p ≠ 0 := by
-        have ⟨hx_1, hx_2⟩ := hx
-        simp_all
-      exact jump_poly_not_root this
-    have h_interval : rootsInInterval (p' * p) a b = rootsInInterval p a b ∪ (rootsInInterval p' a b \ rootsInInterval p a b) := by
-      unfold rootsInInterval
-      simp_all only [ne_eq, Set.mem_Ioo, Finset.union_sdiff_self_eq_union]
-      ext a_1 : 1
-      simp_all only [Finset.mem_filter, Multiset.mem_toFinset, mem_roots', ne_eq, mul_eq_zero, or_self,
-        not_false_eq_true, IsRoot.def, eval_mul, true_and, Finset.mem_union]
-      apply Iff.intro
-      · intro a_2
-        simp_all only [and_self, and_true]
-        obtain ⟨left, right⟩ := a_2
-        obtain ⟨left_1, right⟩ := right
-        cases left with
-        | inl h => simp_all only [or_true]
-        | inr h_1 => simp_all only [true_or]
-      · intro a_2
-        cases a_2 with
-        | inl h => simp_all only [or_true, and_self]
-        | inr h_1 => simp_all only [true_or, and_self]
+      intro x hx
+      rw [Finset.mem_sdiff, mem_rootsInInterval, mem_rootsInInterval] at hx
+      exact jump_poly_not_root fun h => hx.2 ⟨⟨hp, h⟩, hx.1.2⟩
+    have h_interval : rootsInInterval (p' * p) a b =
+        rootsInInterval p a b ∪ (rootsInInterval p' a b \ rootsInInterval p a b) := by
+      rw [Finset.union_sdiff_self_eq_union, mul_comm, rootsInInterval_mul a b (mul_ne_zero hp hp')]
     simp only [h_interval]
     have hdsj : Disjoint (rootsInInterval p a b) (rootsInInterval p' a b \ rootsInInterval p a b) := by
       exact Finset.disjoint_sdiff
     rw [Finset.sum_union hdsj]
-    simp [this]
+    simp [hsum]
 
 theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroot: eval a p ≠ 0) (hpb_nroot: eval b p ≠ 0) :
     cauchyIndex p 1 a b = cross p a b := by
-  have hpz : p ≠ 0 := by
-    simp_all only [ne_eq]
-    intro a_1
-    subst a_1
-    simp_all only [eval_zero, not_true_eq_false]
+  have hpz : p ≠ 0 := eval_non_zero p a hpa_nroot
   induction hp: p.natDegree using Nat.strong_induction_on generalizing p with
   | _ k ih  =>
     cases k with
@@ -170,17 +135,15 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
       have hrz: cross p a b = 0 := by
         unfold cross variation
         have h_eq : eval a p = eval b p := by
-          subst hx
-          simp_all only [not_lt_zero', ne_eq, cindex_poly_z_1, not_isEmpty_of_nonempty, IsEmpty.forall_iff,
-            implies_true, eval_C, not_false_eq_true, map_eq_zero, natDegree_C, C_inj, exists_eq, cindex_poly_const]
+          rw [← hx, eval_C, eval_C]
         simp [h_eq, mul_self_nonneg (eval b p)]
       rw [hlz, hrz]
       | succ k =>
         if H: (rootsInInterval p a b).Nonempty then
           let maxr : ℝ := Finset.max' (rootsInInterval p a b) H
           have hmaxr_root : eval maxr p = 0 ∧ maxr > a ∧  maxr < b := by
-            have : maxr ∈ rootsInInterval p a b := Finset.max'_mem (rootsInInterval p a b) H
-            unfold rootsInInterval at this; aesop
+            have := mem_rootsInInterval.mp (Finset.max'_mem (rootsInInterval p a b) H)
+            exact ⟨this.1.2, this.2.1, this.2.2⟩
           let maxrp := (X - C maxr)^ (rootMultiplicity maxr p)
           have ⟨p', hp'⟩ : ∃p': Polynomial ℝ, p = p' * maxrp := by
             have : maxrp ∣ p := by
@@ -196,15 +159,13 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
               exact Dvd.intro_left p'' (id (Eq.symm hp'))
             have h_contra := (le_rootMultiplicity_iff hpz).mpr this
             linarith
-          have ⟨hp'z, maxrpz, hap', hbp', hamaxrp, hbmaxrp⟩ :
-             p' ≠ 0 ∧ maxrp ≠ 0 ∧ eval a p' ≠ 0 ∧ eval b p' ≠ 0 ∧ eval a maxrp ≠ 0 ∧ eval b maxrp ≠ 0 := by
-            repeat' constructor
-            · rw [hp'] at hpz; exact left_ne_zero_of_mul hpz
-            · rw [hp'] at hpz; exact right_ne_zero_of_mul hpz
-            · rw [hp', eval_mul] at hpa_nroot; simp_all
-            · rw [hp', eval_mul] at hpb_nroot; simp_all
-            · rw [hp', eval_mul] at hpa_nroot; simp_all
-            · rw [hp', eval_mul] at hpb_nroot; simp_all
+          have hpa' : eval a (p' * maxrp) ≠ 0 := hp' ▸ hpa_nroot
+          have hpb' : eval b (p' * maxrp) ≠ 0 := hp' ▸ hpb_nroot
+          rw [eval_mul] at hpa' hpb'
+          obtain ⟨hap', hamaxrp⟩ := mul_ne_zero_iff.mp hpa'
+          obtain ⟨hbp', hbmaxrp⟩ := mul_ne_zero_iff.mp hpb'
+          have hp'z : p' ≠ 0 := eval_non_zero p' a hap'
+          have maxrpz : maxrp ≠ 0 := eval_non_zero maxrp a hamaxrp
           have hmaxrp' : eval maxr p' ≠ 0 := (not_imp_not.mpr (dvd_iff_isRoot.mpr)) hmonon_nvdv
           have hmulrz: rootMultiplicity maxr p > 0 := ((rootMultiplicity_pos hpz).mpr (IsRoot.def.mpr hmaxr_root.1))
           have hmulr : rootMultiplicity maxr p ≠ 0 := (zero_lt_iff.mp hmulrz)
@@ -215,15 +176,16 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
               unfold rootsInInterval
               rw [hp'] at hpz ⊢; exact rootsInInterval_mul a b hpz; 
             have hmaxrp_singleton : rootsInInterval maxrp a b = {maxr} := by
-              unfold maxrp rootsInInterval
-              simp_all
+              ext y
+              rw [mem_rootsInInterval, Finset.mem_singleton]
+              have hev : eval y maxrp = 0 ↔ y = maxr := by
+                simp only [maxrp, eval_pow, eval_sub, eval_X, eval_C, pow_eq_zero_iff hmulr, sub_eq_zero]
+              rw [hev]
+              exact ⟨fun h => h.1.2, fun h => ⟨⟨maxrpz, h⟩, by rw [h]; exact hmaxr_root.2.1,
+                by rw [h]; exact hmaxr_root.2.2⟩⟩
             have hdisjoint : rootsInInterval p' a b ∩ rootsInInterval maxrp a b = ∅ := by
-              have : maxr ∉ rootsInInterval  p' a b := by
-                by_contra!
-                unfold rootsInInterval at this;
-                have : maxr ∈ p'.roots := by simp_all
-                have : X - C maxr ∣ p' := dvd_iff_isRoot.mpr (isRoot_of_mem_roots this)
-                exact hmonon_nvdv this
+              have : maxr ∉ rootsInInterval  p' a b := fun h =>
+                hmonon_nvdv (dvd_iff_isRoot.mpr (mem_rootsInInterval.mp h).1.2)
               rw [hmaxrp_singleton]
               simp [this]
             rw [hrinterval, Finset.sum_union (Finset.disjoint_iff_inter_eq_empty.mpr hdisjoint), hmaxrp_singleton]
@@ -235,23 +197,14 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
               have hx_root: x ∈ rootsInInterval p a b := by
                 rw [hp'] at hpz ⊢
                 rw [rootsInInterval_mul a b hpz]
-                simp [hx]
+                exact Finset.mem_union_left _ hx
               have hx_maxr : x ≠ maxr := by
-                by_contra!
-                rw [this] at hx
-                have hx : maxr ∈ roots p' := by
-                  unfold rootsInInterval at hx
-                  simp_all
-                exact hmonon_nvdv (dvd_iff_isRoot.mpr (isRoot_of_mem_roots hx))
+                intro h
+                rw [h] at hx
+                exact hmonon_nvdv (dvd_iff_isRoot.mpr (mem_rootsInInterval.mp hx).1.2)
               have hx_nroot: eval x maxrp ≠ 0 := by
-               unfold maxrp
-               rw [eval_pow]
-               have : eval x (X - C maxr) ≠ 0 := by
-                 have : ¬ (IsRoot (X - C maxr) x) := by
-                   exact (not_imp_not.mpr (root_X_sub_C (a := maxr) (b := x).mp)) (id (Ne.symm hx_maxr))
-                 rw [IsRoot.def] at this
-                 exact this
-               exact pow_ne_zero (rootMultiplicity maxr p) this
+                simp only [maxrp, eval_pow, eval_sub, eval_X, eval_C]
+                exact pow_ne_zero _ (sub_ne_zero.mpr hx_maxr)
               have hxlmaxr: x < maxr := by
                 have : x <= maxr := Finset.le_max' (rootsInInterval p a b) x hx_root
                 exact lt_of_le_of_ne this hx_maxr
@@ -366,13 +319,13 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b: ℝ} (hab: a < b) (hpa_nroo
           rw [hc_sum, hcross, hcross_jp]
         else
           have hlz : cauchyIndex p 1 a b = 0 := by
-            unfold cauchyIndex; aesop
+            rw [cauchyIndex, Finset.not_nonempty_iff_eq_empty.mp H, Finset.sum_empty]
           simp at H
           rw [hlz, cross_no_root hab H]
 
 theorem cindex_poly_inverse_add {p q: Polynomial ℝ} (a b: ℝ) (hpq_coprime: IsCoprime p q) : cauchyIndex p q a b + cauchyIndex q p a b = cauchyIndex (q * p) 1 a b := by
   if hpqz: p = 0 ∨ q = 0 then
-   rcases hpqz with hp | hq <;> simp_all
+    rcases hpqz with rfl | rfl <;> simp
   else
     push_neg at hpqz
     have ⟨hpz, hqz⟩ := hpqz
@@ -383,49 +336,23 @@ theorem cindex_poly_inverse_add {p q: Polynomial ℝ} (a b: ℝ) (hpq_coprime: I
         unfold A cauchyIndex 
         refine Finset.sum_congr rfl ?_
         intros x hx
-        unfold rootsInInterval at hx
-        have : eval x p = 0 := by aesop
-        exact jump_poly_coprime this hpq_coprime
+        exact jump_poly_coprime (mem_rootsInInterval.mp hx).1.2 hpq_coprime
       have hs: cauchyIndex q p a b = ∑ x ∈ B, jump_val (q * p) 1 x := by
        unfold B cauchyIndex
        refine Finset.sum_congr rfl ?_
        intros x hx
-       unfold rootsInInterval at hx
-       have : eval x q = 0 := by aesop
-       have hqp_coprime: IsCoprime q p := id (IsCoprime.symm hpq_coprime)
        rw [mul_comm]
-       exact jump_poly_coprime this hqp_coprime
+       exact jump_poly_coprime (mem_rootsInInterval.mp hx).1.2 hpq_coprime.symm
       linarith
     have hab_union : A ∪ B = rootsInInterval (q * p) a b := by
-      unfold A B rootsInInterval
-      aesop
-    have hab_disjoint' : A ∩ B = ∅ := by
-      if H: A = ∅ ∨ B = ∅ then aesop
-      else
-        by_contra!
-        have hy: ∃ y: ℝ, y ∈ A ∧ y ∈ B := by
-         simp only [not_or, <-Finset.nonempty_iff_ne_empty] at H this
-         exact Finset.filter_nonempty_iff.mp this
-        have ⟨y, hy⟩ := hy
-        have h_eval : eval y p = 0 ∧ eval y q = 0 := by
-          unfold A B rootsInInterval at hy
-          simp_all
-        have h_monom: (X - C y) ∣ p ∧ (X - C y) ∣ q := by
-            simp [dvd_iff_isRoot, h_eval]
-        have h_monon_dvd : (X - C y) ∣ gcd p q := (dvd_gcd_iff (X - C y) p q).mpr h_monom
-        have hf : ¬IsUnit (gcd p q)  := by
-          by_contra!
-          rw [isUnit_iff] at this; have ⟨r, hr⟩ := this
-          have h_contra :¬ X - C y ∣ (gcd p q) := by
-            rw [<-hr.2]
-            refine not_dvd_of_degree_lt ?_ ?_
-            · aesop
-            · have hrz : r ≠ 0 := isUnit_iff_ne_zero.mp hr.1
-              rw [degree_C hrz];
-              exact (Monic.degree_pos (monic_X_sub_C y)).mpr (X_sub_C_ne_one y)
-          exact h_contra h_monon_dvd
-        exact hf ((gcd_isUnit_iff p q).mpr hpq_coprime)
-    have hab_disjoint : (Disjoint A B) := Finset.disjoint_iff_inter_eq_empty.mpr hab_disjoint'
+      rw [rootsInInterval_mul a b (mul_ne_zero hqz hpz), Finset.union_comm]
+    have hab_disjoint : Disjoint A B := by
+      rw [Finset.disjoint_left]
+      intro y hyA hyB
+      have hp_dvd : X - C y ∣ p := dvd_iff_isRoot.mpr (mem_rootsInInterval.mp hyA).1.2
+      have hq_dvd : X - C y ∣ q := dvd_iff_isRoot.mpr (mem_rootsInInterval.mp hyB).1.2
+      exact not_isUnit_X_sub_C y (isUnit_of_dvd_unit ((dvd_gcd_iff _ _ _).mpr ⟨hp_dvd, hq_dvd⟩)
+        ((gcd_isUnit_iff p q).mpr hpq_coprime))
     rw [hl]
     unfold cauchyIndex
     unfold A B at hab_disjoint hab_union
@@ -453,19 +380,19 @@ theorem cindex_poly_inverse_add_cross (p q : Polynomial ℝ) (a b : ℝ)
     exact qneq0 this
   have cauchyMuls : cauchyIndex p q a b + cauchyIndex q p a b
       = cauchyIndex p' q' a b + cauchyIndex q' p' a b:= by
-    rw [hp',hq']
-    if h1p0 : p = 0 then exact False.elim (pneq0 h1p0)
-    else
-      rw [cindex_poly_mult h_gcd, cindex_poly_mult h_gcd]
+    rw [hp', hq', cindex_poly_mult h_gcd, cindex_poly_mult h_gcd]
   have cauchy1 : cauchyIndex p' q' a b + cauchyIndex q' p' a b
       = cauchyIndex (q' * p') 1 a b := by
         have : IsCoprime p' q' := (gcd_isUnit_iff p' q').mp (isUnit_gcd_of_eq_mul_gcd hp' hq' h_gcd)
         exact cindex_poly_inverse_add a b this
   have cauchyVar : cauchyIndex (p' * q') 1 a b
       = variation (eval a (p' * q'))  (eval b (p'*q')) := by
+    have hpq : p * q = (g * g) * (p' * q') := by rw [hp', hq']; ring
     have : cauchyIndex (p' * q') 1 a b = cross (p' * q') a b := by
-      have ha : eval a (p' * q') ≠ 0 := by simp_all
-      have hb : eval b (p' * q') ≠ 0 := by simp_all
+      have ha : eval a (p' * q') ≠ 0 :=
+        right_ne_zero_of_mul (by rw [hpq, eval_mul] at hapq; exact hapq)
+      have hb : eval b (p' * q') ≠ 0 :=
+        right_ne_zero_of_mul (by rw [hpq, eval_mul] at hbpq; exact hbpq)
       exact cindex_poly_cross hab ha hb
     exact this
   have : variation (eval a (p' * q'))  (eval b (p'*q')) =
