@@ -1,4 +1,7 @@
-import Mathlib
+import Mathlib.Algebra.Polynomial.FieldDivision
+import Mathlib.Data.List.Destutter
+import Mathlib.Data.Real.Basic
+import Mathlib.Data.Sign.Basic
 
 open SignType
 
@@ -33,11 +36,15 @@ lemma signVariations_cons_zero_cons : ∀ (a : α) (as : List α),
   simp [signVariations, filter]
 
 lemma signVariations_cons_cons_of_ne_zero : ∀ (a b : α) (as : List α),
-    a ≠ 0 → b ≠ 0 → signVariations (a :: b :: as) = (if sign a = sign b then 0 else 1) + signVariations (b :: as) := by
+    a ≠ 0 → b ≠ 0 →
+      signVariations (a :: b :: as) =
+        (if sign a = sign b then 0 else 1) + signVariations (b :: as) := by
   intros a b as ha hb
   have ha' : sign a ≠ 0 := by rwa [ne_eq, sign_eq_zero_iff]
   have hb' : sign b ≠ 0 := by rwa [ne_eq, sign_eq_zero_iff]
-  have hf1 : ((a :: b :: as).map sign).filter (· ≠ 0) = sign a :: sign b :: (as.map sign).filter (· ≠ 0) := by
+  have hf1 :
+      ((a :: b :: as).map sign).filter (· ≠ 0) =
+      sign a :: sign b :: (as.map sign).filter (· ≠ 0) := by
     simp [ha', hb']
   have hf2 : ((b :: as).map sign).filter (· ≠ 0) = sign b :: (as.map sign).filter (· ≠ 0) := by
     simp [hb']
@@ -95,11 +102,13 @@ lemma signType_ite_add_ite (s t : SignType) (hs : s ≠ 0) (ht : t ≠ 0) :
     (if s = t then (0 : ℕ) else 1) + (if t = -s then 0 else 1) = 1 := by
   revert hs ht; revert s t; decide
 
-section RealPoly
+section SturmSeq
 
 open Polynomial
 
-theorem termination_sturmSeq {α : Type*} [Field α] [DecidableEq α] (f g : Polynomial α) (hf : f ≠ 0) :
+variable {α : Type*} [Field α] [DecidableEq α]
+
+theorem termination_sturmSeq (f g : Polynomial α) (hf : f ≠ 0) :
     (if g = 0 then 0 else if -f % g = 0 then 1 else 2 + (-f % g).natDegree) <
     if f = 0 then 0 else if g = 0 then 1 else 2 + g.natDegree := by
   rw [if_neg hf]
@@ -118,7 +127,7 @@ theorem termination_sturmSeq {α : Type*} [Field α] [DecidableEq α] (f g : Pol
   have := natDegree_mod_lt (-f) hdeg
   omega
 
-noncomputable def sturmSeq {α : Type*} [Field α] [DecidableEq α] (f g : Polynomial α) : List (Polynomial α) :=
+noncomputable def sturmSeq (f g : Polynomial α) : List (Polynomial α) :=
   if f = 0 then
     []
   else
@@ -126,15 +135,15 @@ noncomputable def sturmSeq {α : Type*} [Field α] [DecidableEq α] (f g : Polyn
   termination_by if f=0 then 0 else if g=0 then 1 else 2 + natDegree g
   decreasing_by exact termination_sturmSeq f g (by assumption)
 
-@[simp] lemma sturmSeq_zero {α : Type*} [Field α] [DecidableEq α] {q : Polynomial α} :
+@[simp] lemma sturmSeq_zero {q : Polynomial α} :
     sturmSeq 0 q = [] := by simp [sturmSeq]
 
-lemma sturmSeq_cons {α : Type*} [Field α] [DecidableEq α] {p q : Polynomial α} (hp : p ≠ 0) :
+lemma sturmSeq_cons {p q : Polynomial α} (hp : p ≠ 0) :
     sturmSeq p q = p :: sturmSeq q (-p % q) := by
   conv_lhs => unfold sturmSeq
   simp [hp]
 
-lemma sturmSeq_eq_nil_iff {α : Type*} [Field α] [DecidableEq α] {p q : Polynomial α} :
+lemma sturmSeq_eq_nil_iff {p q : Polynomial α} :
     sturmSeq p q = [] ↔ p = 0 := by
   constructor
   · intro hs
@@ -145,59 +154,70 @@ lemma sturmSeq_eq_nil_iff {α : Type*} [Field α] [DecidableEq α] {p q : Polyno
     exact sturmSeq_zero
 
 @[simp]
-lemma sturmSeq_zero_right {α : Type*} [Field α] [DecidableEq α] (p : Polynomial α) :
+lemma sturmSeq_zero_right (p : Polynomial α) :
     sturmSeq p 0 = if p = 0 then [] else [p] := by
   split_ifs with hp
   · exact sturmSeq_eq_nil_iff.mpr hp
   · rw [sturmSeq_cons hp, sturmSeq_zero]
 
-lemma mem_sturmSeq_self {α : Type*} [Field α] [DecidableEq α] {p q : Polynomial α} (hp : p ≠ 0) :
+lemma mem_sturmSeq_self {p q : Polynomial α} (hp : p ≠ 0) :
     p ∈ sturmSeq p q := by
   rw [sturmSeq_cons hp]; exact List.mem_cons_self
 
-lemma zero_notMem_sturmSeq {α : Type*} [Field α] [DecidableEq α] (p q : Polynomial α) : 0 ∉ sturmSeq p q := by
+lemma zero_notMem_sturmSeq (p q : Polynomial α) : 0 ∉ sturmSeq p q := by
   induction p, q using sturmSeq.induct
-  next q => simp [sturmSeq_zero]
+  next q => simp
   next p q hp ih =>
     rw [sturmSeq_cons hp]
     simp [Ne.symm hp, ih]
 
-noncomputable def sign_pos_inf (p : Polynomial ℝ) : ℤ :=
+end SturmSeq
+
+section RealPolynomial
+
+open Polynomial
+
+noncomputable def signPosInf (p : Polynomial ℝ) : ℤ :=
   sign p.leadingCoeff
 
-noncomputable def sign_neg_inf (p : Polynomial ℝ) : ℤ :=
+noncomputable def signNegInf (p : Polynomial ℝ) : ℤ :=
   if Even p.natDegree then sign p.leadingCoeff else - sign p.leadingCoeff
 
-noncomputable def seq_sign_pos_inf : List (Polynomial ℝ) → List ℤ := List.map (fun x => sign_pos_inf x)
+noncomputable def seqSignPosInf :
+    List (Polynomial ℝ) → List ℤ := List.map (fun x => signPosInf x)
 
-noncomputable def seq_sign_neg_inf : List (Polynomial ℝ) → List ℤ := List.map (fun x => sign_neg_inf x)
+noncomputable def seqSignNegInf :
+    List (Polynomial ℝ) → List ℤ := List.map (fun x => signNegInf x)
 
 def seqEval {α : Type*} [Semiring α] (k : α) : List (Polynomial α) → List α := List.map (eval k)
 
-noncomputable def seqEvalSign (k : ℝ) : List (Polynomial ℝ) → List ℤ := List.map (fun a => sign (eval k a))
+noncomputable def seqEvalSign (k : ℝ) :
+    List (Polynomial ℝ) → List ℤ := List.map (fun a => sign (eval k a))
 
-noncomputable def signVariations_ab (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
-  (List.signVariations (seqEval a P) : Int) - List.signVariations (seqEval b P)
+noncomputable def signVariationsAb (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
+  (List.signVariations (seqEval a P) : ℤ) - List.signVariations (seqEval b P)
 
-noncomputable def signVariationsSturm_ab (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
-  signVariations_ab (sturmSeq p q) a b
+noncomputable def signVariationsSturmAb (p q: (Polynomial ℝ)) (a b : ℝ) : ℤ :=
+  signVariationsAb (sturmSeq p q) a b
 
-noncomputable def signVariationsAbove_a (P: List (Polynomial ℝ)) (a : ℝ) : ℤ :=
-  (List.signVariations (seqEval a P) : Int) - List.signVariations (seq_sign_pos_inf P)
+noncomputable def signVariationsAboveA (P: List (Polynomial ℝ)) (a : ℝ) : ℤ :=
+  (List.signVariations (seqEval a P) : ℤ) - List.signVariations (seqSignPosInf P)
 
-noncomputable def signVariationsBelow_b (P: List (Polynomial ℝ)) (b : ℝ) : ℤ :=
-  (List.signVariations (seq_sign_neg_inf P) : Int) - List.signVariations (seqEval b P)
+noncomputable def signVariationsBelowB (P: List (Polynomial ℝ)) (b : ℝ) : ℤ :=
+  (List.signVariations (seqSignNegInf P) : ℤ) - List.signVariations (seqEval b P)
 
 noncomputable def signVariationsLine (P : List (Polynomial ℝ)) : ℤ :=
-  (List.signVariations (seq_sign_neg_inf P) : Int) - List.signVariations (seq_sign_pos_inf P)
+  (List.signVariations (seqSignNegInf P) : ℤ) - List.signVariations (seqSignPosInf P)
 
 noncomputable def signVariationsAboveSturm (p q : Polynomial ℝ) (a : ℝ) : ℤ :=
-  signVariationsAbove_a (sturmSeq p q) a
+  signVariationsAboveA (sturmSeq p q) a
 
 noncomputable def signVariationsBelowSturm (p q : Polynomial ℝ) (b : ℝ) : ℤ :=
-  signVariationsBelow_b (sturmSeq p q) b
+  signVariationsBelowB (sturmSeq p q) b
 
 noncomputable def signVariationsLineSturm (p q : Polynomial ℝ) : ℤ  :=
   signVariationsLine (sturmSeq p q)
 
-end RealPoly
+end RealPolynomial
+
+#min_imports
