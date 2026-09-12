@@ -155,22 +155,10 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b : ℝ} (hab : a < b) (hpa_nr
           have hmaxr_root : eval maxr p = 0 ∧ maxr > a ∧  maxr < b := by
             have := mem_rootsInInterval.mp (Finset.max'_mem (rootsInInterval p a b) H)
             exact ⟨this.1.2, this.2.1, this.2.2⟩
-          let maxrp := (X - C maxr)^ (rootMultiplicity maxr p)
-          have ⟨p', hp'⟩ : ∃p': Polynomial ℝ, p = p' * maxrp := by
-            have : maxrp ∣ p := by
-              unfold maxrp
-              exact pow_rootMultiplicity_dvd p maxr
-            exact exists_eq_mul_left_of_dvd this
-          have hmonon_nvdv : ¬ (X - C maxr ∣ p') := by
-            by_contra!
-            have : (X - C maxr)^(rootMultiplicity maxr p + 1) ∣ p := by
-              unfold maxrp at hp';
-              have ⟨p'', hp''⟩ :
-                  ∃ p'' : Polynomial ℝ, p' = p'' * (X - C maxr) := exists_eq_mul_left_of_dvd this
-              rw [hp'', mul_right_comm, mul_assoc, ←pow_succ] at hp';
-              exact Dvd.intro_left p'' (id (Eq.symm hp'))
-            have h_contra := (le_rootMultiplicity_iff hpz).mpr this
-            linarith
+          -- factor out the largest root: `p = p' * (X - maxr) ^ m` with `p' maxr ≠ 0`
+          obtain ⟨p', hp', hmonon_nvdv⟩ := exists_eq_pow_rootMultiplicity_mul_and_not_dvd p hpz maxr
+          set maxrp := (X - C maxr) ^ rootMultiplicity maxr p with hmaxrp
+          rw [mul_comm] at hp'
           have hpa' : eval a (p' * maxrp) ≠ 0 := hp' ▸ hpa_nroot
           have hpb' : eval b (p' * maxrp) ≠ 0 := hp' ▸ hpb_nroot
           rw [eval_mul] at hpa' hpb'
@@ -196,7 +184,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b : ℝ} (hab : a < b) (hpa_nr
               ext y
               rw [mem_rootsInInterval, Finset.mem_singleton]
               have hev : eval y maxrp = 0 ↔ y = maxr := by
-                simp only [maxrp, eval_pow, eval_sub, eval_X, eval_C, pow_eq_zero_iff hmulr,
+                simp only [hmaxrp, eval_pow, eval_sub, eval_X, eval_C, pow_eq_zero_iff hmulr,
                   sub_eq_zero]
               rw [hev]
               exact ⟨fun h => h.1.2, fun h => ⟨⟨maxrpz, h⟩, by rw [h]; exact hmaxr_root.2.1,
@@ -225,7 +213,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b : ℝ} (hab : a < b) (hpa_nr
                 rw [h] at hx
                 exact hmonon_nvdv (dvd_iff_isRoot.mpr (mem_rootsInInterval.mp hx).1.2)
               have hx_nroot: eval x maxrp ≠ 0 := by
-                simp only [maxrp, eval_pow, eval_sub, eval_X, eval_C]
+                simp only [hmaxrp, eval_pow, eval_sub, eval_X, eval_C]
                 exact pow_ne_zero _ (sub_ne_zero.mpr hx_maxr)
               have hxlmaxr: x < maxr := by
                 have : x <= maxr := Finset.le_max' (rootsInInterval p a b) x hx_root
@@ -233,7 +221,8 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b : ℝ} (hab : a < b) (hpa_nr
               have hmaxr_sign : sign (eval x maxrp) = maxr_sign := by
                 have hevallt: (x - maxr) < 0 := by
                   simp [hxlmaxr]
-                unfold maxr_sign maxrp
+                unfold maxr_sign
+                rw [hmaxrp]
                 simp only [eval_pow, eval_sub, eval_X, eval_C]
                 split_ifs with h₁
                 · simp [sign_neg (Odd.pow_neg h₁ hevallt)]
@@ -254,7 +243,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b : ℝ} (hab : a < b) (hpa_nr
               else
                 have hpp'_deg: p'.natDegree < p.natDegree := by
                   rw [hp', natDegree_mul hp'z maxrpz];
-                  unfold maxrp
+                  rw [hmaxrp]
                   simp [hmulrz]
                 have hcindex: cauchyIndex p' 1 a b = cross p' a b := by
                   rw [←hp] at ih
@@ -267,12 +256,12 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b : ℝ} (hab : a < b) (hpa_nr
           have hcross_jp: maxr_sign * cross p' a b + jumpVal p 1 maxr = cross p a b := by
             if H': Odd (rootMultiplicity maxr p) then
               have hamaxrpltz: eval a maxrp < 0 := by
-                unfold maxrp
+                rw [hmaxrp]
                 simp
                 have : a - maxr < 0 := by linarith
                 exact Odd.pow_neg H' this
               have hbmaxrpgtz: eval b maxrp > 0 := by
-                unfold maxrp
+                rw [hmaxrp]
                 simp
                 have : b - maxr > 0 := by linarith
                 exact pow_pos this (rootMultiplicity maxr p)
@@ -308,7 +297,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b : ℝ} (hab : a < b) (hpa_nr
                   rw [eq_iff_iff, gt_iff_lt, gt_iff_lt, ← sign_eq_one_iff, ← sign_eq_one_iff,
                     sign_eq_sign_of_mul_nonneg hmaxrp' hbp' hprod]
                 have hsrposmaxr: signRPos maxr maxrp := by
-                  unfold maxrp
+                  rw [hmaxrp]
                   exact signRPos_power maxr (rootMultiplicity maxr p)
                 unfold maxr_sign jumpVal sign
                 have haux: rootMultiplicity maxr 1 = 0 := by simp
@@ -332,7 +321,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b : ℝ} (hab : a < b) (hpa_nr
             else
               simp at H'
               have ⟨hapos, hbpos⟩ : eval a maxrp > 0 ∧ eval b maxrp > 0 := by
-                unfold maxrp
+                rw [hmaxrp]
                 rw [eval_pow, eval_pow]
                 constructor
                 · simp
