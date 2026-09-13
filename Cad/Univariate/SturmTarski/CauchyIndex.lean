@@ -97,7 +97,6 @@ lemma variation_mult_neg_1 (c x y : ℝ) (hc : c < 0) :
     mul_neg_of_neg_of_pos (mul_neg_of_neg_of_pos hc hx) hy,
       sign_pos hx, sign_pos hy, hy.ne']
 
-
 @[simp]
 theorem cindex_poly_z_1 (p q: Polynomial ℝ) (a b: ℝ) (hp: p = 0) : cauchyIndex p q a b = 0 := by
   simp [cauchyIndex, jumpVal, hp]
@@ -299,12 +298,14 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b : ℝ} (hab : a < b) (hpa_nr
                 have hsrposmaxr: signRPos maxr maxrp := by
                   rw [hmaxrp]
                   exact signRPos_power maxr (rootMultiplicity maxr p)
-                unfold maxr_sign jumpVal sign
+                unfold maxr_sign jumpVal
                 have haux: rootMultiplicity maxr 1 = 0 := by simp
                 simp [H', haux, hpz]
                 rw [mul_one, hp', signRPos_mult p' maxrp maxr hp'z maxrpz, hsrpos, hn]
                 simp [hsrposmaxr]
-                rcases lt_or_gt_of_ne hbp' with h | h <;> simp [h, not_lt.mpr h.le]
+                rcases lt_or_gt_of_ne hbp' with h | h
+                · simp [not_lt.mpr h.le, sign_neg h]
+                · simp [h, sign_pos h]
               have hvar :
                   variation (eval a p') (eval b p') + sign (eval a p') =
                   (-variation (eval a p') (eval b p')) + (sign (eval b p')) := by
@@ -353,7 +354,7 @@ theorem cindex_poly_inverse_add {p q : Polynomial ℝ} (a b : ℝ) (hpq_coprime 
   if hpqz: p = 0 ∨ q = 0 then
     rcases hpqz with rfl | rfl <;> simp
   else
-    push_neg at hpqz
+    push Not at hpqz
     have ⟨hpz, hqz⟩ := hpqz
     let A := rootsInInterval p a b
     let B := rootsInInterval q a b

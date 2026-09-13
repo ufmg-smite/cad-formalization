@@ -219,5 +219,3 @@ noncomputable def signVariationsLineSturm (p q : Polynomial ℝ) : ℤ  :=
   signVariationsLine (sturmSeq p q)
 
 end RealPolynomial
-
-#min_imports

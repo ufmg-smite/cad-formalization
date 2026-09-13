@@ -29,7 +29,7 @@ lemma rootsAbove_eq_rootsInInterval {p : Polynomial ℝ} {a ub : ℝ} (h : ∀ x
     rootsAbove p a = rootsInInterval p a ub := by
   ext z
   simp only [rootsAbove, rootsInInterval, Finset.mem_filter, Multiset.mem_toFinset, mem_roots',
-    IsRoot.def, Set.mem_Ioo, gt_iff_lt]
+    IsRoot.def, Set.mem_Ioo]
   exact ⟨fun ⟨h1, h2⟩ => ⟨h1, h2, h z h1.2⟩, fun ⟨h1, h2, _⟩ => ⟨h1, h2⟩⟩
 
 lemma rootsBelow_eq_rootsInInterval {p : Polynomial ℝ} {b lb : ℝ} (h : ∀ x, eval x p = 0 → lb < x) :
@@ -114,25 +114,21 @@ theorem sturm_interval (a b : ℝ) (p : Polynomial ℝ) (hab : a < b) (hpa : eva
     (hpb : eval b p ≠ 0) :
     Finset.card (rootsInInterval p a b) = signVariationsSturmAb p (derivative p) a b := by
   have := sturm_tarski_interval a b p 1 hab hpa hpb
-  simp [tarskiQuery, sign] at this
-  exact this
+  simpa [tarskiQuery, sign_one] using this
 
 theorem sturm_above (a : ℝ) (p : Polynomial ℝ) (hpa : eval a p ≠ 0) :
     Finset.card (rootsAbove p a) = signVariationsAboveSturm p (derivative p) a := by
   have := sturm_tarski_above a p 1 hpa
-  simp [tarskiQueryAbove, sign] at this
-  exact this
+  simpa [tarskiQueryAbove, sign_one] using this
 
 theorem sturm_below (b : ℝ) (p : Polynomial ℝ) (hpa : eval b p ≠ 0) :
     Finset.card (rootsBelow p b) = signVariationsBelowSturm p (derivative p) b := by
   have := sturm_tarski_below b p 1 hpa
-  simp [tarskiQueryBelow, sign] at this
-  exact this
+  simpa [tarskiQueryBelow, sign_one] using this
 
 theorem sturm_R (p : Polynomial ℝ) :
     Finset.card p.roots.toFinset = signVariationsLineSturm p (derivative p) := by
   have := sturm_tarski_R p 1
-  simp [tarskiQueryR, sign] at this
-  exact this
+  simpa [tarskiQueryR, sign_one] using this
 
 end Theorem

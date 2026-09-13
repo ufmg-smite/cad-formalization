@@ -178,7 +178,7 @@ lemma jump_poly_coprime {p q : Polynomial ℝ} {x : ℝ} (hp : eval x p = 0)
   if hpqz: (p = 0 ∨ q = 0) then
     rcases hpqz with h | h <;> simp[h]
   else
-    push_neg at hpqz
+    push Not at hpqz
     have ⟨hpz, hqz⟩ := hpqz
     have hroot : eval x p ≠ 0 ∨ eval x q ≠ 0 := aeval_ne_zero_of_isCoprime hpq_coprime x
     have hq_root : eval x q ≠ 0 := hroot.resolve_left (not_not.mpr hp)

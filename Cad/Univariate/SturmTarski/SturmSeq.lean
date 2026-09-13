@@ -14,7 +14,7 @@ lemma signVariationsSign :
 
 @[simp]
 theorem seqVarSturm_ab_z_1 (p: Polynomial ℝ) (a b: ℝ) : signVariationsSturmAb 0 p a b = 0 := by
-  simp [signVariationsSturmAb, signVariationsAb]
+  simp [signVariationsSturmAb, signVariationsAb, seqEval]
 
 @[simp]
 theorem seqVarSturm_ab_z_2 (p: Polynomial ℝ) (a b: ℝ) : signVariationsSturmAb p 0 a b = 0 := by
@@ -264,7 +264,7 @@ theorem cauchyIndex_sturmSeq (p q : Polynomial ℝ) (a b : ℝ) (hpa : p.eval a 
   induction p, q using sturmSeq.induct generalizing a b
   next q =>
     rw [signVariationsSturmAb, sturmSeq_zero]
-    simp [signVariationsAb, cauchyIndex, rootsInInterval]
+    simp [signVariationsAb, cauchyIndex, rootsInInterval, seqEval]
   next p q h_zero IH =>
     if H: q = 0 then simp [H]
     else
@@ -290,5 +290,3 @@ theorem cauchyIndex_sturmSeq (p q : Polynomial ℝ) (a b : ℝ) (hpa : p.eval a 
       have h_changes_itv := changes_itv_smods_rec t1 t2
       rw [h_congr_cindex, h_cindex, h_changes_itv]
       rw [IH a_ b_ hqa_ hqb_ t0]
-
-#min_imports

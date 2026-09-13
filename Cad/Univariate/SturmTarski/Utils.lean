@@ -49,7 +49,7 @@ lemma eval_non_zero (p: Polynomial ℝ) (x: ℝ) (h: eval x p ≠ 0) : p ≠ 0 :
 lemma derivative_ne_0 (p : Polynomial ℝ) (x : ℝ) (hev : eval x p = 0) (hp : p ≠ 0) :
     derivative p ≠ 0 := by
   intro abs
-  obtain ⟨c, rfl⟩ := natDegree_eq_zero.mp (natDegree_eq_zero_of_derivative_eq_zero abs)
+  obtain ⟨c, rfl⟩ := natDegree_eq_zero.mp (derivative_eq_zero.mp abs)
   simp at hev
   simp [hev] at hp
 
@@ -101,7 +101,7 @@ lemma sign_inf_comp (p : Polynomial ℝ) :
 /-- A nonzero polynomial has no roots in a punctured neighbourhood of any point. -/
 lemma eventually_eval_ne_zero {p : Polynomial ℝ} (hp : p ≠ 0) (x : ℝ) :
     ∀ᶠ z in 𝓝[≠] x, eval z p ≠ 0 := by
-  have hfin : ({z | IsRoot p z} \ {x}).Finite := (finite_setOf_isRoot hp).diff
+  have hfin : ({z | IsRoot p z} \ {x}).Finite := (finite_setOfPred_isRoot hp).sdiff
   have hmem : ({z | IsRoot p z} \ {x})ᶜ ∈ 𝓝 x :=
     hfin.isClosed.isOpen_compl.mem_nhds (by simp)
   filter_upwards [nhdsWithin_le_nhds hmem, self_mem_nhdsWithin] with z hz hzx h0
@@ -200,13 +200,13 @@ lemma eventually_sign_eq_atBot {p : Polynomial ℝ} (hp : p ≠ 0) :
 
 lemma eventually_roots_lt_atTop {p : Polynomial ℝ} (hp : p ≠ 0) :
     ∀ᶠ x in atTop, ∀ y, eval y p = 0 → y < x := by
-  obtain ⟨M, hM⟩ := (finite_setOf_isRoot hp).bddAbove
+  obtain ⟨M, hM⟩ := (finite_setOfPred_isRoot hp).bddAbove
   filter_upwards [eventually_gt_atTop M] with x hx y hy
   exact lt_of_le_of_lt (hM hy) hx
 
 lemma eventually_lt_roots_atBot {p : Polynomial ℝ} (hp : p ≠ 0) :
     ∀ᶠ x in atBot, ∀ y, eval y p = 0 → x < y := by
-  obtain ⟨M, hM⟩ := (finite_setOf_isRoot hp).bddBelow
+  obtain ⟨M, hM⟩ := (finite_setOfPred_isRoot hp).bddBelow
   filter_upwards [eventually_lt_atBot M] with x hx y hy
   exact lt_of_lt_of_le hx (hM hy)
 
