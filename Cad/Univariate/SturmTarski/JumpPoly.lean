@@ -41,7 +41,7 @@ lemma jump_poly_mult {p q p': Polynomial ℝ} {x: ℝ} (hp': p' ≠ 0) :
                Odd (rootMultiplicity x p - rootMultiplicity x q) := by
     have hp'p : p' * p ≠ 0 := mul_ne_zero hp' hp
     have hp'q : p' * q ≠ 0 := mul_ne_zero hp' hq
-    simp [rootMultiplicity_mul hp'q, rootMultiplicity_mul hp'p]
+    simp only [rootMultiplicity_mul hp'p, rootMultiplicity_mul hp'q, eq_iff_iff]
     rw [Nat.add_sub_add_left]
   simp [jumpVal, h_sign, h_odd, hp', hp, hq]
 
@@ -49,7 +49,7 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jumpVal p q x = jumpVal p (
   by_cases (p = 0 ∨ q = 0)
   next H => rcases H with rfl | rfl <;> simp
   next hf =>
-    simp [← ne_eq] at hf
+    simp only [not_or, ← ne_eq] at hf
     let n := min (rootMultiplicity x q) (rootMultiplicity x p)
     have ⟨q', hq'⟩ : ∃q', q = (X - C x)^n * q' := by
       have  : (X - C x)^n ∣ q := by
@@ -67,9 +67,9 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jumpVal p q x = jumpVal p (
     have hrm: rootMultiplicity x q' = 0 ∨ rootMultiplicity x p' = 0 := by
       if H: n = rootMultiplicity x q then
         have : ¬(X - C x)^1 ∣ q' := by
-         simp
+         simp only [pow_one]
          have hbound := rootMultiplicity_le_iff hf.2 x n
-         simp [H] at hbound
+         simp only [H, Std.le_refl, true_iff] at hbound
          by_contra!
          have ⟨f, hf⟩ := exists_eq_mul_left_of_dvd this
          rw [hf, mul_comm, mul_assoc, mul_comm, ← pow_succ'] at hq'
@@ -82,9 +82,9 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jumpVal p q x = jumpVal p (
       else
         have H : n = rootMultiplicity x p := by omega
         have : ¬(X - C x)^1 ∣ p' := by
-          simp
+          simp only [pow_one]
           have hbound := rootMultiplicity_le_iff hf.1 x n
-          simp [H] at hbound
+          simp only [H, Std.le_refl, true_iff] at hbound
           by_contra!
           have ⟨f, hf⟩ := exists_eq_mul_left_of_dvd this
           rw [hf, mul_comm, mul_assoc, mul_comm, ← pow_succ'] at hp'
@@ -107,19 +107,20 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jumpVal p q x = jumpVal p (
             have hp_dvd : (X - C x) ∣ p' := by
               have : rootMultiplicity x p' >= 1:= by omega
               apply (le_rootMultiplicity_iff hz'.2).mp at this
-              simp at this; exact this
+              simp only [pow_one] at this; exact this
             have hq_mod_ndvd : ¬ ((X - C x)^1 ∣ q' % p') := by
-              simp at hq_ndvd ⊢
-              simp [EuclideanDomain.dvd_mod_iff hp_dvd]; exact hq_ndvd
+              simp only [pow_one] at hq_ndvd ⊢
+              simp only [EuclideanDomain.dvd_mod_iff hp_dvd]
+              exact hq_ndvd
             have : rootMultiplicity x (q' % p') = 0 ∧ q' % p' ≠ 0 := by
-              simp at hq_mod_ndvd hq_ndvd
+              simp only [pow_one] at hq_mod_ndvd hq_ndvd
               have : q' % p' ≠ 0 := by
                 simp only [ne_eq, EuclideanDomain.mod_eq_zero]
                 by_contra!
                 exact hq_ndvd (dvd_trans hp_dvd this)
               constructor
               · apply Nat.le_zero.mp; apply (rootMultiplicity_le_iff this x 0).mpr
-                simp
+                simp only [zero_add, pow_one]
                 exact hq_mod_ndvd
               · exact this
             simp [hz', this, hok]
@@ -150,7 +151,7 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jumpVal p q x = jumpVal p (
     rw [hp', hq']
     have h_mod : ((X - C x)^n * q') % ((X - C x)^n * p') = (X - C x)^n * (q' % p') :=
       mod_mul q' p' ((X - C x) ^ n) h_mon_z
-    simp [h_mod, jump_poly_mult h_mon_z]
+    simp only [jump_poly_mult h_mon_z, h_mod]
     exact h_ult
 
 lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
@@ -176,7 +177,7 @@ lemma jump_poly_coprime {p q : Polynomial ℝ} {x : ℝ} (hp : eval x p = 0)
     jumpVal p q x = jumpVal (q*p) 1 x := by
   classical
   if hpqz: (p = 0 ∨ q = 0) then
-    rcases hpqz with h | h <;> simp[h]
+    rcases hpqz with h | h <;> simp [h]
   else
     push Not at hpqz
     have ⟨hpz, hqz⟩ := hpqz
@@ -190,7 +191,8 @@ lemma jump_poly_coprime {p q : Polynomial ℝ} {x : ℝ} (hp : eval x p = 0)
       simp [this]
     unfold jumpVal
     have h_one: rootMultiplicity x 1 = 0 := rootMultiplicity_C 1 x
-    simp [hqz, h_one, h]
+    simp only [ne_eq, hqz, not_false_eq_true, h, true_and, Int.reduceNeg, mul_eq_zero, false_or,
+      one_ne_zero, h_one, tsub_zero, mul_one]
     rw [mul_comm]
 
 /-- The jump of `p * q` at a point where `p` does not vanish is the jump of `q`, signed by `p`. -/
@@ -236,7 +238,7 @@ lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
       · rw [derivative_rootMultiplicity_of_root hev]
         have : 1 ≤ rootMultiplicity x p := by
           apply (Polynomial.le_rootMultiplicity_iff hp).mpr
-          simp
+          simp only [pow_one]
           exact dvd_iff_isRoot.mpr hev
         omega
       · exact (mul_ne_zero_iff_right hq).mpr deriv_ne_0
@@ -276,7 +278,7 @@ lemma jump_poly_sign (p q : Polynomial ℝ) (x : ℝ) :
       have h2 : derivative p * q ≠ 0 := mul_ne_zero deriv_ne_0 hq
       have h3 : signRPos x q ↔ 0 < eval x q := by
         rw [signRPos_rec]
-        simp [hevQ]
+        simp only [hevQ, ↓reduceIte]
         exact hq
       have h4 : simpleL = if 0 < eval x q then 1 else -1 := by
         simp [simpleL, h1, h2, h3]
