@@ -6,10 +6,9 @@ noncomputable section
 
 lemma signVariationsSign (ps : List (Polynomial ℝ)) (k : ℝ) :
     List.signVariations (seqEval k ps) = List.signVariations (seqEvalSign k ps) := by
-  have : seqEvalSign k ps = ((seqEval k ps).map sign).map ((↑) : SignType → ℤ) := by
+  have : seqEvalSign k ps = (seqEval k ps).map sign := by
     simp only [seqEvalSign, seqEval, List.map_map, Function.comp_def]
-  rw [this, List.signVariations_map (fun s => by rw [SignType.sign_cast]; cases s <;> decide),
-    List.signVariations_map_sign]
+  rw [this, List.signVariations_map_sign]
 
 @[simp]
 theorem seqVarSturm_ab_z_1 (p: Polynomial ℝ) (a b: ℝ) : signVariationsSturmAb 0 p a b = 0 := by

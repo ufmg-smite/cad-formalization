@@ -7,14 +7,6 @@ open SignType
 
 /-! ### Facts about `SignType.sign` -/
 
-@[simp] lemma SignType.sign_cast {β : Type*} [Ring β] [LinearOrder β] [IsStrictOrderedRing β]
-    (s : SignType) : sign (s : β) = s := by
-  cases s <;> simp [sign_neg]
-
-lemma sign_intCast_sign {α : Type*} [Zero α] [LinearOrder α] (a : α) :
-    sign ((sign a : SignType) : ℤ) = sign a :=
-  SignType.sign_cast _
-
 lemma sign_eq_sign_of_mul_nonneg {x y : ℝ} (hx : x ≠ 0) (hy : y ≠ 0) (h : 0 ≤ x * y) :
     sign x = sign y := by
   rcases lt_or_gt_of_ne hx with hx | hx <;> rcases lt_or_gt_of_ne hy with hy | hy
@@ -113,22 +105,22 @@ section RealPolynomial
 
 open Polynomial
 
-noncomputable def signPosInf (p : Polynomial ℝ) : ℤ :=
+noncomputable def signPosInf (p : Polynomial ℝ) : SignType :=
   sign p.leadingCoeff
 
-noncomputable def signNegInf (p : Polynomial ℝ) : ℤ :=
+noncomputable def signNegInf (p : Polynomial ℝ) : SignType :=
   if Even p.natDegree then sign p.leadingCoeff else - sign p.leadingCoeff
 
 noncomputable def seqSignPosInf :
-    List (Polynomial ℝ) → List ℤ := List.map (fun x => signPosInf x)
+    List (Polynomial ℝ) → List SignType := List.map (fun x => signPosInf x)
 
 noncomputable def seqSignNegInf :
-    List (Polynomial ℝ) → List ℤ := List.map (fun x => signNegInf x)
+    List (Polynomial ℝ) → List SignType := List.map (fun x => signNegInf x)
 
 def seqEval {α : Type*} [Semiring α] (k : α) : List (Polynomial α) → List α := List.map (eval k)
 
 noncomputable def seqEvalSign (k : ℝ) :
-    List (Polynomial ℝ) → List ℤ := List.map (fun a => sign (eval k a))
+    List (Polynomial ℝ) → List SignType := List.map (fun a => sign (eval k a))
 
 noncomputable def signVariationsAb (P: List (Polynomial ℝ)) (a b: ℝ): ℤ :=
   (List.signVariations (seqEval a P) : ℤ) - List.signVariations (seqEval b P)
