@@ -4,13 +4,12 @@ open Polynomial Set Filter SignType
 
 noncomputable section
 
-lemma signVariationsSign :
-    ∀ ps : List (Polynomial ℝ), ∀ (k : ℝ), List.signVariations (seqEval k ps) =
-    List.signVariations (seqEvalSign k ps) := by
-  intro ps k
-  have : seqEvalSign k ps = (seqEval k ps).map (fun x => ((sign x : SignType) : ℤ)) := by
+lemma signVariationsSign (ps : List (Polynomial ℝ)) (k : ℝ) :
+    List.signVariations (seqEval k ps) = List.signVariations (seqEvalSign k ps) := by
+  have : seqEvalSign k ps = ((seqEval k ps).map sign).map ((↑) : SignType → ℤ) := by
     simp only [seqEvalSign, seqEval, List.map_map, Function.comp_def]
-  rw [this, List.signVariations_map sign_intCast_sign]
+  rw [this, List.signVariations_map (fun s => by rw [SignType.sign_cast]; cases s <;> decide),
+    List.signVariations_map_sign]
 
 @[simp]
 theorem seqVarSturm_ab_z_1 (p: Polynomial ℝ) (a b: ℝ) : signVariationsSturmAb 0 p a b = 0 := by
@@ -21,8 +20,6 @@ theorem seqVarSturm_ab_z_2 (p: Polynomial ℝ) (a b: ℝ) : signVariationsSturmA
   if H: p = 0 then simp [H]
   else
     simp [signVariationsSturmAb, signVariationsAb, seqEval, H]
-    rw [List.signVariations_singleton, List.signVariations_singleton]
-    norm_num
 
 lemma cauchyIndex_poly_taq (p q : Polynomial ℝ) (a b : ℝ) :
     tarskiQuery p q a b = cauchyIndex p (derivative p * q) a b := by
@@ -51,15 +48,14 @@ theorem changes_itv_smods_rec {a b : ℝ} {p q : Polynomial ℝ} (hpqa : eval a 
       obtain ⟨hap, haq⟩ := mul_ne_zero_iff.mp hpqa
       obtain ⟨hbp, hbq⟩ := mul_ne_zero_iff.mp hpqb
       have hS : sturmSeq p q = [p, q] := by
-        rw [sturmSeq_cons hpz, mod_minus, h, neg_zero, sturmSeq_zero_right, if_neg hqz]
+        rw [sturmSeq_cons hpz, mod_minus, h, neg_zero, sturmSeq_zero_right, ite_eq_right hqz]
       have hS' : sturmSeq q (-p % q) = [q] := by
-        rw [mod_minus, h, neg_zero, sturmSeq_zero_right, if_neg hqz]
+        rw [mod_minus, h, neg_zero, sturmSeq_zero_right, ite_eq_right hqz]
       simp only [signVariationsSturmAb, signVariationsAb, hS, hS', seqEval, List.map_cons,
         List.map_nil, cross, eval_mul, variation_mul_eq hap haq hbp hbq,
-        List.signVariations_cons_cons_of_ne_zero _ _ _ hap haq,
-        List.signVariations_cons_cons_of_ne_zero _ _ _ hbp hbq, List.signVariations_singleton]
-      push_cast
-      ring
+        List.signVariations_cons_cons_of_ne_zero _ hap haq,
+        List.signVariations_cons_cons_of_ne_zero _ hbp hbq, List.signVariations_singleton]
+      norm_num
    else
      simp only [not_or] at H
      have ⟨ps, httl, htlmod⟩ :
@@ -77,10 +73,9 @@ theorem changes_itv_smods_rec {a b : ℝ} {p q : Polynomial ℝ} (hpqa : eval a 
        obtain ⟨hbp, hbq⟩ := mul_ne_zero_iff.mp hpqb
        simp only [changes_diff, seqEval, List.map_cons, cross, eval_mul,
          variation_mul_eq hap haq hbp hbq,
-         List.signVariations_cons_cons_of_ne_zero _ _ _ hap haq,
-         List.signVariations_cons_cons_of_ne_zero _ _ _ hbp hbq]
-       push_cast
-       ring
+         List.signVariations_cons_cons_of_ne_zero _ hap haq,
+         List.signVariations_cons_cons_of_ne_zero _ hbp hbq]
+       norm_num
      unfold changes_diff at hf
      unfold signVariationsSturmAb
      rw [httl, htlmod, ← sub_eq_iff_eq_add]
@@ -208,10 +203,11 @@ lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') 
     rw [hS, hS2, hS3]
     simp only [seqEval, List.map_cons] at IH ⊢
     rw [hqa, List.signVariations_cons_zero_cons,
-      List.signVariations_cons_cons_of_ne_zero _ _ _ hpa hra0,
-      List.signVariations_cons_cons_of_ne_zero _ _ _ (ha' p hp_mem) (ha' q hq_mem),
-      List.signVariations_cons_cons_of_ne_zero _ _ _ (ha' q hq_mem) (ha' _ hr_mem),
-      ← hsign p hp_mem hpa, ← hsign _ hr_mem hra0, IH, hra, Left.sign_neg, ← add_assoc,
+      List.signVariations_cons_cons_of_ne_zero _ hpa hra0,
+      List.signVariations_cons_cons_of_ne_zero _ (ha' p hp_mem) (ha' q hq_mem),
+      List.signVariations_cons_cons_of_ne_zero _ (ha' q hq_mem) (ha' _ hr_mem),
+      ← hsign p hp_mem hpa, ← hsign _ hr_mem hra0, IH, hra, Left.sign_neg, add_assoc,
+      add_comm (if sign (eval a' q) = -sign (eval a p) then 0 else 1),
       signType_ite_add_ite _ _ (sign_ne_zero.mpr hpa) (sign_ne_zero.mpr (ha' q hq_mem))]
     simp [hpa]
   · -- the middle term is nonzero at `a`: one step of the sequence
@@ -221,8 +217,8 @@ lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') 
     rw [hS2] at IH
     rw [hS, hS2]
     simp only [seqEval, List.map_cons] at IH ⊢
-    rw [List.signVariations_cons_cons_of_ne_zero _ _ _ hpa hqa,
-      List.signVariations_cons_cons_of_ne_zero _ _ _ (ha' p hp_mem) (ha' q hq_mem),
+    rw [List.signVariations_cons_cons_of_ne_zero _ hpa hqa,
+      List.signVariations_cons_cons_of_ne_zero _ (ha' p hp_mem) (ha' q hq_mem),
       ← hsign p hp_mem hpa, ← hsign q hq_mem hqa, IH]
 
 lemma changes_itv_smods_congr (p q : Polynomial ℝ) (a a' b b' : ℝ) (hpa : eval a p ≠ 0)

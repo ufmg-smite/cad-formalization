@@ -1,73 +1,9 @@
 import Mathlib.Algebra.Polynomial.FieldDivision
-import Mathlib.Data.List.Destutter
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Sign.Basic
+import Mathlib.Data.List.SignVariations
+import Mathlib.Basic.Real.Basic
+import Mathlib.Basic.Sign.Basic
 
 open SignType
-
-namespace List
-
-variable {α : Type*} [Zero α] [LinearOrder α]
-
-def signVariations (l : List α) : ℕ :=
-  letI signs := l.map SignType.sign
-  letI nonzero_signs := signs.filter (· ≠ 0)
-  (nonzero_signs.destutter (· ≠ ·)).length - 1
-
-lemma signVariations_nil :
-    signVariations ([] : List α) = 0 := by
-  trivial
-
-lemma signVariations_singleton : ∀ (a : α),
-    signVariations [a] = 0 := by
-  intro a
-  if ha: a = 0 then
-    rw [ha]
-    simp [signVariations]
-  else
-    simp [signVariations, ha]
-
-lemma signVariations_zero_cons : ∀ (b : α) (as : List α),
-    signVariations (0 :: b :: as) = signVariations (b :: as) := by
-  simp [signVariations, filter]
-
-lemma signVariations_cons_zero_cons : ∀ (a : α) (as : List α),
-    signVariations (a :: 0 :: as) = signVariations (a :: as) := by
-  simp [signVariations, filter]
-
-lemma signVariations_cons_cons_of_ne_zero : ∀ (a b : α) (as : List α),
-    a ≠ 0 → b ≠ 0 →
-      signVariations (a :: b :: as) =
-        (if sign a = sign b then 0 else 1) + signVariations (b :: as) := by
-  intros a b as ha hb
-  have ha' : sign a ≠ 0 := by rwa [ne_eq, sign_eq_zero_iff]
-  have hb' : sign b ≠ 0 := by rwa [ne_eq, sign_eq_zero_iff]
-  have hf1 :
-      ((a :: b :: as).map sign).filter (· ≠ 0) =
-      sign a :: sign b :: (as.map sign).filter (· ≠ 0) := by
-    simp [ha', hb']
-  have hf2 : ((b :: as).map sign).filter (· ≠ 0) = sign b :: (as.map sign).filter (· ≠ 0) := by
-    simp [hb']
-  have hne : ((sign b :: (as.map sign).filter (· ≠ 0)).destutter (· ≠ ·)).length ≠ 0 := by
-    rw [ne_eq, length_eq_zero_iff, destutter_eq_nil]
-    simp
-  simp only [signVariations, hf1, hf2, destutter_cons_cons, ← destutter_cons']
-  by_cases h : sign a = sign b
-  · rw [if_neg (not_not.mpr h), if_pos h, h, zero_add]
-  · rw [if_pos h, if_neg h, length_cons]
-    omega
-
-/-- `signVariations` only depends on the signs of the entries, so it is invariant under any
-map that preserves signs (e.g. casts, or `sign` itself). -/
-lemma signVariations_map {β : Type*} [Zero β] [LinearOrder β] {f : α → β}
-    (hf : ∀ x, sign (f x) = sign x) (l : List α) :
-    signVariations (l.map f) = signVariations l := by
-  have : (l.map f).map sign = l.map sign := by
-    rw [map_map]
-    exact map_congr_left fun x _ => hf x
-  simp only [signVariations, this]
-
-end List
 
 /-! ### Facts about `SignType.sign` -/
 
@@ -111,13 +47,13 @@ variable {α : Type*} [Field α] [DecidableEq α]
 theorem termination_sturmSeq (f g : Polynomial α) (hf : f ≠ 0) :
     (if g = 0 then 0 else if -f % g = 0 then 1 else 2 + (-f % g).natDegree) <
     if f = 0 then 0 else if g = 0 then 1 else 2 + g.natDegree := by
-  rw [if_neg hf]
+  rw [ite_eq_right hf]
   by_cases hg : g = 0
   · simp [hg]
-  rw [if_neg hg, if_neg hg]
+  rw [ite_eq_right hg, ite_eq_right hg]
   by_cases hmod : -f % g = 0
-  · rw [if_pos hmod]; omega
-  rw [if_neg hmod]
+  · rw [ite_eq_left hmod]; omega
+  rw [ite_eq_right hmod]
   -- a nonzero constant divides everything, so `g` is not constant
   have hdeg : g.natDegree ≠ 0 := by
     intro h0

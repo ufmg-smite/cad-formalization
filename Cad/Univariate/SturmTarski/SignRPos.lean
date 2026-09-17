@@ -110,8 +110,8 @@ lemma signRPos_deriv (p : Polynomial ℝ) (x : ℝ) (hp : p ≠ 0) (hev : eval x
 lemma signRPos_add {x : ℝ} (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq_eval: eval x q ≠ 0) :
     (signRPos x (p + q) = signRPos x q) := by
   have hf : eval x (p + q) ≠ 0 := by rw [eval_add, hp_eval, zero_add]; exact hq_eval
-  rw [signRPos_rec (p + q) x (eval_non_zero _ x hf), if_neg hf,
-    signRPos_rec q x (eval_non_zero q x hq_eval), if_neg hq_eval, eval_add, hp_eval, zero_add]
+  rw [signRPos_rec (p + q) x (eval_non_zero _ x hf), ite_eq_right hf,
+    signRPos_rec q x (eval_non_zero q x hq_eval), ite_eq_right hq_eval, eval_add, hp_eval, zero_add]
 
 lemma signRPos_mod {x : ℝ} (p q: Polynomial ℝ) (hp_eval: eval x p = 0) (hq_eval: eval x q ≠ 0) :
     signRPos x (q % p) = signRPos x q := by

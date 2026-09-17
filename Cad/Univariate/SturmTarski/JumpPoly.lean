@@ -138,13 +138,13 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jumpVal p q x = jumpVal p (
           have hq0 : rootMultiplicity x q' = 0 :=
             hrm.resolve_right (Nat.pos_iff_ne_zero.mp ((rootMultiplicity_pos hz'.2).mpr hpx))
           exact fun h => hz'.1 (rootMultiplicity_eq_zero_iff.mp hq0 h)
-        simp only [jumpVal, hz'.2, hz'.1, hodd, hB, ne_eq, not_false_eq_true, and_self, if_true]
+        simp only [jumpVal, hz'.2, hz'.1, hodd, hB, ne_eq, not_false_eq_true, and_self, ite_eq_left]
         rw [signRPos_mult _ _ _ hz'.2 hz'.1, signRPos_mult _ _ _ hz'.2 hB.1,
           signRPos_mod p' q' hpx hqx]
       · have hB : ¬ (q' % p' ≠ 0 ∧ Odd (rootMultiplicity x p' - rootMultiplicity x (q' % p'))) := by
           rw [← hcond.2]; exact hodd
         simp only [jumpVal]
-        rw [if_neg (fun h => hodd h.2.2), if_neg (fun h => hB ⟨h.2.1, h.2.2⟩)]
+        rw [ite_eq_right (fun h => hodd h.2.2), ite_eq_right (fun h => hB ⟨h.2.1, h.2.2⟩)]
     clear *- h_ult hq' hp' hf hz'
     have h_mon_z :  (X - C x) ^ n ≠ 0:= by
       exact pow_ne_zero n (X_sub_C_ne_zero x)
@@ -168,7 +168,7 @@ lemma jump_poly_smult_1 (p q: Polynomial ℝ) (c x: ℝ) :
     signRPos_smult (p * q) x c hc (mul_ne_zero hp hq), hp, hq, hCq, ne_eq, not_false_eq_true,
     true_and]
   rcases lt_or_gt_of_ne hc with hc | hc
-  · simp only [sign_neg hc, not_lt.mpr (le_of_lt hc), if_false, SignType.coe_neg_one]
+  · simp only [sign_neg hc, not_lt.mpr (le_of_lt hc), ite_false, SignType.coe_neg_one]
     split_ifs <;> simp
   · simp [sign_pos hc, hc]
 
@@ -207,7 +207,7 @@ lemma jump_poly_1_mult_left {p q : Polynomial ℝ} {x : ℝ} (hp : eval x p ≠ 
     rw [rootMultiplicity_mul hpq, rootMultiplicity_eq_zero hp, zero_add]
   have h1 : rootMultiplicity x (1 : Polynomial ℝ) = 0 := rootMultiplicity_eq_zero (by simp)
   have hsr : signRPos x p ↔ 0 < eval x p := by
-    rw [signRPos_rec p x hp0, if_neg hp]
+    rw [signRPos_rec p x hp0, ite_eq_right hp]
   simp only [jumpVal, mul_one, hmul, h1, Nat.sub_zero, hpq, hq, one_ne_zero, ne_eq,
     not_false_eq_true, true_and, signRPos_mult _ _ _ hp0 hq, hsr]
   rcases lt_or_gt_of_ne hp with h | h
