@@ -150,7 +150,7 @@ lemma jump_poly_mod (p q: Polynomial ℝ) (x: ℝ) : jumpVal p q x = jumpVal p (
       exact pow_ne_zero n (X_sub_C_ne_zero x)
     rw [hp', hq']
     have h_mod : ((X - C x)^n * q') % ((X - C x)^n * p') = (X - C x)^n * (q' % p') :=
-      mod_mul q' p' ((X - C x) ^ n) h_mon_z
+      mul_mod_mul_left q' p' ((X - C x) ^ n) h_mon_z
     simp only [jump_poly_mult h_mon_z, h_mod]
     exact h_ult
 

@@ -63,16 +63,6 @@ lemma mul_C_eq_root_multiplicity (p: Polynomial ℝ) (c r: ℝ) (hc: ¬ c = 0):
   rw [roots_C_mul]
   exact hc
 
-theorem mod_mul (p q r : Polynomial ℝ) (hr : r ≠ 0) : (r * p) % (r * q) = r * (p % q) := by
-  rcases eq_or_ne q 0 with rfl | hq
-  · simp
-  · have h1 : (r * p) % (r * q) = (r * (p % q)) % (r * q) :=
-      mod_eq_of_dvd_sub ⟨p / q, by rw [← mul_sub, EuclideanDomain.mod_eq_sub_mul_div]; ring⟩
-    rw [h1, mod_eq_self_iff (mul_ne_zero hr hq), degree_mul, degree_mul]
-    exact WithBot.add_lt_add_left (degree_ne_bot.mpr hr) (degree_mod_lt p hq)
-
-lemma mod_minus (p q: Polynomial ℝ) : -p%q = -(p%q) := by rw [mod_def, mod_def, neg_modByMonic]
-
 lemma eval_neg_mod {p q : Polynomial ℝ} {x : ℝ} (hq : eval x q = 0) :
     eval x (-p % q) = -eval x p := by
   rw [mod_minus, eval_neg, eval_mod p q x hq]

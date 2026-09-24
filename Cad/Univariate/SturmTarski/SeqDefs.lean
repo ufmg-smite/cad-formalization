@@ -34,7 +34,21 @@ section SturmSeq
 
 open Polynomial
 
-variable {α : Type*} [Field α] [DecidableEq α]
+variable {α : Type*} [Field α]
+
+theorem mul_mod_mul_left (p q r : Polynomial α) (hr : r ≠ 0) :
+    (r * p) % (r * q) = r * (p % q) := by
+  rcases eq_or_ne q 0 with rfl | hq
+  · simp
+  · have h1 : (r * p) % (r * q) = (r * (p % q)) % (r * q) :=
+      mod_eq_of_dvd_sub ⟨p / q, by rw [← mul_sub, EuclideanDomain.mod_eq_sub_mul_div]; ring⟩
+    rw [h1, mod_eq_self_iff (mul_ne_zero hr hq), degree_mul, degree_mul]
+    exact WithBot.add_lt_add_left (degree_ne_bot.mpr hr) (degree_mod_lt p hq)
+
+lemma mod_minus (p q : Polynomial α) : -p % q = -(p % q) := by
+  rw [mod_def, mod_def, neg_modByMonic]
+
+variable [DecidableEq α]
 
 theorem termination_sturmSeq (f g : Polynomial α) (hf : f ≠ 0) :
     (if g = 0 then 0 else if -f % g = 0 then 1 else 2 + (-f % g).natDegree) <
@@ -98,6 +112,33 @@ lemma zero_notMem_sturmSeq (p q : Polynomial α) : 0 ∉ sturmSeq p q := by
   next p q hp ih =>
     rw [sturmSeq_cons hp]
     simp [Ne.symm hp, ih]
+
+/-- The first entry of the Sturm sequence of a nonzero polynomial is the polynomial itself. -/
+lemma head?_sturmSeq {p : Polynomial α} (hp : p ≠ 0) (q : Polynomial α) :
+    (sturmSeq p q).head? = some p := by
+  rw [sturmSeq_cons hp, List.head?_cons]
+
+/-- Every common divisor of `p` and `q` divides every entry of their Sturm sequence. In
+particular this holds for `gcd p q`. -/
+lemma dvd_of_mem_sturmSeq {d p q s : Polynomial α} (hp : d ∣ p) (hq : d ∣ q)
+    (hs : s ∈ sturmSeq p q) : d ∣ s := by
+  induction p, q using sturmSeq.induct
+  next q => simp at hs
+  next p q hp0 ih =>
+    rw [sturmSeq_cons hp0, List.mem_cons] at hs
+    rcases hs with rfl | hs
+    · exact hp
+    · exact ih hq ((EuclideanDomain.dvd_mod_iff hq).mpr (dvd_neg.mpr hp)) hs
+
+/-- Multiplying both arguments by a nonzero polynomial multiplies every entry of the Sturm
+sequence by it. -/
+lemma sturmSeq_mul_left {r : Polynomial α} (hr : r ≠ 0) (p q : Polynomial α) :
+    sturmSeq (r * p) (r * q) = (sturmSeq p q).map (r * ·) := by
+  induction p, q using sturmSeq.induct
+  next q => simp
+  next p q hp ih =>
+    rw [sturmSeq_cons (mul_ne_zero hr hp), sturmSeq_cons hp, List.map_cons, mod_minus,
+      mul_mod_mul_left _ _ _ hr, ← mul_neg, ← mod_minus, ih]
 
 end SturmSeq
 
