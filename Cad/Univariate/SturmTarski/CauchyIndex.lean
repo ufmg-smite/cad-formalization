@@ -275,10 +275,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b : ℝ} (hab : a < b) (hpa_nr
               have hl :
                   maxr_sign * cross p' a b + jumpVal p 1 maxr = - cross p' a b +
                   sign (eval b p') := by
-                have hsrpos: (signRPos maxr p') = (eval maxr p' > 0) := by
-                  rw [signRPos_rec p' maxr hp'z]
-                  simp [hmaxrp']
-                have hn: (eval maxr p' > 0) = (eval b p' > 0) := by
+                have hn : sign (eval maxr p') = sign (eval b p') := by
                   -- `p'` has no root in `(maxr, b)`, so its sign there is constant
                   have hprod : 0 ≤ eval maxr p' * eval b p' := by
                     by_contra! hneg
@@ -293,19 +290,13 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b : ℝ} (hab : a < b) (hpa_nr
                       exact ⟨⟨hp'z, hrp'⟩, lt_trans hmaxr_root.2.1 hr, hrb⟩
                     have : r ≤ maxr := Finset.le_max' (rootsInInterval p a b) r hrint
                     exact absurd hr (not_lt.mpr this)
-                  rw [eq_iff_iff, gt_iff_lt, gt_iff_lt, ← sign_eq_one_iff, ← sign_eq_one_iff,
-                    sign_eq_sign_of_mul_nonneg hmaxrp' hbp' hprod]
-                have hsrposmaxr: signRPos maxr maxrp := by
-                  rw [hmaxrp]
-                  exact signRPos_power maxr (rootMultiplicity maxr p)
-                unfold maxr_sign jumpVal
-                have haux: rootMultiplicity maxr 1 = 0 := by simp
-                simp [H', haux, hpz]
-                rw [mul_one, hp', signRPos_mult p' maxrp maxr hp'z maxrpz, hsrpos, hn]
-                simp [hsrposmaxr]
-                rcases lt_or_gt_of_ne hbp' with h | h
-                · simp [not_lt.mpr h.le, sign_neg h]
-                · simp [h, sign_pos h]
+                  exact sign_eq_sign_of_mul_nonneg hmaxrp' hbp' hprod
+                have hjump : jumpVal p 1 maxr = sign (eval b p') := by
+                  have haux : rootMultiplicity maxr 1 = 0 := by simp
+                  simp only [jumpVal, haux, Nat.sub_zero, H', ite_true, mul_one]
+                  rw [hp', signRight_mul, hmaxrp, signRight_X_sub_C_pow, mul_one,
+                    signRight_of_eval_ne_zero hmaxrp', hn]
+                simp only [maxr_sign, H', ite_true, hjump, neg_one_mul]
               have hvar :
                   variation (eval a p') (eval b p') + sign (eval a p') =
                   (-variation (eval a p') (eval b p')) + (sign (eval b p')) := by
@@ -340,7 +331,7 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b : ℝ} (hab : a < b) (hpa_nr
               unfold maxr_sign jumpVal
               have h_aux: rootMultiplicity maxr 1 = 0 := by simp
               have h_aux2: ¬ Odd (rootMultiplicity maxr p) := by simp [H']
-              simp [h_aux2, h_aux, hpz]
+              simp [h_aux2, h_aux]
               exact (Eq.symm hr)
           rw [hc_sum, hcross, hcross_jp]
         else

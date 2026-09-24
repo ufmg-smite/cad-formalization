@@ -46,12 +46,11 @@ lemma eval_non_zero (p: Polynomial ℝ) (x: ℝ) (h: eval x p ≠ 0) : p ≠ 0 :
   rintro rfl
   simp at h
 
-lemma derivative_ne_0 (p : Polynomial ℝ) (x : ℝ) (hev : eval x p = 0) (hp : p ≠ 0) :
-    derivative p ≠ 0 := by
-  intro abs
-  obtain ⟨c, rfl⟩ := natDegree_eq_zero.mp (derivative_eq_zero.mp abs)
-  simp at hev
-  simp [hev] at hp
+/-- A nonzero polynomial with a root has nonzero derivative. -/
+theorem derivative_ne_zero_of_isRoot {R : Type*} [CommRing R] [IsAddTorsionFree R] {p : R[X]}
+    {x : R} (hp : p ≠ 0)
+    (h : p.IsRoot x) : derivative p ≠ 0 :=
+  derivative_ne_zero.mpr (natDegree_pos_iff_degree_pos.mpr (degree_pos_of_root hp h)).ne'
 
 lemma eval_mod (p q: Polynomial ℝ) (x: ℝ) (h: eval x q = 0) : eval x (p % q) = eval x p := by
  have : eval x (p % q) = eval x (p / q * q) + eval x (p % q) := by simp; exact Or.inr h
@@ -147,20 +146,6 @@ lemma not_eq_pos_or_neg_iff_1 (p : Polynomial ℝ) (lb ub : ℝ) :
     exact h r ⟨lt_of_lt_of_le hz₁.1 (le_of_lt hr₁), le_trans (le_of_lt hr₂) hz₂.2⟩ hr₃
   · obtain ⟨r, hr₁, hr₂, hr₃⟩ := exists_root_ioo hle h₂' h₁'
     exact h r ⟨lt_of_lt_of_le hz₂.1 (le_of_lt hr₁), le_trans (le_of_lt hr₂) hz₁.2⟩ hr₃
-
-lemma exists_deriv_eq_slope_poly (a b : ℝ) (hab : a < b) (p : Polynomial ℝ) :
-    ∃ c : ℝ, a < c ∧ c < b ∧ eval b p - eval a p = (b - a) * eval c (derivative p) := by
-  obtain ⟨c, hc1, hc2⟩ :=
-    exists_deriv_eq_slope (a := a) (b := b) (fun x => eval x p) hab
-      (Polynomial.continuousOn_aeval p) (Polynomial.differentiableOn_aeval p)
-  simp at hc1
-  obtain ⟨hc_low, hc_high⟩ := hc1
-  use c
-  refine ⟨hc_low, hc_high, ?_⟩
-  rw [Polynomial.deriv] at hc2
-  rw [hc2]
-  have : (b - a) ≠ 0 := by linarith
-  field_simp
 
 /-! ### Behaviour at infinity -/
 
