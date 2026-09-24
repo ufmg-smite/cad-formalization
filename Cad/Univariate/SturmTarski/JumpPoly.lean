@@ -187,7 +187,7 @@ lemma jump_poly_1_mult_left {p q : Polynomial ℝ} {x : ℝ} (hp : eval x p ≠ 
     jumpVal (p * q) 1 x = sign (eval x p) * jumpVal q 1 x := by
   rcases eq_or_ne q 0 with rfl | hq
   · simp
-  have hp0 : p ≠ 0 := eval_non_zero p x hp
+  have hp0 : p ≠ 0 := by rintro rfl; simp at hp
   have hmul : rootMultiplicity x (p * q) = rootMultiplicity x q := by
     rw [rootMultiplicity_mul (mul_ne_zero hp0 hq), rootMultiplicity_eq_zero hp, zero_add]
   have h1 : rootMultiplicity x (1 : ℝ[X]) = 0 := rootMultiplicity_eq_zero (by simp)

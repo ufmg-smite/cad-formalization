@@ -18,12 +18,11 @@ theorem exists_eventually_sign_eq (x : ℝ) (p : ℝ[X]) :
     ∃ s : SignType, ∀ᶠ y in 𝓝[>] x, sign (eval y p) = s := by
   rcases eq_or_ne p 0 with rfl | hp
   · exact ⟨0, Eventually.of_forall fun y => by simp⟩
-  obtain ⟨b, hb, hb2⟩ := next_non_root_interval p x hp
-  rcases (not_eq_pos_or_neg_iff_1 p x b).mp hb2 with h | h
-  · exact ⟨-1, mem_nhdsGT_iff_exists_Ioo_subset.mpr
-      ⟨b, hb, fun y hy => sign_neg (h y ⟨hy.1, le_of_lt hy.2⟩)⟩⟩
-  · exact ⟨1, mem_nhdsGT_iff_exists_Ioo_subset.mpr
-      ⟨b, hb, fun y hy => sign_pos (h y ⟨hy.1, le_of_lt hy.2⟩)⟩⟩
+  obtain ⟨b, hb, hsub⟩ :=
+    mem_nhdsGT_iff_exists_Ioo_subset.mp (eventually_eval_ne_zero_right hp x)
+  rcases eval_neg_or_eval_pos_of_forall_ne_zero (fun z hz => hsub hz) with h | h
+  · exact ⟨-1, mem_nhdsGT_iff_exists_Ioo_subset.mpr ⟨b, hb, fun y hy => sign_neg (h y hy)⟩⟩
+  · exact ⟨1, mem_nhdsGT_iff_exists_Ioo_subset.mpr ⟨b, hb, fun y hy => sign_pos (h y hy)⟩⟩
 
 /-- The sign of `p` immediately to the right of `x`: the eventual value of `sign (eval y p)` as
 `y → x` from the right. -/
@@ -51,9 +50,8 @@ theorem signRight_zero (x : ℝ) : signRight x 0 = 0 :=
   signRight_eq_of_eventually (Eventually.of_forall fun _ => by simp)
 
 theorem signRight_ne_zero {x : ℝ} {p : ℝ[X]} (hp : p ≠ 0) : signRight x p ≠ 0 := by
-  have h : ∀ᶠ y in 𝓝[>] x, eval y p ≠ 0 :=
-    (eventually_eval_ne_zero hp x).filter_mono (nhdsGT_le_nhdsNE x)
-  obtain ⟨y, hy1, hy2⟩ := ((eventually_sign_eq_signRight x p).and h).exists
+  obtain ⟨y, hy1, hy2⟩ :=
+    ((eventually_sign_eq_signRight x p).and (eventually_eval_ne_zero_right hp x)).exists
   rw [← hy1]
   exact sign_ne_zero.mpr hy2
 

@@ -67,7 +67,8 @@ theorem sturm_tarski_above (a : ℝ) (p q : Polynomial ℝ) (hpa : eval a p ≠ 
     tarskiQueryAbove p q a = signVariationsAboveSturm p (derivative p * q) a := by
   obtain ⟨ub, hroots, hab, hsign⟩ :=
     root_list_ub (sturmSeq p (derivative p * q)) a (zero_notMem_sturmSeq _ _)
-  have hp_mem := mem_sturmSeq_self (q := derivative p * q) (eval_non_zero p a hpa)
+  have hp0 : p ≠ 0 := by rintro rfl; simp at hpa
+  have hp_mem := mem_sturmSeq_self (q := derivative p * q) hp0
   have hpub : eval ub p ≠ 0 := fun h => lt_irrefl ub (hroots p hp_mem ub h)
   have taq : tarskiQueryAbove p q a = tarskiQuery p q a ub := by
     unfold tarskiQueryAbove tarskiQuery
@@ -80,7 +81,8 @@ theorem sturm_tarski_below (b : ℝ) (p q : Polynomial ℝ) (hpb : eval b p ≠ 
     tarskiQueryBelow p q b = signVariationsBelowSturm p (derivative p * q) b := by
   obtain ⟨lb, hroots, hlb, hsign⟩ :=
     root_list_lb (sturmSeq p (derivative p * q)) b (zero_notMem_sturmSeq _ _)
-  have hp_mem := mem_sturmSeq_self (q := derivative p * q) (eval_non_zero p b hpb)
+  have hp0 : p ≠ 0 := by rintro rfl; simp at hpb
+  have hp_mem := mem_sturmSeq_self (q := derivative p * q) hp0
   have hplb : eval lb p ≠ 0 := fun h => lt_irrefl lb (hroots p hp_mem lb h)
   have taq : tarskiQueryBelow p q b = tarskiQuery p q lb b := by
     unfold tarskiQueryBelow tarskiQuery

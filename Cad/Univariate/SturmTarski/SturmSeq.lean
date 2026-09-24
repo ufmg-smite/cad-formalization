@@ -156,7 +156,7 @@ lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') 
       List.signVariations (seqEval a' (sturmSeq p q)) := by
   induction hn : (sturmSeq p q).length using Nat.strong_induction_on generalizing p q with
   | _ n ih =>
-  have p_ne : p ≠ 0 := eval_non_zero p a hpa
+  have p_ne : p ≠ 0 := by rintro rfl; simp at hpa
   -- `a'` lies in the root-free interval, so nothing in the sequence vanishes at `a'`
   have ha' : ∀ pp ∈ sturmSeq p q, eval a' pp ≠ 0 := by
     intro pp hpp
@@ -191,7 +191,7 @@ lemma changes_smods_congr (p q : Polynomial ℝ) (a a' : ℝ) (haa' : a ≠ a') 
     have hra0 : eval a (-p % q) ≠ 0 := by rw [hra]; exact neg_ne_zero.mpr hpa
     have hS3 : sturmSeq (-p % q) (-q % (-p % q)) =
         (-p % q) :: sturmSeq (-q % (-p % q)) (-(-p % q) % (-q % (-p % q))) :=
-      sturmSeq_cons (eval_non_zero _ a hra0)
+      sturmSeq_cons (fun h0 => hra0 (h0 ▸ eval_zero))
     have hr_mem : -p % q ∈ sturmSeq p q := by rw [hS, hS2, hS3]; simp
     have hlen : (sturmSeq (-p % q) (-q % (-p % q))).length < n := by
       rw [← hn, hS, hS2]; simp

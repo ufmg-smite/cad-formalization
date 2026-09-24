@@ -135,7 +135,7 @@ theorem cindex_poly_mult {p q p': Polynomial ℝ} {a b: ℝ} (hp' : p' ≠ 0) :
 theorem cindex_poly_cross {p : Polynomial ℝ} {a b : ℝ} (hab : a < b) (hpa_nroot : eval a p ≠ 0)
     (hpb_nroot : eval b p ≠ 0) :
     cauchyIndex p 1 a b = cross p a b := by
-  have hpz : p ≠ 0 := eval_non_zero p a hpa_nroot
+  have hpz : p ≠ 0 := by rintro rfl; simp at hpa_nroot
   induction hp: p.natDegree using Nat.strong_induction_on generalizing p with
   | _ k ih  =>
     cases k with
@@ -163,8 +163,8 @@ theorem cindex_poly_cross {p : Polynomial ℝ} {a b : ℝ} (hab : a < b) (hpa_nr
           rw [eval_mul] at hpa' hpb'
           obtain ⟨hap', hamaxrp⟩ := mul_ne_zero_iff.mp hpa'
           obtain ⟨hbp', hbmaxrp⟩ := mul_ne_zero_iff.mp hpb'
-          have hp'z : p' ≠ 0 := eval_non_zero p' a hap'
-          have maxrpz : maxrp ≠ 0 := eval_non_zero maxrp a hamaxrp
+          have hp'z : p' ≠ 0 := by rintro rfl; simp at hap'
+          have maxrpz : maxrp ≠ 0 := fun h => hamaxrp (by rw [h, eval_zero])
           have hmaxrp' : eval maxr p' ≠ 0 := (not_imp_not.mpr (dvd_iff_isRoot.mpr)) hmonon_nvdv
           have hmulrz :
               rootMultiplicity maxr p > 0 :=

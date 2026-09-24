@@ -42,10 +42,6 @@ lemma rootsInInterval_mul {p q : Polynomial ℝ} (a b : ℝ) (hpq : p * q ≠ 0)
 
 /-! ### Algebraic facts -/
 
-lemma eval_non_zero (p: Polynomial ℝ) (x: ℝ) (h: eval x p ≠ 0) : p ≠ 0 := by
-  rintro rfl
-  simp at h
-
 /-- A nonzero polynomial with a root has nonzero derivative. -/
 theorem derivative_ne_zero_of_isRoot {R : Type*} [CommRing R] [IsAddTorsionFree R] {p : R[X]}
     {x : R} (hp : p ≠ 0)
@@ -96,6 +92,11 @@ lemma eventually_eval_ne_zero {p : Polynomial ℝ} (hp : p ≠ 0) (x : ℝ) :
   filter_upwards [nhdsWithin_le_nhds hmem, self_mem_nhdsWithin] with z hz hzx h0
   exact hz ⟨h0, hzx⟩
 
+/-- A nonzero polynomial has no roots immediately to the right of any point. -/
+lemma eventually_eval_ne_zero_right {p : Polynomial ℝ} (hp : p ≠ 0) (x : ℝ) :
+    ∀ᶠ z in 𝓝[>] x, eval z p ≠ 0 :=
+  (eventually_eval_ne_zero hp x).filter_mono (nhdsGT_le_nhdsNE x)
+
 lemma next_non_root_interval (p : Polynomial ℝ) (lb : ℝ) (hp : p ≠ 0) :
     ∃ ub : ℝ, lb < ub ∧ (∀ z ∈ Ioc lb ub, eval z p ≠ 0) := by
   obtain ⟨u, hu, hsub⟩ := mem_nhdsGT_iff_exists_Ioo_subset.mp
@@ -110,42 +111,32 @@ lemma last_non_root_interval (p : Polynomial ℝ) (ub : ℝ) (hp : p ≠ 0) :
   have hl : l < ub := hl
   exact ⟨(l + ub) / 2, by linarith, fun z hz => hsub ⟨by linarith [hz.1], hz.2⟩⟩
 
-theorem exists_root_ioo {p : Polynomial ℝ} {a b : ℝ} (hab : a ≤ b) (hap : eval a p < 0)
-    (hbp : 0 < eval b p) :
-    ∃ r : ℝ, a < r ∧ r < b ∧ eval r p = 0 := by
-  obtain ⟨x, ⟨hxa, hxb⟩, hx⟩ := intermediate_value_Ioo hab p.continuousOn ⟨hap, hbp⟩
-  exact ⟨x, hxa, hxb, hx⟩
-
-theorem exists_root_ioo' {p : Polynomial ℝ} {a b : ℝ} (hab : a ≤ b) (hap : 0 < eval a p)
-    (hbp : eval b p < 0) :
-    ∃ r : ℝ, a < r ∧ r < b ∧ eval r p = 0 := by
-  obtain ⟨x, ⟨hxa, hxb⟩, hx⟩ := intermediate_value_Ioo' hab p.continuousOn ⟨hbp, hap⟩
-  exact ⟨x, hxa, hxb, hx⟩
-
+/-- If a polynomial takes values of opposite signs at `a ≤ b`, it has a root strictly between
+them (intermediate value theorem). -/
 theorem exists_root_ioo_mul {p : Polynomial ℝ} {a b : ℝ} (hab : a ≤ b)
-    (hap : (eval a p) * (eval b p) < 0) :
+    (hap : eval a p * eval b p < 0) :
     ∃ r : ℝ, a < r ∧ r < b ∧ eval r p = 0 := by
-  if H: eval a p > 0 then
-    have haux: eval b p < 0 := by nlinarith
-    exact exists_root_ioo' hab H haux
-  else
-    have haux1: eval b p > 0 := by nlinarith
-    have haux: eval a p < 0 := by nlinarith
-    exact exists_root_ioo hab haux haux1
+  rcases lt_or_gt_of_ne (left_ne_zero_of_mul hap.ne) with ha | ha
+  · have hb : 0 < eval b p := pos_of_mul_neg_right hap ha.le
+    obtain ⟨r, ⟨har, hrb⟩, hr⟩ := intermediate_value_Ioo hab p.continuousOn ⟨ha, hb⟩
+    exact ⟨r, har, hrb, hr⟩
+  · have hb : eval b p < 0 := neg_of_mul_neg_right hap ha.le
+    obtain ⟨r, ⟨har, hrb⟩, hr⟩ := intermediate_value_Ioo' hab p.continuousOn ⟨hb, ha⟩
+    exact ⟨r, har, hrb, hr⟩
 
-lemma not_eq_pos_or_neg_iff_1 (p : Polynomial ℝ) (lb ub : ℝ) :
-    (∀ z ∈ Ioc lb ub, eval z p ≠ 0) ↔ ((∀ z ∈ Ioc lb ub, eval z p < 0) ∨ (∀ z ∈ Ioc lb ub,
-      0 < eval z p)) := by
-  refine ⟨fun h => ?_, fun h z hz => h.elim (fun h => (h z hz).ne) (fun h => (h z hz).ne')⟩
+/-- On an open interval containing no root of `p`, the sign of `p` is constant. -/
+lemma eval_neg_or_eval_pos_of_forall_ne_zero {p : Polynomial ℝ} {a b : ℝ}
+    (h : ∀ z ∈ Ioo a b, eval z p ≠ 0) :
+    (∀ z ∈ Ioo a b, eval z p < 0) ∨ (∀ z ∈ Ioo a b, 0 < eval z p) := by
   by_contra! hcon
   obtain ⟨⟨z₁, hz₁, h₁⟩, ⟨z₂, hz₂, h₂⟩⟩ := hcon
   have h₁' : 0 < eval z₁ p := lt_of_le_of_ne h₁ (h z₁ hz₁).symm
   have h₂' : eval z₂ p < 0 := lt_of_le_of_ne h₂ (h z₂ hz₂)
   rcases le_total z₁ z₂ with hle | hle
-  · obtain ⟨r, hr₁, hr₂, hr₃⟩ := exists_root_ioo' hle h₁' h₂'
-    exact h r ⟨lt_of_lt_of_le hz₁.1 (le_of_lt hr₁), le_trans (le_of_lt hr₂) hz₂.2⟩ hr₃
-  · obtain ⟨r, hr₁, hr₂, hr₃⟩ := exists_root_ioo hle h₂' h₁'
-    exact h r ⟨lt_of_lt_of_le hz₂.1 (le_of_lt hr₁), le_trans (le_of_lt hr₂) hz₁.2⟩ hr₃
+  · obtain ⟨r, hr₁, hr₂, hr₃⟩ := exists_root_ioo_mul hle (mul_neg_of_pos_of_neg h₁' h₂')
+    exact h r ⟨lt_trans hz₁.1 hr₁, lt_trans hr₂ hz₂.2⟩ hr₃
+  · obtain ⟨r, hr₁, hr₂, hr₃⟩ := exists_root_ioo_mul hle (mul_neg_of_neg_of_pos h₂' h₁')
+    exact h r ⟨lt_trans hz₂.1 hr₁, lt_trans hr₂ hz₁.2⟩ hr₃
 
 /-! ### Behaviour at infinity -/
 
