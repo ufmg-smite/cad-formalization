@@ -83,22 +83,17 @@ lemma sign_inf_comp (p : Polynomial ℝ) :
 
 /-! ### Root-free neighbourhoods and the intermediate value theorem -/
 
-/-- A nonzero polynomial has no roots in a punctured neighbourhood of any point. -/
-lemma eventually_eval_ne_zero {p : Polynomial ℝ} (hp : p ≠ 0) (x : ℝ) :
-    ∀ᶠ z in 𝓝[≠] x, eval z p ≠ 0 :=
-  (eventually_eval_ne_zero_codiscrete hp).filter_mono (nhdsNE_le_codiscrete x)
-
 lemma next_non_root_interval (p : Polynomial ℝ) (lb : ℝ) (hp : p ≠ 0) :
     ∃ ub : ℝ, lb < ub ∧ (∀ z ∈ Ioc lb ub, eval z p ≠ 0) := by
   obtain ⟨u, hu, hsub⟩ := mem_nhdsGT_iff_exists_Ioo_subset.mp
-    ((eventually_eval_ne_zero hp lb).filter_mono (nhdsGT_le_nhdsNE lb))
+    ((eventually_eval_ne_zero_codiscrete hp).filter_mono ((nhdsGT_le_nhdsNE lb).trans (nhdsNE_le_codiscrete lb)))
   have hu : lb < u := hu
   exact ⟨(lb + u) / 2, by linarith, fun z hz => hsub ⟨hz.1, by linarith [hz.2]⟩⟩
 
 lemma last_non_root_interval (p : Polynomial ℝ) (ub : ℝ) (hp : p ≠ 0) :
     ∃ lb : ℝ, lb < ub ∧ (∀ z ∈ Ico lb ub, eval z p ≠ 0) := by
   obtain ⟨l, hl, hsub⟩ := mem_nhdsLT_iff_exists_Ioo_subset.mp
-    ((eventually_eval_ne_zero hp ub).filter_mono (nhdsLT_le_nhdsNE ub))
+    ((eventually_eval_ne_zero_codiscrete hp).filter_mono ((nhdsLT_le_nhdsNE ub).trans (nhdsNE_le_codiscrete ub)))
   have hl : l < ub := hl
   exact ⟨(l + ub) / 2, by linarith, fun z hz => hsub ⟨by linarith [hz.1], hz.2⟩⟩
 

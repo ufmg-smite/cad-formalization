@@ -19,7 +19,8 @@ theorem exists_eventually_sign_eq (x : ℝ) (p : ℝ[X]) :
   rcases eq_or_ne p 0 with rfl | hp
   · exact ⟨0, Eventually.of_forall fun y => by simp⟩
   obtain ⟨b, hb, hsub⟩ := mem_nhdsGT_iff_exists_Ioo_subset.mp
-    ((eventually_eval_ne_zero hp x).filter_mono (nhdsGT_le_nhdsNE x))
+    ((eventually_eval_ne_zero_codiscrete hp).filter_mono
+      ((nhdsGT_le_nhdsNE x).trans (nhdsNE_le_codiscrete x)))
   rcases eval_neg_or_eval_pos_of_forall_ne_zero (fun z hz => hsub hz) with h | h
   · exact ⟨-1, mem_nhdsGT_iff_exists_Ioo_subset.mpr ⟨b, hb, fun y hy => sign_neg (h y hy)⟩⟩
   · exact ⟨1, mem_nhdsGT_iff_exists_Ioo_subset.mpr ⟨b, hb, fun y hy => sign_pos (h y hy)⟩⟩
@@ -51,7 +52,8 @@ theorem signRight_zero (x : ℝ) : signRight x 0 = 0 :=
 
 theorem signRight_ne_zero {x : ℝ} {p : ℝ[X]} (hp : p ≠ 0) : signRight x p ≠ 0 := by
   obtain ⟨y, hy1, hy2⟩ := ((eventually_sign_eq_signRight x p).and
-    ((eventually_eval_ne_zero hp x).filter_mono (nhdsGT_le_nhdsNE x))).exists
+    ((eventually_eval_ne_zero_codiscrete hp).filter_mono
+      ((nhdsGT_le_nhdsNE x).trans (nhdsNE_le_codiscrete x)))).exists
   rw [← hy1]
   exact sign_ne_zero.mpr hy2
 
