@@ -85,17 +85,8 @@ lemma sign_inf_comp (p : Polynomial ℝ) :
 
 /-- A nonzero polynomial has no roots in a punctured neighbourhood of any point. -/
 lemma eventually_eval_ne_zero {p : Polynomial ℝ} (hp : p ≠ 0) (x : ℝ) :
-    ∀ᶠ z in 𝓝[≠] x, eval z p ≠ 0 := by
-  have hfin : ({z | IsRoot p z} \ {x}).Finite := (finite_setOfPred_isRoot hp).sdiff
-  have hmem : ({z | IsRoot p z} \ {x})ᶜ ∈ 𝓝 x :=
-    hfin.isClosed.isOpen_compl.mem_nhds (by simp)
-  filter_upwards [nhdsWithin_le_nhds hmem, self_mem_nhdsWithin] with z hz hzx h0
-  exact hz ⟨h0, hzx⟩
-
-/-- A nonzero polynomial has no roots immediately to the right of any point. -/
-lemma eventually_eval_ne_zero_right {p : Polynomial ℝ} (hp : p ≠ 0) (x : ℝ) :
-    ∀ᶠ z in 𝓝[>] x, eval z p ≠ 0 :=
-  (eventually_eval_ne_zero hp x).filter_mono (nhdsGT_le_nhdsNE x)
+    ∀ᶠ z in 𝓝[≠] x, eval z p ≠ 0 :=
+  (eventually_eval_ne_zero_codiscrete hp).filter_mono (nhdsNE_le_codiscrete x)
 
 lemma next_non_root_interval (p : Polynomial ℝ) (lb : ℝ) (hp : p ≠ 0) :
     ∃ ub : ℝ, lb < ub ∧ (∀ z ∈ Ioc lb ub, eval z p ≠ 0) := by
